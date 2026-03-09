@@ -122,8 +122,12 @@
   }
   body {
     @apply bg-background text-foreground;
+    margin: 2rem
   }
   html {
     @apply font-mono;
   }
+}
+.input-admin{
+  max-width: 300px;
 }
