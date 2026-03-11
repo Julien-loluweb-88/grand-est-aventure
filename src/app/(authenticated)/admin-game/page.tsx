@@ -31,7 +31,7 @@ export default function Home() {
     const { data, error } = await authClient.signIn.email({
       email: signInForm.email,
       password: signInForm.password,
-      callbackURL: "/dashboard",
+      callbackURL: "/admin-game/dashboard",
     })
     setLoading(false)
 
@@ -40,7 +40,7 @@ export default function Home() {
       return
     }
     console.log(data)
-    router.push("/dashboard")
+    router.push("/admin-game/dashboard")
   }
 
   // Inscription 
@@ -67,7 +67,7 @@ export default function Home() {
   }
 
   console.log(data)
-  router.push("/dashboard")
+  router.push("/admin-game/dashboard")
   }
 
   return (
