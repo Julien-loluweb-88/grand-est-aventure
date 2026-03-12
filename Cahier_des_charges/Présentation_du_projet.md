@@ -12,15 +12,17 @@ C'est une interface d'admin. Cette interface permettra aux administrateurs de g�
 - Analyser des utilisateurs
 - L'application couvrira les modules suivants : authentification, tableau de bord, gestion des utilisateurs, du contenu et paramètres
 - Authentification par google(optionnel)
+- Gérer des aventures
 
 ## MVP
 
 1. Gérer d'inscription et accès des admins et des supers admins
 2. CRUD des infomations des urilisateurs, du contenu
-3. La tableau de bord
-4. Analyser des utilisateurs actifs
-5. Logs et supervision système
-6. Paramètre de sécurité et des rôles
+3. Rôle user, admin, super admin
+4. La tableau de bord
+5. Analyser des utilisateurs actifs
+6. Logs et supervision système
+7. Paramètre de sécurité et des rôles
 
 ## Technologie utiliser
 
