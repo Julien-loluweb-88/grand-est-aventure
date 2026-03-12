@@ -19,6 +19,8 @@ C'est une interface d'admin. Cette interface permettra aux administrateurs de g�
 2. CRUD des infomations des urilisateurs, du contenu
 3. La tableau de bord
 4. Analyser des utilisateurs actifs
+5. Logs et supervision système
+6. Paramètre de sécurité et des rôles
 
 ## Technologie utiliser
 
