@@ -1,24 +1,22 @@
 "use client"
-import { authClient } from "@/lib/auth-client"
 
-import { useState } from "react"
+import { authClient } from "@/lib/auth-client"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LoginFormComponent, SignUpFormComponent } from "@/components/login-form"
-import { redirect } from "next/navigation"
+
+const ADMIN_ROLES = ["admin", "superadmin"] as const
 
 export default function Home() {
-  const {
-    data: session,
-  } = authClient.useSession()
-
-  console.log("je suis la session", session)
-
+  const { data: session } = authClient.useSession()
   const router = useRouter()
 
-  if (session && session.user.role === "admin") {
-    redirect("/admin-game/dashboard")
-  }
+  useEffect(() => {
+    if (session?.user?.role && ADMIN_ROLES.includes(session.user.role as (typeof ADMIN_ROLES)[number])) {
+      router.replace("/admin-game/dashboard")
+    }
+  }, [session, router])
   // State Inscription 
   const [signUpForm, setSignUpForm] = useState({
     name: "",

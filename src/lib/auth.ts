@@ -12,11 +12,20 @@ export const auth = betterAuth({
     database: prismaAdapter(prisma, {
         provider: "postgresql",
     }),
+
     emailAndPassword: {
         enabled: true,
     },
     plugins: [
         adminPlugin({
+            user: {
+                additionalFields: {
+                    role: {
+                        type: "string",
+                        input: false
+                    },
+                }
+            },
             ac,
             roles: {
                 admin,
