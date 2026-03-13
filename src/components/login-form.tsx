@@ -204,7 +204,7 @@ export function SignUpFormComponent({
 
               <Field className="flex flex-col gap-3">
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Connexion..." : "Login"}
+                  {loading ? "Connexion..." : "Inscription"}
                 </Button>
 
                 <Button variant="outline" type="button">

@@ -19,10 +19,12 @@ C'est une interface d'admin. Cette interface permettra aux administrateurs de g�
 1. Gérer d'inscription et accès des admins et des supers admins
 2. CRUD des infomations des urilisateurs, du contenu
 3. Rôle user, admin, super admin
-4. La tableau de bord
-5. Analyser des utilisateurs actifs
-6. Logs et supervision système
-7. Paramètre de sécurité et des rôles
+4. Paramètre de sécurité et des rôles
+5. Middleware
+6. La tableau de bord
+7. Analyser des utilisateurs actifs
+8. Logs et supervision système
+
 
 ## Technologie utiliser
 
