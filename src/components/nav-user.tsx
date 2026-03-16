@@ -1,5 +1,6 @@
 "use client"
-
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 import {
   Avatar,
   AvatarFallback,
@@ -32,6 +33,7 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter();
 
   return (
     <SidebarMenu>
@@ -98,10 +100,21 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem 
+            onClick={async () => {
+              await authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                  router.push("/admin-game")
+                  },
+                },
+              })
+            }}
+            className="text-red-500"
+            >
               <SignOutIcon
               />
-              Log out
+              Déconnexion
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

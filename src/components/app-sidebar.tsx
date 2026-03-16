@@ -24,12 +24,12 @@ const data = {
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "GrandEst",
       logo: (
         <RowsIcon
         />
       ),
-      plan: "Enterprise",
+      plan: "aventure",
     },
     {
       name: "Acme Corp.",
@@ -50,8 +50,8 @@ const data = {
   ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
+      title: "Utilisateurs",
+      url: "/admin-game/dashboard/utilisateurs",
       icon: (
         <TerminalIcon
         />
@@ -59,44 +59,18 @@ const data = {
       isActive: true,
       items: [
         {
-          title: "History",
-          url: "#",
+          title: "Utilisateurs",
+          url: "/admin-game/dashboard/utilisateurs",
         },
         {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
+          title: "Log",
           url: "#",
         },
       ],
     },
     {
-      title: "Models",
-      url: "#",
-      icon: (
-        <RobotIcon
-        />
-      ),
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
+      title: "Aventures",
+      url: "/admin-game/dashboard/aventures",
       icon: (
         <BookOpenIcon
         />
