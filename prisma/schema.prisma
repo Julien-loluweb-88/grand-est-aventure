@@ -17,6 +17,11 @@ model User {
   id            String          @id
   email         String    @unique
   name          String?
+  address       String?
+  postalCode    String?
+  city          String?
+  country       String?
+  phone         String? 
   emailVerified Boolean   @default(false)
   image         String?
   role          String?   @default("user")

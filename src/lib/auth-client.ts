@@ -12,6 +12,10 @@ export const authClient = createAuthClient({
                         type: "string",
                         input: false,
                     },
+                    city: {
+                        type: "string",
+                        input: false,
+                    },
                 },
             },
             ac,
