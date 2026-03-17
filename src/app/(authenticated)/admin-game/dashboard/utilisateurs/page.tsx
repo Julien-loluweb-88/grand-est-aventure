@@ -60,6 +60,7 @@ useEffect(() => {
         <TableRow>
           <TableHead>Nom</TableHead>
           <TableHead>Email</TableHead>
+          <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
@@ -68,6 +69,11 @@ useEffect(() => {
           <TableRow key={user.id}>
             <TableCell className="font-medium">{user.name}</TableCell>
             <TableCell>{user.email}</TableCell>
+            <TableCell>{user.banned ? (
+              <span>Banned</span>) : (
+              <span>Active</span>
+              )}
+              </TableCell>
             <TableCell className="text-right">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -81,7 +87,24 @@ useEffect(() => {
                   onClick={ ()=> {
                     router.push(`/admin-game/dashboard/utilisateurs/${user.id}`)
                   }}>Voir</DropdownMenuItem>
-                  <DropdownMenuItem>Bloquer</DropdownMenuItem>
+                  <DropdownMenuItem
+                  onClick={async(e) => {
+                    e.preventDefault();
+                    try{
+                      await authClient.admin.banUser({
+                      userId: user.id, // required
+                      banReason: "Spamming",
+                     banExpiresIn: 60 * 60 * 24 * 7,
+                    });
+                   
+                    alert("User a bloqué");
+                    } catch (error){
+                      console.error(error);
+                      alert("Erreur lors du ban");
+                    }
+                    }}>
+                      Bloquer
+                      </DropdownMenuItem>
                   <DropdownMenuItem variant="destructive">
                     Supprimer
                   </DropdownMenuItem>

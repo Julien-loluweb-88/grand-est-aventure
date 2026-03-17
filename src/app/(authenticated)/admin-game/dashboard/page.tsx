@@ -17,15 +17,4 @@ export default async function Page() {
   );
 }
 
-/* const page = async () => {
 
-    const session = await auth.api.getSession({
-        headers: await headers() // you need to pass the headers object.
-    })
-    console.log(session)
-    const data = await getData()
-  return <div>dashboard</div>
-  
-};
-
-export default page; */

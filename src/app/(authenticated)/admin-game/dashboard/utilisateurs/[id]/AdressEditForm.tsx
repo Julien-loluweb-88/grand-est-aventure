@@ -50,7 +50,7 @@ export function AddressEditForm({ user }: { user: User }) {
     <FieldGroup>
       <Field>
         <FieldLabel htmlFor="fieldgroup-adress">Adresse</FieldLabel>
-        <Input
+        <Input className="!w-100"
           id="fieldgroup-address"
           type="text"
           placeholder="1 rue des champs"
@@ -58,7 +58,7 @@ export function AddressEditForm({ user }: { user: User }) {
           onChange={(e) => setForm({ ...form, address: e.target.value })}
         />
       <FieldLabel htmlFor="fieldgroup-postalCode">Code Postal</FieldLabel>
-        <Input
+        <Input className="!w-40"
           id="fieldgroup-postalCode"
           type="text"
           placeholder="12345"
@@ -67,7 +67,7 @@ export function AddressEditForm({ user }: { user: User }) {
 
         />
         <FieldLabel htmlFor="fieldgroup-city">Ville</FieldLabel>
-        <Input
+        <Input className="!w-50"
           id="fieldgroup-city"
           type="text"
           placeholder="Paris"
@@ -76,12 +76,21 @@ export function AddressEditForm({ user }: { user: User }) {
 
         />
         <FieldLabel htmlFor="fieldgroup-country">Pays</FieldLabel>
-        <Input
+        <Input className="!w-50"
           id="fieldgroup-country"
           type="text"
           placeholder="France"
           defaultValue={form.country}
           onChange={(e) => setForm({ ...form, country: e.target.value })}
+
+        />
+        <FieldLabel htmlFor="fieldgroup-phone">Numéro de téléphone</FieldLabel>
+        <Input className="!w-50"
+          id="fieldgroup-phone"
+          type="text"
+          placeholder="00 00 00 00 00 "
+          defaultValue={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
 
         />
       </Field>
