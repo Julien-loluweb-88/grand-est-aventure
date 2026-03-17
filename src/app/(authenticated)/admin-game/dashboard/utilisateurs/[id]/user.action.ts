@@ -1,7 +1,9 @@
 "use server"
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-
+import { durationToSeconds } from "@/utils/durationToSeconds";
+import { dateToSeconds } from "@/utils/dateToSeconds";
+import { revalidatePath } from "next/cache";
 export async function getUserById(id: string) {
     const user = await auth.api.getUser({
         query: {
@@ -43,3 +45,36 @@ export async function updateUser(data: {
     console.log("result",result)
     return result
   }
+
+export async function banUser(
+  userId: string,
+  motif: string,
+  duration: string,
+  customEndDate?: string
+) {
+  const banExpiresIn =
+    duration === "other" && customEndDate
+      ? dateToSeconds(customEndDate)
+      : durationToSeconds(duration);
+  await auth.api.banUser({
+    body: {
+      userId,
+      banReason: motif,
+      ...(banExpiresIn && { banExpiresIn }),
+    },
+    headers: await headers(),
+  });
+  revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
+}
+export async function unBanUser(
+  userId: string,
+) {
+ 
+  await auth.api.unbanUser({
+    body: {
+      userId,
+    },
+    headers: await headers(),
+  });
+  revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
+}

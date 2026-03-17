@@ -2,6 +2,7 @@ import React from "react";
 import { getUserById } from "./user.action";
 import { AddressEditForm } from "./AdressEditForm"
 import { BanEditForm } from "./BanUser";
+import { UnBanEditForm } from "./UnBanUser";
 export default async function UserPage({
   params,
 }: {
@@ -26,7 +27,9 @@ export default async function UserPage({
 </div>
 <div>
 
-  <BanEditForm user={user}/>
+  {user.banned == false &&  <BanEditForm user={user}/>}
+  {user.banned && <UnBanEditForm user={user}/> }
+
 </div>
 </>
   );
