@@ -1,5 +1,4 @@
 "use client";
-import { authClient } from "@/lib/auth";
 import { User } from "../../../../../../../generated/prisma/browser";
 import { unBanUser } from "./user.action";
 import { DialogClose } from "@/components/ui/dialog";

@@ -78,3 +78,19 @@ export async function unBanUser(
   });
   revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
 }
+
+export async function roleUser(
+  userId: string,
+  role: "user" | "admin" | "superadmin"
+) { 
+  const result = await auth.api.setRole({
+    body: {
+      userId,
+      role,
+    },
+    headers: await headers(),
+  })
+  return result;
+    revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
+
+}
