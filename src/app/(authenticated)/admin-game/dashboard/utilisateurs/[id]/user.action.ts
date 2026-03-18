@@ -4,6 +4,8 @@ import { headers } from "next/headers";
 import { durationToSeconds } from "@/utils/durationToSeconds";
 import { dateToSeconds } from "@/utils/dateToSeconds";
 import { revalidatePath } from "next/cache";
+import { ac } from "@/lib/permissions";
+import { success } from "better-auth";
 
 export async function getUserById(id: string) {
   const user = await auth.api.getUser({
@@ -12,6 +14,7 @@ export async function getUserById(id: string) {
     },
     headers: await headers(),
   });
+
   console.log("user", user);
   return user
 }
@@ -106,12 +109,46 @@ export async function roleUser(
 }
 
 export async function removeUser(userId: string) {
-  const deletedUser = await auth.api.removeUser({
+  const session = await auth.api.getSession({headers: await headers() });
+  const currentUser = session?.user;
+  if(!currentUser){
+    return {
+      success: false,
+      message: "Vous n'avez pas le droit de supprimer des utilisaterus !",
+    };
+  }
+  const { success: canDelete } = await auth.api.userHasPermission({
     body: {
-      userId, // required
+      userId: currentUser.id,
+      permissions: {
+        user: ["delete"],
+      },
+    },
+  });
+  console.log("canDelete:", canDelete);
+  if(!canDelete){
+    return{
+       success: false,
+      message: "Vous n'avez pas le droit de supprimer des utilisaterus !",
+    }
+  }
+  try{
+ await auth.api.removeUser({
+    body: {
+      userId
     },
     headers: await headers(),
   });
   revalidatePath(`/admin-game/dashboard/utilisateurs`);
-  return deletedUser;
+  return {
+      success: true,
+      message: "L&apos;utilisateur a été suprrimé",
+    }; 
+  } catch (error) {
+    console.log("removeUser error:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Erreur lors de suprrimer l&apos;utilisateur",
+    };
+  }
 }

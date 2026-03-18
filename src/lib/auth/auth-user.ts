@@ -18,7 +18,7 @@ export const getSession = async () => {
 
   export const isAdmin = async () => {
     const user = await getUser();
-    if (!user || user.role !== "admin") {
+    if (!user || !["admin", "superadmin"].includes(user.role ?? "")) {
       redirect("/admin-game");
     }
     return true;

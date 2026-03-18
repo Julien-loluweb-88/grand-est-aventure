@@ -98,7 +98,6 @@ export default function Page() {
                                     >
                                         Voir
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem variant="destructive">Supprimer</DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
                         </TableCell>
