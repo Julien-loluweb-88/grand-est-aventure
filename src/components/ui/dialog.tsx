@@ -7,11 +7,40 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { XIcon } from "@phosphor-icons/react"
 
-function Dialog({
-  ...props
-}: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
-}
+export type DialogCloseRef = { close: () => void }
+
+const DialogRoot = React.forwardRef<
+  DialogCloseRef,
+  React.ComponentProps<typeof DialogPrimitive.Root>
+>(function DialogRoot({ open: openProp, onOpenChange, ...props }, ref) {
+  const [openState, setOpenState] = React.useState(false)
+  const isControlled = openProp !== undefined
+  const open = isControlled ? openProp : openState
+  const handleOpenChange = React.useCallback(
+    (next: boolean) => {
+      if (!isControlled) setOpenState(next)
+      onOpenChange?.(next)
+    },
+    [isControlled, onOpenChange]
+  )
+  const close = React.useCallback(() => handleOpenChange(false), [handleOpenChange])
+  React.useImperativeHandle(ref, () => ({ close }), [close])
+  return (
+    <DialogPrimitive.Root
+      data-slot="dialog"
+      open={open}
+      onOpenChange={handleOpenChange}
+      {...props}
+    />
+  )
+})
+
+const Dialog = React.forwardRef<
+  DialogCloseRef,
+  React.ComponentProps<typeof DialogPrimitive.Root>
+>(function Dialog(props, ref) {
+  return <DialogRoot ref={ref} {...props} />
+})
 
 function DialogTrigger({
   ...props

@@ -13,10 +13,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Field, FieldGroup } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export function RemoveUserForm({ user }: { user:User }) {
+export function RemoveUserForm({ user }: { user: User }) {
   return (
     <Dialog>
       <form>
@@ -34,12 +33,12 @@ export function RemoveUserForm({ user }: { user:User }) {
             <Field>
               <Label htmlFor="username">{user.name}</Label>
               <DialogClose asChild>
-              <Button type="button">Laisser</Button>
-            </DialogClose>
-            <Button
-            type="submit"
-            className="color-white bg-red-500 p-2"
-            onClick={(e) => handleRemove(e)}>Supprimer</Button>
+                <Button type="button">Laisser</Button>
+              </DialogClose>
+              <Button
+                type="submit"
+                className="color-white bg-red-500 p-2"
+                onClick={(e) => handleRemove(e)}>Supprimer</Button>
             </Field>
           </FieldGroup>
         </DialogContent>

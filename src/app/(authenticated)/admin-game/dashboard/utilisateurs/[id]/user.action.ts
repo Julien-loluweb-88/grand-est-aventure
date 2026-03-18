@@ -6,46 +6,46 @@ import { dateToSeconds } from "@/utils/dateToSeconds";
 import { revalidatePath } from "next/cache";
 
 export async function getUserById(id: string) {
-    const user = await auth.api.getUser({
-        query: {
-            id,
-        },
-        headers: await headers(),
-    });
-    console.log("user", user);
-    return user
+  const user = await auth.api.getUser({
+    query: {
+      id,
+    },
+    headers: await headers(),
+  });
+  console.log("user", user);
+  return user
 }
 
 export async function updateUser(data: {
-    id: string
-    name?: string
-    address?: string
-    postalCode?: string
-    city?: string
-    country?: string
-    phone?: string
-  }) {
-    console.log("data", data);
-    // Exemple si tu utilises Better Auth côté API
-    const result = await auth.api.adminUpdateUser({
-      body: {
-        userId: data.id,
-        data:{
+  id: string
+  name?: string
+  address?: string
+  postalCode?: string
+  city?: string
+  country?: string
+  phone?: string
+}) {
+  console.log("data", data);
+  // Exemple si tu utilises Better Auth côté API
+  const result = await auth.api.adminUpdateUser({
+    body: {
+      userId: data.id,
+      data: {
         name: data.name,
         address: data.address,
         postalCode: data.postalCode,
         city: data.city,
         country: data.country,
         phone: data.phone,
-    }
-      
-      },
-      headers: await headers(),
-    })
+      }
 
-    console.log("result",result)
-    return result
-  }
+    },
+    headers: await headers(),
+  })
+
+  console.log("result", result)
+  return result
+}
 
 export async function banUser(
   userId: string,
@@ -70,7 +70,7 @@ export async function banUser(
 export async function unBanUser(
   userId: string,
 ) {
- 
+
   await auth.api.unbanUser({
     body: {
       userId,
@@ -83,26 +83,35 @@ export async function unBanUser(
 export async function roleUser(
   userId: string,
   role: "user" | "admin" | "superadmin"
-) { 
-  const result = await auth.api.setRole({
-    body: {
-      userId,
-      role,
-    },
-    headers: await headers(),
-  })
-  return result;
-    revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
-
+) {
+  try {
+    await auth.api.setRole({
+      body: {
+        userId,
+        role,
+      },
+      headers: await headers(),
+    });
+    revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`);
+    return {
+      success: true,
+      message: "Rôle mis à jour",
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Erreur lors de la mise à jour du rôle",
+    };
+  }
 }
 
 export async function removeUser(userId: string) {
   const deletedUser = await auth.api.removeUser({
     body: {
-        userId, // required
+      userId, // required
     },
     headers: await headers(),
-});
-revalidatePath(`/admin-game/dashboard/utilisateurs`);
-return deletedUser;
+  });
+  revalidatePath(`/admin-game/dashboard/utilisateurs`);
+  return deletedUser;
 }
