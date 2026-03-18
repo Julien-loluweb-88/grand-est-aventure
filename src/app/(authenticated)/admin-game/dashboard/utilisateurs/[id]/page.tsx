@@ -4,6 +4,7 @@ import { AddressEditForm } from "./AdressEditForm"
 import { BanEditForm } from "./BanUser";
 import { UnBanEditForm } from "./UnBanUser";
 import { RoleEditForm } from "./RoleUser";
+import { RemoveUserForm } from "./RemoveUser";
 
 export default async function UserPage({
   params,
@@ -21,21 +22,22 @@ export default async function UserPage({
 
   return (
     <>
-    <div>
-        {user.id}
-    <h1>{user.name }</h1>
-    <p>Modifiez l&apos;infomation</p>
-    <AddressEditForm user={user}/>
-</div>
-<div>
-  <RoleEditForm user={user} />
-</div>
-<div>
-
-  {user.banned == false &&  <BanEditForm user={user}/>}
-  {user.banned && <UnBanEditForm user={user}/> }
-
-</div>
+    <div className="text-center mb-8">
+      <p>{user.id}</p>
+      <h1 className="text-xl font-bold">{user.name}</h1>
+      <p>Modifiez l&apos;infomation</p>
+    </div>
+    <div className="flex justify-center gap-130">   
+      <div>
+        <AddressEditForm user={user} />
+      </div>
+      <div className="flex flex-col justify-center gap-4">
+        <RoleEditForm user={user} />
+        {user.banned == false && <BanEditForm user={user} />}
+        {user.banned && <UnBanEditForm user={user} />}
+        <RemoveUserForm user={user} />
+      </div>
+    </div>
 </>
   );
 }

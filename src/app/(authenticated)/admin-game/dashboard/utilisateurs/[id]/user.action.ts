@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { durationToSeconds } from "@/utils/durationToSeconds";
 import { dateToSeconds } from "@/utils/dateToSeconds";
 import { revalidatePath } from "next/cache";
+
 export async function getUserById(id: string) {
     const user = await auth.api.getUser({
         query: {
@@ -93,4 +94,15 @@ export async function roleUser(
   return result;
     revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
 
+}
+
+export async function removeUser(userId: string) {
+  const deletedUser = await auth.api.removeUser({
+    body: {
+        userId, // required
+    },
+    headers: await headers(),
+});
+revalidatePath(`/admin-game/dashboard/utilisateurs`);
+return deletedUser;
 }
