@@ -10,6 +10,7 @@ const ADMIN_ROLES = ["admin", "superadmin"] as const
 
 export default function Home() {
   const { data: session } = authClient.useSession()
+  console.log("coucou", session)
   const router = useRouter()
 
   useEffect(() => {

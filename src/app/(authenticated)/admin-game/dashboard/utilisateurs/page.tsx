@@ -2,7 +2,7 @@
 "use client";
 
 import { authClient } from "@/lib/auth-client";
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import {

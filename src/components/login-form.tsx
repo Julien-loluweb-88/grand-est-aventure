@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
+import { toast } from "sonner"
 
 type LoginFormProps = {
   className?: string
@@ -44,17 +45,17 @@ export function LoginFormComponent({
 
 const handleForgotPassword = async () => {
   if(!signInForm.email){
-    alert("Veuillez saisir votre email");
+    toast.error("Veuillez saisir votre email");
     return;
   }
   const { data, error } = await authClient.requestPasswordReset({
     email: `${signInForm.email}`, // required
-    redirectTo: "https://example.com/reset-password",
+    redirectTo: "http://localhost:3000/reset-password",
 });
 if(error){
-  alert("Erreur");
+  toast.error("Erreur");
 } else {
-  alert("Envoyé le mail");
+  toast.success("Envoyé le mail");
 }}
   return (
     <div className={cn("flex flex-col gap-6", className)}>

@@ -10,12 +10,12 @@ import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: "ssl0.ovh.net",
-  port: 587,
+  host: process.env.NODEMAILER_HOST as string,
+  port: parseInt(process.env.NODEMAILER_PORT as string),
   secure: false, // Use true for port 465, false for port 587
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.NODEMAILER_USER,
+    pass: process.env.NODEMAILER_PASS,
   },
 });
 
@@ -25,6 +25,7 @@ export const auth = betterAuth({
     }),
     user: {
         additionalFields: {
+          role: { type: "string", required: false },
           city: { type: "string", required: false },
           address: { type: "string", required: false },
           postalCode: { type: "string", required: false },
@@ -35,13 +36,15 @@ export const auth = betterAuth({
     emailAndPassword: {
         enabled: true,
         sendResetPassword: async ({user, url, token}, request) => {
-      const info = await transporter.sendMail({
-    from: `Grand-est aventure" <${process.env.EMAIL_USER}>`,
-    to: `${user.email}`,
-    subject: "Mot de pass oblier",
-    text: "Veuillez définir un nouveau mot de passe.", 
-    html: "<b>Veuillez définir un nouveau mot de passe.</b>", 
-  });
+          console.log(user, url, token, request);
+          console.log(`Le mail de réinitialisation de mot de passe a été envoyé à ${user.email}`);
+          await transporter.sendMail({
+          from: process.env.NODEMAILER_USER,
+          to: user.email,
+          subject: "Mot de passe oublier",
+          text: "Clicker sur ce lien pour changer de mot de passe : ${url}", 
+          html: `<b>Clicker sur ce lien pour changer de mot de passe : ${url}</b>`, 
+        });
     },
     onPasswordReset: async ({ user }, request) => {
       console.log(`Le mot de passe de l'utilisateur ${user.email} a été réinitialisé`);

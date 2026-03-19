@@ -5,9 +5,11 @@ const ADMIN_ROLES = ["admin", "superadmin"];
 
 export async function proxy(request: NextRequest) {
     const pathname = request.nextUrl.pathname;
-
+  
     if (pathname === "/admin") {
         const session = await auth.api.getSession({ headers: request.headers });
+   
+       
         if (session) {
             return NextResponse.redirect(new URL("/admin-game/dashboard", request.url));
         }
