@@ -7,6 +7,17 @@ import { createAuthClient } from "better-auth/client"
 import { nextCookies } from "better-auth/next-js";
 // If your Prisma file is located elsewhere, you can change the path
 import { prisma } from "@/lib/prisma";
+import nodemailer from "nodemailer";
+
+const transporter = nodemailer.createTransport({
+  host: "ssl0.ovh.net",
+  port: 587,
+  secure: false, // Use true for port 465, false for port 587
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
 
 export const auth = betterAuth({
     database: prismaAdapter(prisma, {
@@ -23,6 +34,17 @@ export const auth = betterAuth({
       },
     emailAndPassword: {
         enabled: true,
+        sendResetPassword: async ({user, url, token}, request) => {
+      const info = await transporter.sendMail({
+    from: `Grand-est aventure" <${process.env.EMAIL_USER}>`,
+    to: `${user.email}`,
+    subject: "Mot de pass oblier",
+    text: "Veuillez définir un nouveau mot de passe.", 
+    html: "<b>Veuillez définir un nouveau mot de passe.</b>", 
+  });
+    },
+    onPasswordReset: async ({ user }, request) => {
+      console.log(`Le mot de passe de l'utilisateur ${user.email} a été réinitialisé`);
     },
     plugins: [
         adminPlugin({
@@ -48,10 +70,10 @@ export const auth = betterAuth({
             adminRoles: ["admin", "superadmin"],
             adminUserIds: ["user_id_1", "user_id_2"],
             defaultBanReason: "Spam!"
-
         }),
         nextCookies()
     ]
+}
 });
 
 export const authClient = createAuthClient({

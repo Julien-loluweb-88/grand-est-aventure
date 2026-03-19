@@ -14,13 +14,13 @@ export const user = ac.newRole({
 export const admin = ac.newRole({ 
     project: ["create", "update", "delete"], 
     ...adminAc.statements,
-    user: ["get","update", "ban"],
+    user: [...(adminAc.statements.user ?? []), "get","update", "ban"],
 }); 
 
 export const superadmin = ac.newRole({
   project: ["create", "update", "delete"],
   ...adminAc.statements,
-  user: [...(adminAc.statements.user ?? []), "create", "update", "delete", "ban"],
+  user: [...(adminAc.statements.user ?? []), "get", "create", "update", "delete", "ban"],
 });
 
 export const myCustomRole = ac.newRole({ 

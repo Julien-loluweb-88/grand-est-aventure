@@ -16,6 +16,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { authClient } from "@/lib/auth-client"
 
 type LoginFormProps = {
   className?: string
@@ -40,6 +41,21 @@ export function LoginFormComponent({
   handleSignIn,
   loading,
 }: LoginFormProps) {
+
+const handleForgotPassword = async () => {
+  if(!signInForm.email){
+    alert("Veuillez saisir votre email");
+    return;
+  }
+  const { data, error } = await authClient.requestPasswordReset({
+    email: `${signInForm.email}`, // required
+    redirectTo: "https://example.com/reset-password",
+});
+if(error){
+  alert("Erreur");
+} else {
+  alert("Envoyé le mail");
+}}
   return (
     <div className={cn("flex flex-col gap-6", className)}>
       <Card>
@@ -69,12 +85,12 @@ export function LoginFormComponent({
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Mot de passe</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
+                  <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="ml-auto text-sm underline hover:underline">
                     Mot de passe oublié ?
-                  </a>
+                  </button>
                 </div>
                 <Input
                   id="password"
@@ -175,12 +191,6 @@ export function SignUpFormComponent({
               <Field>
                 <div className="flex items-center">
                   <FieldLabel htmlFor="password">Mot de passe</FieldLabel>
-                  <a
-                    href="#"
-                    className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-                  >
-                    Mot de passe oublié ?
-                  </a>
                 </div>
                 <Input
                   id="password"
