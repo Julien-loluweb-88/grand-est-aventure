@@ -10,13 +10,13 @@ import { prisma } from "@/lib/prisma";
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  host: process.env.NODEMAILER_HOST as string,
-  port: parseInt(process.env.NODEMAILER_PORT as string),
-  secure: false, // Use true for port 465, false for port 587
-  auth: {
-    user: process.env.NODEMAILER_USER,
-    pass: process.env.NODEMAILER_PASS,
-  },
+    host: process.env.NODEMAILER_HOST as string,
+    port: parseInt(process.env.NODEMAILER_PORT as string),
+    secure: false, // Use true for port 465, false for port 587
+    auth: {
+        user: process.env.NODEMAILER_USER,
+        pass: process.env.NODEMAILER_PASS,
+    },
 });
 
 export const auth = betterAuth({
@@ -25,29 +25,31 @@ export const auth = betterAuth({
     }),
     user: {
         additionalFields: {
-          role: { type: "string", required: false },
-          city: { type: "string", required: false },
-          address: { type: "string", required: false },
-          postalCode: { type: "string", required: false },
-          country: { type: "string", required: false },
-          phone: { type: "string", required: false },
+            role: { type: "string", required: false },
+            city: { type: "string", required: false },
+            address: { type: "string", required: false },
+            postalCode: { type: "string", required: false },
+            country: { type: "string", required: false },
+            phone: { type: "string", required: false },
         },
-      },
+    },
     emailAndPassword: {
         enabled: true,
-        sendResetPassword: async ({user, url, token}, request) => {
-          console.log(user, url, token, request);
-          console.log(`Le mail de réinitialisation de mot de passe a été envoyé à ${user.email}`);
-          await transporter.sendMail({
-          from: process.env.NODEMAILER_USER,
-          to: user.email,
-          subject: "Mot de passe oublier",
-          text: "Clicker sur ce lien pour changer de mot de passe : ${url}", 
-          html: `<b>Clicker sur ce lien pour changer de mot de passe : ${url}</b>`, 
-        });
-    },
-    onPasswordReset: async ({ user }, request) => {
-      console.log(`Le mot de passe de l'utilisateur ${user.email} a été réinitialisé`);
+        sendResetPassword: async ({ user, url, token }, request) => {
+            console.log(user, url, token, request);
+            console.log(`Le mail de réinitialisation de mot de passe a été envoyé à ${user.email}`);
+            await transporter.sendMail({
+                from: process.env.NODEMAILER_USER,
+                to: user.email,
+                subject: "Mot de passe oublier",
+                text: "Clicker sur ce lien pour changer de mot de passe : ${url}",
+                html: `<b>Clicker sur ce lien pour changer de mot de passe : ${url}</b>`,
+            });
+        },
+        onPasswordReset: async ({ user }, request) => {
+            console.log(`Le mot de passe de l'utilisateur ${user.email} a été réinitialisé`);
+        },
+
     },
     plugins: [
         adminPlugin({
@@ -60,7 +62,7 @@ export const auth = betterAuth({
                     city: {
                         type: "string",
                         input: false
-                    }                     
+                    }
                 }
             },
             ac,
@@ -71,12 +73,10 @@ export const auth = betterAuth({
                 superadmin
             },
             adminRoles: ["admin", "superadmin"],
-            adminUserIds: ["user_id_1", "user_id_2"],
             defaultBanReason: "Spam!"
         }),
         nextCookies()
     ]
-}
 });
 
 export const authClient = createAuthClient({
