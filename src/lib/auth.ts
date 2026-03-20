@@ -20,64 +20,65 @@ const transporter = nodemailer.createTransport({
 });
 
 export const auth = betterAuth({
-    database: prismaAdapter(prisma, {
-        provider: "postgresql",
-    }),
-    user: {
-        additionalFields: {
-          city: { type: "string", required: false },
-          address: { type: "string", required: false },
-          postalCode: { type: "string", required: false },
-          country: { type: "string", required: false },
-          phone: { type: "string", required: false },
-        },
-      },
-    emailAndPassword: {
-        enabled: true,
-        sendResetPassword: async ({user, url, token}, request) => {
+  database: prismaAdapter(prisma, {
+    provider: "postgresql",
+  }),
+  user: {
+    additionalFields: {
+      role: { type: "string", required: false },
+      city: { type: "string", required: false },
+      address: { type: "string", required: false },
+      postalCode: { type: "string", required: false },
+      country: { type: "string", required: false },
+      phone: { type: "string", required: false },
+    },
+  },
+  emailAndPassword: {
+    enabled: true,
+    sendResetPassword: async ({ user, url, token }, request) => {
       const info = await transporter.sendMail({
-    from: `Grand-est aventure" <${process.env.EMAIL_USER}>`,
-    to: `${user.email}`,
-    subject: "Mot de pass oblier",
-    text: "Veuillez définir un nouveau mot de passe.", 
-    html: "<b>Veuillez définir un nouveau mot de passe.</b>", 
-  });
+        from: `Grand-est aventure" <${process.env.EMAIL_USER}>`,
+        to: `${user.email}`,
+        subject: "Mot de pass oblier",
+        text: "Veuillez définir un nouveau mot de passe.",
+        html: "<b>Veuillez définir un nouveau mot de passe.</b>",
+      });
     },
     onPasswordReset: async ({ user }, request) => {
       console.log(`Le mot de passe de l'utilisateur ${user.email} a été réinitialisé`);
     },
     plugins: [
-        adminPlugin({
-            user: {
-                additionalFields: {
-                    role: {
-                        type: "string",
-                        input: false
-                    },
-                    city: {
-                        type: "string",
-                        input: false
-                    }                     
-                }
+      adminPlugin({
+        user: {
+          additionalFields: {
+            role: {
+              type: "string",
+              input: false
             },
-            ac,
-            roles: {
-                admin,
-                user,
-                myCustomRole,
-                superadmin
-            },
-            adminRoles: ["admin", "superadmin"],
-            adminUserIds: ["user_id_1", "user_id_2"],
-            defaultBanReason: "Spam!"
-        }),
-        nextCookies()
+            city: {
+              type: "string",
+              input: false
+            }
+          }
+        },
+        ac,
+        roles: {
+          admin,
+          user,
+          myCustomRole,
+          superadmin
+        },
+        adminRoles: ["admin", "superadmin"],
+        adminUserIds: ["user_id_1", "user_id_2"],
+        defaultBanReason: "Spam!"
+      }),
+      nextCookies()
     ]
-}
+  }
 });
 
 export const authClient = createAuthClient({
-    plugins: [
-        adminClient()
-    ]
+  plugins: [
+    adminClient()
+  ]
 })
