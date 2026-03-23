@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { createAdventure } from "../adventure.action"
+import { toast } from "sonner";
 
 const formSchema = z.object({
   name: z
@@ -34,10 +35,7 @@ const formSchema = z.object({
   .coerce.number().refine((v) => ! isNaN(v), {
     message: "Longtitude invalide",
   }),
-  distance: z
-  .coerce.number().refine((v) => ! isNaN(v), {
-    message: "Distance invalide",
-  }),
+  distance: z.coerce.number({ error: "Distance invalide" }),
 })
 
 export function CreateAdventureForm() {
@@ -53,8 +51,14 @@ export function CreateAdventureForm() {
     },
   })
  const onSubmit = async(data: z.infer<typeof formSchema>) => {
+  try{
   await createAdventure(data);
     console.log(data)
+    toast.success("Vous avez créé une aventure")
+  } catch(error){
+    toast.error("Un problème lors de la création")
+
+  }
   }
 
   return (
