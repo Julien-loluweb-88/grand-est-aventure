@@ -1,94 +1,175 @@
 "use client"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm, Controller  } from "react-hook-form"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
-  FieldSeparator,
-  FieldSet,
+  FieldError
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { useState } from "react"
 import { createAdventure } from "../adventure.action"
-export function CreateAdventureFormComponent(){
-const [form, setForm] = useState({
-  name: "",
+
+const formSchema = z.object({
+  name: z
+  .string()
+  .min(2, "Le nom doit être comporter au moins 2 caractères")
+  .max(30, "Le nom doit être maximum 30 caractères"),
+  description: z
+  .string()
+  .min(20, "Le description doit être comporter au moins 20 caractères")
+  .max(250, "Le description doit être maximum 250 caractères"),
+  city: z
+  .string()
+  .min(2, "le nom de la ville doit être comporter au moins 2 caractères")
+  .max(50, "Le nom de la ville doit être maximum 50 caractères"),
+  latitude: z
+  .coerce.number().refine((v) => ! isNaN(v), {
+    message: "Latitude invalide",
+  }),
+  longitude: z
+  .coerce.number().refine((v) => ! isNaN(v), {
+    message: "Longtitude invalide",
+  }),
+  distance: z
+  .coerce.number().refine((v) => ! isNaN(v), {
+    message: "Distance invalide",
+  }),
+})
+
+export function CreateAdventureForm() {
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      name: "",
   description: "",
   city: "",
-  latitude: "",
-  longitude: "",
-  distance: "", 
-});
-
-  const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-
-  const response = createAdventure(form);
-
-};
+  latitude: 0,
+  longitude: 0,
+  distance: 0, 
+    },
+  })
+ const onSubmit = async(data: z.infer<typeof formSchema>) => {
+  await createAdventure(data);
+    console.log(data)
+  }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={form.handleSubmit(onSubmit)}>
     <FieldGroup>
-      <Field>
-        <FieldLabel htmlFor="fieldgroup-name">Nom d&apos;aventure</FieldLabel>
+      <Controller
+      name="name"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Nom d&apos;aventure</FieldLabel>
         <Input
-        id="fieldgroup-name"
-        type="text"
-        defaultValue={form.name}
-        onChange={(e) => setForm({ ...form, name: e.target.value})}
+        {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off"
         placeholder="Nouvelle aventure" />
+        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
       </Field>
-      <Field>
-        <FieldLabel htmlFor="fieldgroup-city">Ville</FieldLabel>
+  )}
+      />
+      <Controller
+      name="city"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Ville</FieldLabel>
         <Input
-         id="fieldgroup-city" 
-         placeholder="À quelle ville?" 
-         defaultValue={form.city}
-        onChange={(e) => setForm({ ...form, city: e.target.value})}
+        {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off"
+        placeholder="À quelle ville?" />
+          {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+      </Field>
+      )}
+      />
+      <Controller
+      name="latitude"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Latitude</FieldLabel>
+        <Input
+        {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off"
+        type="number"
+        value={String(field.value ?? "")}
+        placeholder="12.34567" />
+      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+      </Field>
+      )}
+      />
+      <Controller
+      name="longitude"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Longitude</FieldLabel>
+        <Input 
+        {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off" 
+        value={String(field.value ?? "")}
+        placeholder="12.34567"
         />
+      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
       </Field>
-       <Field>
-        <FieldLabel htmlFor="fieldgroup-latitude">Latitude</FieldLabel>
-        <Input id="fieldgroup-latitude" placeholder="12.34567" 
-        defaultValue={form.latitude}
-        onChange={(e) => setForm({ ...form, latitude: e.target.value})}
-        />
+      )}
+      />
+      <Controller
+      name="distance"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Distance</FieldLabel>
+        <Input 
+        {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off"
+        value={String(field.value ?? "")}
+        placeholder="5km"/>
+      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
       </Field>
-       <Field>
-        <FieldLabel htmlFor="fieldgroup-longitude">Longitude</FieldLabel>
-        <Input id="fieldgroup-longitude" placeholder="12.34567"
-        defaultValue={form.longitude}
-        onChange={(e) => setForm({ ...form, longitude: e.target.value})}
-         />
+      )}
+      />
+      <Controller
+      name="description"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>Description</FieldLabel>
+        <Textarea
+          {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off"
+        value={String(field.value ?? "")}
+        placeholder="Explication d'aventure"
+        className="resize-none"/>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
       </Field>
-      <Field>
-        <FieldLabel htmlFor="fieldgroup-distance">Distance</FieldLabel>
-        <Input id="fieldgroup-distance" placeholder="5km"
-        defaultValue={form.distance}
-        onChange={(e) => setForm({ ...form, distance: e.target.value})}
-         />
-      </Field>
-      <Field>
-        <FieldLabel htmlFor="fieldgroup-description">Description</FieldLabel>
-         <Textarea
-                  id="checkout-7j9-optional-description"
-                  placeholder="Explication d'aventure"
-                  className="resize-none"
-                  defaultValue={form.description}
-        onChange={(e) => setForm({ ...form, description: e.target.value})}
-                />
-      </Field>
+      )}
+      />
       <Field orientation="horizontal">
         <Button type="reset" variant="outline">
           Annuler
         </Button>
         <Button type="submit">Créer</Button>
       </Field>
-    </FieldGroup>
+    </FieldGroup> 
     </form>
   );
 }
