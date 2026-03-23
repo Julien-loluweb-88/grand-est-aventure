@@ -2,14 +2,13 @@
 "use client";
 
 import { authClient } from "@/lib/auth-client";
-import React, { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -42,8 +41,8 @@ export default function Page() {
 
             console.log("coucou", response.data);
 
-            if (response.data) {
-                setUsers(response.data.users);
+            if (response.data?.users) {
+                setUsers(response.data.users as User[]);
             }
         } catch (error) {
             console.error("Erreur lors du chargement des utilisateurs:", error);

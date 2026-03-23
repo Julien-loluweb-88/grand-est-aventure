@@ -14,24 +14,27 @@ datasource db {
 }
 
 model User {
-  id            String          @id
-  email         String    @unique
-  name          String?
-  address       String?
-  postalCode    String?
-  city          String?
-  country       String?
-  phone         String? 
-  emailVerified Boolean   @default(false)
-  image         String?
-  role          String?   @default("user")
-  banned        Boolean?  @default(false)
-  banReason     String?
-  banExpires    DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
+  id             String           @id
+  email          String           @unique
+  name           String?
+  address        String?
+  postalCode     String?
+  city           String?
+  country        String?
+  phone          String?
+  emailVerified  Boolean          @default(false)
+  image          String?
+  role           String?          @default("user")
+  banned         Boolean?         @default(false)
+  banReason      String?
+  banExpires     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  sessions       Session[]
+  accounts       Account[]
+  userAdventures UserAdventures[]
+  adventures     Adventure[]      @relation("CreatedAdventures")
+  clientNotices  ClientNotice[]
 
   @@map("user")
 }
@@ -82,4 +85,78 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model Adventure {
+  id             String           @id @default(cuid())
+  name           String
+  description    Json
+  city           String
+  latitude       Float
+  longitude      Float
+  distance       Float
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+  badgeUrl       String           @default("pas de badge")
+  enigmas        Enigma[]
+  creatorId      String
+  creator        User             @relation("CreatedAdventures", fields: [creatorId], references: [id])
+  userAdventures UserAdventures[] @relation("AdventureUserAdventures")
+  treasure       Treasure?
+}
+
+model Enigma {
+  id             String    @id @default(cuid())
+  name           String
+  number         Int
+  question       String
+  uniqueResponse Boolean   @default(false)
+  choice         Json?
+  answer         String
+  answerMessage  String
+  description    Json
+  latitude       Float
+  longitude      Float
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+  adventureId    String
+  adventure      Adventure @relation(fields: [adventureId], references: [id])
+}
+
+model Treasure {
+  id          String    @id @default(cuid())
+  name        String
+  description Json
+  latitude    Float
+  code        String
+  safeCode    String?   @default("AAA")
+  longitude   Float
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  adventureId String    @unique
+  adventure   Adventure @relation(fields: [adventureId], references: [id])
+}
+
+model UserAdventures {
+  id          String    @id @default(cuid())
+  success     Boolean
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  userId      String
+  giftNumber  Int       @default(0)
+  user        User      @relation(fields: [userId], references: [id])
+  adventureId String
+  adventure   Adventure @relation("AdventureUserAdventures", fields: [adventureId], references: [id])
+}
+
+model ClientNotice {
+  id            String   @id @default(cuid())
+  content       String
+  adventureName String
+  image         String?
+  overdraft     Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
 }
