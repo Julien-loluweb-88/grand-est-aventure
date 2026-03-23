@@ -77,12 +77,12 @@ const data = {
       ),
       items: [
         {
-          title: "Introduction",
-          url: "#",
+          title: "Aventures",
+          url: "/admin-game/dashboard/aventures",
         },
         {
-          title: "Get Started",
-          url: "#",
+          title: "Créer une aventure",
+          url: "/admin-game/dashboard/aventures/create",
         },
         {
           title: "Tutorials",
