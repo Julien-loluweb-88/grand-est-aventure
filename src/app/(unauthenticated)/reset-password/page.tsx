@@ -10,10 +10,10 @@ export default function ResetPasswordPage() {
 
   return (
     <><div className="w-screen p-10 flex justify-center items-center">
-    <ResetPasswordFormComponent
-      passwordForm={passwordForm}
-      setPasswordForm={setPasswordForm}
-    />
+      <ResetPasswordFormComponent
+        passwordForm={passwordForm}
+        setPasswordForm={setPasswordForm}
+      />
     </div>
     </>
   )
