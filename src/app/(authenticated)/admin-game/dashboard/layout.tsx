@@ -19,7 +19,15 @@ export default async function DashboardLayout({
   await isAdmin();
   return <>
    <SidebarProvider>
-   {user && <AppSidebar />}
+   {user && (
+     <AppSidebar
+       sessionUser={{
+         name: user.name ?? null,
+         email: user.email,
+         image: user.image ?? null,
+       }}
+     />
+   )}
   <SidebarInset>
   {user && <Header />}
   <main>

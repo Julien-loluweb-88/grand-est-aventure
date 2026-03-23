@@ -2,6 +2,7 @@
 import { User } from "../../../../../../../generated/prisma/browser";
 import { unBanUser } from "./user.action";
 import { DialogClose } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -18,18 +19,29 @@ export function UnBanEditForm({ user }: { user: User }) {
   const handleUnBan = async (e: React.SyntheticEvent) => {
     e.preventDefault();
 
-    await unBanUser(user.id);
+    try {
+      await unBanUser(user.id);
+      toast.success("L'utilisateur a été débanni.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Impossible de débannir cet utilisateur."
+      );
+    }
   };
+
+  const label = user.name ?? user.email ?? "cet utilisateur";
 
   return (
     <Dialog>
-      <DialogTrigger className="text-green-600 border border-black p-2">
-        Débannir utilisateur
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="sm" className="border-green-600 text-green-700 hover:bg-green-50">
+          Débannir l&apos;utilisateur
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Etes vous sur de vouloir débannir {user.name} ?
+            Débannir {label} ?
           </DialogTitle>
           <DialogDescription>
             Cette action permet de débannir un utilisateur.

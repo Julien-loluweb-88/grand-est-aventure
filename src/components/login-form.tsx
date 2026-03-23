@@ -1,5 +1,7 @@
 "use client"
 
+import { useCallback, useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -17,7 +19,59 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
+import { getResetPasswordRedirectUrl } from "@/lib/public-app-url"
 import { toast } from "sonner"
+
+function safeCallbackUrl(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
+    return "/"
+  }
+  return raw
+}
+
+/** Connexion unique pour `/login` : utilise `?callbackUrl=` après redirection depuis l’admin. */
+export function LoginForm() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const callbackUrl = useMemo(
+    () => safeCallbackUrl(searchParams.get("callbackUrl")),
+    [searchParams]
+  )
+
+  const [signInForm, setSignInForm] = useState({
+    email: "",
+    password: "",
+  })
+  const [loading, setLoading] = useState(false)
+
+  const handleSignIn = useCallback(
+    async (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      setLoading(true)
+      const { error } = await authClient.signIn.email({
+        email: signInForm.email,
+        password: signInForm.password,
+        callbackURL: callbackUrl,
+      })
+      setLoading(false)
+      if (error) {
+        toast.error(error.message)
+        return
+      }
+      router.push(callbackUrl)
+    },
+    [callbackUrl, router, signInForm.email, signInForm.password]
+  )
+
+  return (
+    <LoginFormComponent
+      signInForm={signInForm}
+      setSignInForm={setSignInForm}
+      handleSignIn={handleSignIn}
+      loading={loading}
+    />
+  )
+}
 
 type LoginFormProps = {
   className?: string
@@ -48,15 +102,16 @@ const handleForgotPassword = async () => {
     toast.error("Veuillez saisir votre email");
     return;
   }
-  const { data, error } = await authClient.requestPasswordReset({
-    email: `${signInForm.email}`, // required
-    redirectTo: "http://localhost:3000/reset-password",
-});
-if(error){
-  toast.error("Erreur");
-} else {
-  toast.success("Envoyé le mail");
-}}
+  const { error } = await authClient.requestPasswordReset({
+    email: signInForm.email,
+    redirectTo: getResetPasswordRedirectUrl(),
+  })
+  if (error) {
+    toast.error(error.message ?? "Impossible d’envoyer l’e-mail.")
+  } else {
+    toast.success("E-mail de réinitialisation envoyé.")
+  }
+}
   return (
     <div className={cn("flex flex-col gap-6", className)}>
       <Card>

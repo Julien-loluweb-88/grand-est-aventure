@@ -3,6 +3,7 @@ import { useState } from "react";
 import { banUser } from "./user.action";
 import { User } from "../../../../../../../generated/prisma/browser";
 import { DialogClose } from "@/components/ui/dialog";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,23 +40,32 @@ export function BanEditForm({ user }: { user: User }) {
     e.preventDefault();
     if (!motif || !duration) return;
     if (duration === "other" && !customEndDate) return;
-    await banUser(
-      user.id,
-      motif === "other" ? motifCustom : motif,
-      duration,
-      duration === "other" ? customEndDate : undefined
-    );
+    try {
+      await banUser(
+        user.id,
+        motif === "other" ? motifCustom : motif,
+        duration,
+        duration === "other" ? customEndDate : undefined
+      );
+      toast.success("L'utilisateur a été banni.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Impossible de bannir cet utilisateur."
+      );
+    }
   };
 
   return (
     <Dialog>
-      <DialogTrigger className="text-red-500 border border-black p-2">
-        Bannir utilisateur
+      <DialogTrigger asChild>
+        <Button type="button" variant="destructive" size="sm">
+          Bannir l&apos;utilisateur
+        </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Etes vous sur de vouloir bannir {user.name} ?
+            Bannir {user.name ?? user.email ?? "cet utilisateur"} ?
           </DialogTitle>
           <DialogDescription>
             Cette action permet de bannir un utilisateur pendant une durée

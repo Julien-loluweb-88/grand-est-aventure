@@ -19,7 +19,9 @@ import { CaretRightIcon } from "@phosphor-icons/react"
 
 export function NavMain({
   items,
+  groupLabel = "Menu",
 }: {
+  groupLabel?: string
   items: {
     title: string
     url: string
@@ -33,7 +35,7 @@ export function NavMain({
 }) {
   return (
     <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+      <SidebarGroupLabel>{groupLabel}</SidebarGroupLabel>
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible

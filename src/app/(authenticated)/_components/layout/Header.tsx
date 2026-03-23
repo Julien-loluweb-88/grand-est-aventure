@@ -1,3 +1,7 @@
+"use client"
+
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -7,38 +11,95 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
-import {
+import { SidebarTrigger } from "@/components/ui/sidebar"
 
-  SidebarTrigger,
-} from "@/components/ui/sidebar"
-const Header = () => {
-  return (
-    <>
-    <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-    <div className="flex items-center gap-2 px-4">
-      <SidebarTrigger className="-ml-1" />
-      <Separator
-        orientation="vertical"
-        className="mr-2 data-vertical:h-4 data-vertical:self-auto"
-      />
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem className="hidden md:block">
-            <BreadcrumbLink href="#">
-              Gérer des utilisateurs
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator className="hidden md:block" />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Liste des utilisateurs</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-    </div>
-  </header>
+const DASHBOARD = "/admin-game/dashboard"
 
-  </>
-  )
+type Crumb = { label: string; href: string | null }
+
+function breadcrumbsForPath(pathname: string | null): Crumb[] {
+  if (!pathname) {
+    return [{ label: "Tableau de bord", href: null }]
+  }
+
+  if (pathname === DASHBOARD || pathname === `${DASHBOARD}/`) {
+    return [{ label: "Tableau de bord", href: null }]
+  }
+
+  const tail = pathname.startsWith(`${DASHBOARD}/`)
+    ? pathname.slice(DASHBOARD.length).replace(/^\//, "")
+    : ""
+
+  if (!tail) {
+    return [{ label: "Tableau de bord", href: null }]
+  }
+
+  const crumbs: Crumb[] = [{ label: "Tableau de bord", href: DASHBOARD }]
+
+  if (tail === "utilisateurs") {
+    crumbs.push({ label: "Utilisateurs", href: null })
+    return crumbs
+  }
+
+  if (tail.startsWith("utilisateurs/")) {
+    const rest = tail.slice("utilisateurs/".length)
+    const id = rest.split("/")[0]
+    if (id) {
+      crumbs.push({ label: "Utilisateurs", href: `${DASHBOARD}/utilisateurs` })
+      crumbs.push({ label: "Fiche utilisateur", href: null })
+    } else {
+      crumbs.push({ label: "Utilisateurs", href: null })
+    }
+    return crumbs
+  }
+
+  if (tail === "aventures" || tail.startsWith("aventures/")) {
+    if (tail === "aventures/create" || tail.endsWith("/aventures/create")) {
+      crumbs.push({ label: "Aventures", href: `${DASHBOARD}/aventures` })
+      crumbs.push({ label: "Créer une aventure", href: null })
+    } else {
+      crumbs.push({ label: "Aventures", href: null })
+    }
+    return crumbs
+  }
+
+  return [{ label: "Tableau de bord", href: null }]
 }
 
-export default Header
+export default function Header() {
+  const pathname = usePathname()
+  const crumbs = breadcrumbsForPath(pathname)
+
+  return (
+    <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+      <div className="flex items-center gap-2 px-4">
+        <SidebarTrigger className="-ml-1" />
+        <Separator
+          orientation="vertical"
+          className="mr-2 data-vertical:h-4 data-vertical:self-auto"
+        />
+        <Breadcrumb>
+          <BreadcrumbList>
+            {crumbs.map((crumb, i) => {
+              const isLast = i === crumbs.length - 1
+              return (
+                <span key={`${crumb.label}-${i}`} className="contents">
+                  {i > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+                  <BreadcrumbItem>
+                    {isLast || !crumb.href ? (
+                      <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
+                    ) : (
+                      <BreadcrumbLink asChild>
+                        <Link href={crumb.href}>{crumb.label}</Link>
+                      </BreadcrumbLink>
+                    )}
+                  </BreadcrumbItem>
+                </span>
+              )
+            })}
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+    </header>
+  )
+}

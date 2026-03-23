@@ -28,8 +28,8 @@ import { toast } from "sonner";
 
 export function RoleEditForm({ user }: { user: User }) {
   const dialogRef = useRef<DialogCloseRef>(null);
-  const [role, setRole] = useState<"user" | "admin" | "superadmin">(
-    (user?.role as "user" | "admin" | "superadmin") ?? "user"
+  const [role, setRole] = useState<"user" | "admin" | "superadmin" | "myCustomRole">(
+    (user?.role as "user" | "admin" | "superadmin" | "myCustomRole") ?? "user"
   );
 
   const handleRole = async (e: React.SyntheticEvent) => {
@@ -48,8 +48,10 @@ export function RoleEditForm({ user }: { user: User }) {
 
   return (
     <Dialog ref={dialogRef}>
-      <DialogTrigger className="border border-black p-2">
-        Rôle d&apos;utilisateur
+      <DialogTrigger asChild>
+        <Button type="button" variant="outline" size="sm">
+          Modifier le rôle
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
@@ -60,7 +62,7 @@ export function RoleEditForm({ user }: { user: User }) {
         </DialogHeader>
         <Select
           onValueChange={(value) =>
-            setRole(value as "user" | "admin" | "superadmin")
+            setRole(value as "user" | "admin" | "superadmin" | "myCustomRole")
           }
           value={role}
         >
@@ -70,9 +72,10 @@ export function RoleEditForm({ user }: { user: User }) {
           <SelectContent>
             <SelectGroup>
               <SelectLabel>Rôle</SelectLabel>
+              <SelectItem value="user">Utilisateur</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="superadmin">Super admin</SelectItem>
-              <SelectItem value="user">Utilisateur</SelectItem>
+              <SelectItem value="myCustomRole">Rôle personnalisé</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>

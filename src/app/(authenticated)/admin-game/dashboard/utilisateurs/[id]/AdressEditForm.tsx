@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { useState } from "react"
+import { toast } from "sonner"
 import { User } from "../../../../../../../generated/prisma/browser"
   
 export function AddressEditForm({ user }: { user: User }) {
@@ -26,21 +27,19 @@ export function AddressEditForm({ user }: { user: User }) {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     try {
-      // Appel de la server action avec les données du formulaire
       await updateUser({
         id: form.id,
-        //name: form.name,
         address: form.address,
         postalCode: form.postalCode,
         city: form.city,
         country: form.country,
         phone: form.phone,
       })
-      // Ici tu peux ajouter une notif / un refresh / un redirect
-      // ex: toast("Adresse mise à jour")
+      toast.success("Coordonnées enregistrées.")
     } catch (error) {
-      console.error("Erreur lors de la mise à jour de l'utilisateur :", error)
-      // gérer l'erreur (toast, message, etc.)
+      toast.error(
+        error instanceof Error ? error.message : "Impossible d’enregistrer les coordonnées."
+      )
     }
   }
   

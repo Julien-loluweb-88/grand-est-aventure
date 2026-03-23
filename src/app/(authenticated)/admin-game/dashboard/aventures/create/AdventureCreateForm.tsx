@@ -12,6 +12,7 @@ import {
 
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { useRouter } from "next/navigation"
 import { createAdventure } from "../adventure.action"
 import { toast } from "sonner";
 
@@ -40,6 +41,7 @@ const formSchema = z.object({
 })
 
 export function CreateAdventureForm() {
+  const router = useRouter()
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,15 +53,15 @@ export function CreateAdventureForm() {
   distance: 0, 
     },
   })
- const onSubmit = async(data: z.infer<typeof formSchema>) => {
-  try{
-  await createAdventure(data);
-    console.log(data)
-    toast.success("Vous avez créé une aventure")
-  } catch(error){
-    toast.error("Un problème lors de la création")
-
-  }
+ const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    const result = await createAdventure(data)
+    if (!result.success) {
+      toast.error(result.error)
+      return
+    }
+    toast.success("Aventure créée.")
+    form.reset()
+    router.push("/admin-game/dashboard/aventures")
   }
 
   return (

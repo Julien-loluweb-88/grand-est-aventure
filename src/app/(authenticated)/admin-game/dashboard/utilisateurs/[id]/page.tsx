@@ -1,4 +1,6 @@
 import React from "react";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import { getUserById } from "./user.action";
 import { AddressEditForm } from "./AdressEditForm";
 import { BanEditForm } from "./BanUser";
@@ -30,13 +32,22 @@ export default async function UserPage({
     );
   }
 
+  const displayName = user.name ?? user.email ?? "cet utilisateur";
+
   return (
     <div className="space-y-8 p-4 md:p-6">
-      {/* En-tête utilisateur */}
+      <Link
+        href="/admin-game/dashboard/utilisateurs"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" aria-hidden />
+        Retour à la liste
+      </Link>
+
       <Card>
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold tracking-tight">
-            Modifiez les informations de {user.name}
+            Informations de {displayName}
           </CardTitle>
           <CardDescription>
             ID: {user.id}

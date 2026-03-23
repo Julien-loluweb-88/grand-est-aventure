@@ -1,6 +1,8 @@
 "use client";
 import { useTransition, useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { removeUser } from "./user.action";
+import type { User } from "../../../../../../../generated/prisma/browser";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,24 +13,24 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  type DialogCloseRef,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
 export function RemoveUserForm({ user }: { user: User }) {
-  const dialogRef = useRef<HTMLDialogElement | null>(null);
+  const router = useRouter();
+  const dialogRef = useRef<DialogCloseRef>(null);
   const [isPending, startTransition] = useTransition();
   const [confirmText, setConfirmText] = useState("");
+  const expectedConfirm = user.name ?? user.email ?? "";
 
   const handleRemove = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (confirmText !== user.name) {
-      toast.error("Le nom d'utilisateur ne correspond pas.");
+    if (confirmText !== expectedConfirm) {
+      toast.error("Le texte saisi ne correspond pas au nom ou à l’e-mail affiché.");
       return;
     }
-
-    const confirmed = confirm("Vous être sûr de vouloir le supprimer?");
-    if (!confirmed) return;
 
     startTransition(async () => {
       try {
@@ -37,6 +39,7 @@ export function RemoveUserForm({ user }: { user: User }) {
           toast.success(result.message);
           setConfirmText("");
           dialogRef.current?.close();
+          router.push("/admin-game/dashboard/utilisateurs");
         } else {
           toast.error(result.message);
         }
@@ -49,27 +52,31 @@ export function RemoveUserForm({ user }: { user: User }) {
 
   return (
     <Dialog ref={dialogRef}>
-      <DialogTrigger className="text-white bg-red-500 p-2">
-        Supprimer cet utilisateur
+      <DialogTrigger asChild>
+        <Button type="button" variant="destructive" size="sm">
+          Supprimer le compte
+        </Button>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-sm">
         <form onSubmit={handleRemove}>
           <DialogHeader>
-            <DialogTitle>Supprimer {user.name}</DialogTitle>
+            <DialogTitle>Supprimer {user.name ?? user.email}</DialogTitle>
             <DialogDescription>
-              Veuillez saisir le nom de l&apos;utilisateur pour confirmer la
-              suppression.
+              Saisissez exactement{" "}
+              <span className="font-medium text-foreground">{expectedConfirm}</span> pour confirmer la
+              suppression définitive.
             </DialogDescription>
           </DialogHeader>
 
           <div className="my-4">
             <Input
               type="text"
-              placeholder="le nom de l'utilisateur"
+              placeholder={expectedConfirm || "Confirmation"}
               value={confirmText}
               onChange={(e) => setConfirmText(e.target.value)}
               className="w-full"
+              autoComplete="off"
             />
           </div>
 
@@ -77,7 +84,7 @@ export function RemoveUserForm({ user }: { user: User }) {
             <Button
               type="submit"
               className="bg-red-500 text-white p-2"
-              disabled={confirmText !== user.name || isPending}
+              disabled={confirmText !== expectedConfirm || isPending || !expectedConfirm}
             >
               {isPending ? "Suppression..." : "Supprimer"}
             </Button>

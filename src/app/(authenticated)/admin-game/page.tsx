@@ -1,5 +1,7 @@
 "use client"
 
+import Link from "next/link"
+import { toast } from "sonner"
 import { authClient } from "@/lib/auth-client"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -8,9 +10,8 @@ import { LoginFormComponent, SignUpFormComponent } from "@/components/login-form
 
 const ADMIN_ROLES = ["admin", "superadmin"] as const
 
-export default function Home() {
+export default function AdminGamePage() {
   const { data: session } = authClient.useSession()
-  console.log("coucou", session)
   const router = useRouter()
 
   useEffect(() => {
@@ -18,7 +19,7 @@ export default function Home() {
       router.replace("/admin-game/dashboard")
     }
   }, [session, router])
-  // State Inscription 
+
   const [signUpForm, setSignUpForm] = useState({
     name: "",
     email: "",
@@ -26,7 +27,6 @@ export default function Home() {
     confirmPassword: "",
   })
 
-  // State Connexion
   const [signInForm, setSignInForm] = useState({
     email: "",
     password: "",
@@ -34,12 +34,11 @@ export default function Home() {
 
   const [loading, setLoading] = useState(false)
 
-  // Connexion
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
 
-    const { data, error } = await authClient.signIn.email({
+    const { error } = await authClient.signIn.email({
       email: signInForm.email,
       password: signInForm.password,
       callbackURL: "/admin-game/dashboard",
@@ -47,49 +46,45 @@ export default function Home() {
     setLoading(false)
 
     if (error) {
-      alert(error.message)
+      toast.error(error.message)
       return
     }
-    console.log(data)
     router.push("/admin-game/dashboard")
   }
 
-  // Inscription 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     if (signUpForm.password !== signUpForm.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas")
+      toast.error("Les mots de passe ne correspondent pas.")
       return
     }
     setLoading(true)
-    console.log("je suis la data", signUpForm)
-    const { data, error } = await authClient.signUp.email({
+    const { error } = await authClient.signUp.email({
       name: signUpForm.name,
       email: signUpForm.email,
-      password: signUpForm.password
-    });
+      password: signUpForm.password,
+    })
 
     setLoading(false)
 
     if (error) {
-      console.log(error)
-      alert(error.message)
+      toast.error(error.message)
       return
     }
 
-    console.log(data)
     router.push("/admin-game/dashboard")
   }
 
   return (
-    <><h1>Admin Game</h1>
-      <div className="w-screen p-10 flex justify-center items-center">
-        <Tabs defaultValue="signin" className="w-[400px]">
-          <TabsList>
+    <div className="flex min-h-svh w-full flex-col items-center p-6 md:p-10">
+      <h1 className="mb-8 text-2xl font-semibold tracking-tight">Admin Game</h1>
+      <div className="w-full max-w-[400px]">
+        <Tabs defaultValue="signin">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="signin">Connexion</TabsTrigger>
             <TabsTrigger value="signup">Inscription</TabsTrigger>
           </TabsList>
-          <TabsContent value="signin">
+          <TabsContent value="signin" className="mt-6">
             <LoginFormComponent
               signInForm={signInForm}
               setSignInForm={setSignInForm}
@@ -97,7 +92,7 @@ export default function Home() {
               loading={loading}
             />
           </TabsContent>
-          <TabsContent value="signup">
+          <TabsContent value="signup" className="mt-6">
             <SignUpFormComponent
               signUpForm={signUpForm}
               setSignUpForm={setSignUpForm}
@@ -107,6 +102,12 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </div>
-    </>
-  );
+      <p className="mt-8 max-w-md text-center text-sm text-muted-foreground">
+        Connexion grand public (sans accès admin) :{" "}
+        <Link href="/login" className="font-medium text-foreground underline underline-offset-4 hover:no-underline">
+          /login
+        </Link>
+      </p>
+    </div>
+  )
 }

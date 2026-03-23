@@ -4,8 +4,6 @@ import { headers } from "next/headers";
 import { durationToSeconds } from "@/utils/durationToSeconds";
 import { dateToSeconds } from "@/utils/dateToSeconds";
 import { revalidatePath } from "next/cache";
-import { ac } from "@/lib/permissions";
-import { success } from "better-auth";
 
 export async function getUserById(id: string) {
   const user = await auth.api.getUser({
@@ -15,7 +13,6 @@ export async function getUserById(id: string) {
     headers: await headers(),
   });
 
-  console.log("user", user);
   return user
 }
 
@@ -28,8 +25,6 @@ export async function updateUser(data: {
   country?: string
   phone?: string
 }) {
-  console.log("data", data);
-  // Exemple si tu utilises Better Auth côté API
   const result = await auth.api.adminUpdateUser({
     body: {
       userId: data.id,
@@ -46,7 +41,6 @@ export async function updateUser(data: {
     headers: await headers(),
   })
 
-  console.log("result", result)
   return result
 }
 
@@ -68,7 +62,8 @@ export async function banUser(
     },
     headers: await headers(),
   });
-  revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
+  revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`);
+  revalidatePath("/admin-game/dashboard/utilisateurs");
 }
 export async function unBanUser(
   userId: string,
@@ -80,12 +75,13 @@ export async function unBanUser(
     },
     headers: await headers(),
   });
-  revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`)
+  revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`);
+  revalidatePath("/admin-game/dashboard/utilisateurs");
 }
 
 export async function roleUser(
   userId: string,
-  role: "user" | "admin" | "superadmin"
+  role: "user" | "admin" | "superadmin" | "myCustomRole"
 ) {
   try {
     await auth.api.setRole({
@@ -96,6 +92,7 @@ export async function roleUser(
       headers: await headers(),
     });
     revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`);
+    revalidatePath("/admin-game/dashboard/utilisateurs");
     return {
       success: true,
       message: "Rôle mis à jour",
@@ -114,7 +111,7 @@ export async function removeUser(userId: string) {
   if(!currentUser){
     return {
       success: false,
-      message: "Vous n'avez pas le droit de supprimer des utilisaterus !",
+      message: "Vous n'avez pas le droit de supprimer des utilisateurs.",
     };
   }
   const { success: canDelete } = await auth.api.userHasPermission({
@@ -125,11 +122,10 @@ export async function removeUser(userId: string) {
       },
     },
   });
-  console.log("canDelete:", canDelete);
   if(!canDelete){
     return{
        success: false,
-      message: "Vous n'avez pas le droit de supprimer des utilisaterus !",
+      message: "Vous n'avez pas le droit de supprimer des utilisateurs.",
     }
   }
   try{
@@ -142,13 +138,12 @@ export async function removeUser(userId: string) {
   revalidatePath(`/admin-game/dashboard/utilisateurs`);
   return {
       success: true,
-      message: "L&apos;utilisateur a été suprrimé",
+      message: "L'utilisateur a été supprimé.",
     }; 
   } catch (error) {
-    console.log("removeUser error:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Erreur lors de suprrimer l&apos;utilisateur",
+      message: error instanceof Error ? error.message : "Erreur lors de la suppression de l'utilisateur.",
     };
   }
 }
