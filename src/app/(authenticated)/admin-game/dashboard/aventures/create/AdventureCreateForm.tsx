@@ -9,6 +9,7 @@ import {
   FieldLabel,
   FieldError
 } from "@/components/ui/field"
+
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { createAdventure } from "../adventure.action"
@@ -71,6 +72,7 @@ export function CreateAdventureForm() {
       <Field data-invalid={fieldState.invalid}>
         <FieldLabel htmlFor={field.name}>Nom d&apos;aventure</FieldLabel>
         <Input
+        className="!w-100"
         {...field}
         id={field.name}
         aria-invalid={fieldState.invalid}
@@ -87,6 +89,7 @@ export function CreateAdventureForm() {
       <Field data-invalid={fieldState.invalid}>
         <FieldLabel htmlFor={field.name}>Ville</FieldLabel>
         <Input
+        className="!w-100"
         {...field}
         id={field.name}
         aria-invalid={fieldState.invalid}
