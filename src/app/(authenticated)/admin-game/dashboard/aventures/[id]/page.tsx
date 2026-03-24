@@ -1,0 +1,65 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+import { getAdventureById } from "./adventure.action";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { RemoveAdventureForm } from "./RemoveAdventure";
+import { Adventure } from "../../../../../../../generated/prisma/browser";
+
+export default async function AdventurePage({
+    params,
+}: {
+    params: Promise<{ id: string }>;
+}) {
+    const { id } = await params;
+    const adventure = await getAdventureById (id);
+
+    if (!adventure) {
+        return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <p className="text-muted-foreground">Aventure non trouvé</p>
+      </div>
+    );
+    }
+
+return(
+    <div className="space-y-8 p-4 md:p-6">
+        <Link
+        href="/admin-game/dashboard//aventures"
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" aria-hidden />
+        Retour à la liste
+      </Link>
+
+    <Card className="h-fit">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl font-bold tracking-tight">
+                Informations de adventure {adventure.name}
+              </CardTitle>
+              <CardDescription>
+                ID: {adventure.id}
+              </CardDescription>
+            </CardHeader>
+          </Card>
+          <div className="flex flex-col gap-4">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Modération</CardTitle>
+                        <CardDescription>
+                          Modification, changement statut, suppression
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex flex-col gap-3 w-fit mx-auto">
+                        <RemoveAdventureForm adventure={adventure as Adventure}/>
+                      </CardContent>
+                    </Card>
+                  </div>
+          </div>
+)
+}
