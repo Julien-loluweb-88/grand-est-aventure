@@ -3,6 +3,7 @@ import {  adminAc } from "better-auth/plugins/admin/access";
 
 const statement = { 
     project: ["create", "share", "update", "delete"], 
+    adventure: ["create", "update", "delete"],
     ...adminAc.statements,
 } as const; 
 export const ac = createAccessControl(statement); 
@@ -12,13 +13,15 @@ export const user = ac.newRole({
 }); 
 
 export const admin = ac.newRole({ 
-    project: ["create", "update", "delete"], 
+    project: ["create", "update", "delete"],
+    adventure: ["create"],
     ...adminAc.statements,
     user: [...(adminAc.statements.user ?? []), "get","update", "ban"],
 }); 
 
 export const superadmin = ac.newRole({
   project: ["create", "update", "delete"],
+  adventure: ["create", "update", "delete"],
   ...adminAc.statements,
   user: [...(adminAc.statements.user ?? []), "get", "create", "update", "delete", "ban"],
 });

@@ -20,12 +20,12 @@ import { useRouter } from "next/navigation";
 
 export function RemoveAdventureForm({adventure}: {adventure: Adventure}){
     const router = useRouter();
-      const dialogRef = useRef<DialogCloseRef>(null);
-      const [isPending, startTransition] = useTransition();
-      const [confirmText, setConfirmText] = useState("");
-      const expectedConfirm = adventure.name ?? "";
+    const dialogRef = useRef<DialogCloseRef>(null);
+    const [isPending, startTransition] = useTransition();
+    const [confirmText, setConfirmText] = useState("");
+    const expectedConfirm = adventure.name ?? "";
 
-      const handleRemove = async(e: React.SyntheticEvent) => {
+    const handleRemove = async(e: React.SyntheticEvent) => {
         e.preventDefault();
         if (confirmText !== expectedConfirm) {
       toast.error("Le texte saisi ne correspond pas au nom affiché.");

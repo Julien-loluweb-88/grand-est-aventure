@@ -23,13 +23,13 @@ import { listAdventures } from "./adventure.action";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
-
 const PAGE_SIZE = 10;
 
 type Adventure= {
   id: string;
   name: string;
   city: string;
+  status: boolean;
 };
 
 export default function Page() {
@@ -38,8 +38,8 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [searchInput, setSearchInput] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
+  //const [searchInput, setSearchInput] = useState("");
+  //const [debouncedSearch, setDebouncedSearch] = useState("");
   const [total, setTotal] = useState<number | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
@@ -152,19 +152,27 @@ export default function Page() {
                 </div>
             </div>
     <h1>Liste des aventures</h1>
-        <Table>
+    <div className="p-4">
+    <Table className="m-auto">
       <TableHeader>
         <TableRow>
-          <TableHead>Nom</TableHead>
-          <TableHead>Ville</TableHead>
+          <TableHead className="text-left">Nom</TableHead>
+          <TableHead className="text-left">Ville</TableHead>
+          <TableHead className="text-left">Statut</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {adventures.map((adventure) => (
         <TableRow key= {adventure.id}>
-          <TableCell className="font-medium">{adventure.name}</TableCell>
-          <TableCell>{adventure.city}</TableCell>
+          <TableCell className="text-left">{adventure.name}</TableCell>
+          <TableCell className="text-left">{adventure.city}</TableCell>
+          <TableCell className="text-left">
+            {adventure.status ? (
+              <span className="text-muted-foreground">Active</span>
+  ) : (
+    <span className="text-destructive">Pause</span>
+  )}</TableCell>
           <TableCell className="text-right">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -188,6 +196,7 @@ export default function Page() {
         ))}
       </TableBody>
     </Table>
+    </div>
     </div>
   );
 }

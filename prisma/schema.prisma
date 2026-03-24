@@ -99,6 +99,7 @@ model Adventure {
   updatedAt      DateTime         @default(now())
   badgeUrl       String           @default("pas de badge")
   enigmas        Enigma[]
+  status         Boolean?         @default(true)
   creatorId      String
   creator        User             @relation("CreatedAdventures", fields: [creatorId], references: [id])
   userAdventures UserAdventures[] @relation("AdventureUserAdventures")
