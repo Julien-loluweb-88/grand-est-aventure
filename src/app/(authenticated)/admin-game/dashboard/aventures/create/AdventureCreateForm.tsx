@@ -101,11 +101,12 @@ export function CreateAdventureForm() {
       </Field>
       )}
       />
+      <div className="flex gap-4">
       <Controller
       name="latitude"
       control={form.control}
       render={({ field, fieldState }) => (
-      <Field data-invalid={fieldState.invalid}>
+      <Field className="flex-1" data-invalid={fieldState.invalid}>
         <FieldLabel htmlFor={field.name}>Latitude</FieldLabel>
         <Input
         {...field}
@@ -123,7 +124,7 @@ export function CreateAdventureForm() {
       name="longitude"
       control={form.control}
       render={({ field, fieldState }) => (
-      <Field data-invalid={fieldState.invalid}>
+      <Field className="flex-1" data-invalid={fieldState.invalid}>
         <FieldLabel htmlFor={field.name}>Longitude</FieldLabel>
         <Input 
         {...field}
@@ -141,7 +142,7 @@ export function CreateAdventureForm() {
       name="distance"
       control={form.control}
       render={({ field, fieldState }) => (
-      <Field data-invalid={fieldState.invalid}>
+      <Field className="flex-1" data-invalid={fieldState.invalid}>
         <FieldLabel htmlFor={field.name}>Distance</FieldLabel>
         <Input 
         {...field}
@@ -154,6 +155,7 @@ export function CreateAdventureForm() {
       </Field>
       )}
       />
+      </div>
       <Controller
       name="description"
       control={form.control}
@@ -166,7 +168,7 @@ export function CreateAdventureForm() {
         aria-invalid={fieldState.invalid}
         autoComplete="off"
         value={String(field.value ?? "")}
-        placeholder="Explication d'aventure"
+        placeholder="Explication d&apos;aventure"
         className="resize-none"/>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
       </Field>
