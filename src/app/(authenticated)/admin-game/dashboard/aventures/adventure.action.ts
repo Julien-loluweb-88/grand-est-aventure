@@ -42,3 +42,21 @@ export async function createAdventure(
     };
   }
 }
+
+export async function listAdventures() {
+  try {
+    const adventures = await prisma.adventure.findMany();
+
+    return {
+      ok: true as const,
+      adventures,
+    };
+  } catch (e) {
+    return {
+      ok: false as const,
+      error: "Erreur lors du chargement des aventures.",
+    };
+  }
+}
+
+
