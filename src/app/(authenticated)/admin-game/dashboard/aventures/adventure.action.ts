@@ -11,7 +11,7 @@ export type CreateAdventureInput = {
   name: string;
   description: string;
   city: string;
-  status: boolean;
+  status?: boolean;
   latitude: number;
   longitude: number;
   distance: number; 
@@ -63,12 +63,19 @@ export async function listAdventures() {
   }
 } 
 
+export type AdventureListItem = {
+  id: string;
+  name: string;
+  city: string;
+  status: boolean;
+}
+
   export async function listAdventuresForAdmin(params: {
     page: number;
     pageSize: number;
     search: string;
   }): Promise<
-    { ok: true; adventure: Adventure[]; total: number } | { ok: false; error: string }
+    { ok: true; adventure: AdventureListItem[]; total: number } | { ok: false; error: string }
   > {
     const user = await getUser();
     if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {

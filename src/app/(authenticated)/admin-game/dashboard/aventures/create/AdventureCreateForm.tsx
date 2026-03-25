@@ -29,6 +29,8 @@ const formSchema = z.object({
   .string()
   .min(2, "le nom de la ville doit être comporter au moins 2 caractères")
   .max(50, "Le nom de la ville doit être maximum 50 caractères"),
+  status: z
+  .boolean(),
   latitude: z
   .coerce.number().refine((v) => ! isNaN(v), {
     message: "Latitude invalide",

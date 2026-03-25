@@ -12,6 +12,7 @@ import { RemoveAdventureForm } from "./RemoveAdventure";
 import { AdventureEditForm } from "./AdventureEditForm";
 import { Adventure } from "../../../../../../../generated/prisma/browser";
 import { StatusAdventure } from "./StatusAdventure";
+import { CreateEnigmaForm } from "./EnigmaCreateForm";
 
 export default async function AdventurePage({
   params,
@@ -68,6 +69,19 @@ export default async function AdventurePage({
           </CardContent>
           <CardContent className="flex flex-col gap-3 w-fit mx-auto">
             <RemoveAdventureForm adventure={adventure as Adventure} />
+          </CardContent>
+        </Card>
+      </div>
+      <div className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Énigme</CardTitle>
+            <CardDescription>
+              Créer énigme
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 w-fit mx-auto" >
+          <CreateEnigmaForm adventure={adventure as Adventure}/>
           </CardContent>
         </Card>
       </div>
