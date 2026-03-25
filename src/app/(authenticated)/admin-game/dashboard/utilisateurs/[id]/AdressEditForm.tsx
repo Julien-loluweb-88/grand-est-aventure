@@ -3,7 +3,6 @@ import { updateUser } from "./user.action"
 import { Button } from "@/components/ui/button"
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field"

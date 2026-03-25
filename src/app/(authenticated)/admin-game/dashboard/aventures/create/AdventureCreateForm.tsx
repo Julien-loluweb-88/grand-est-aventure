@@ -167,7 +167,6 @@ export function CreateAdventureForm() {
         id={field.name}
         aria-invalid={fieldState.invalid}
         autoComplete="off"
-        value={String(field.value ?? "")}
         placeholder="Explication d&apos;aventure"
         className="resize-none"/>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

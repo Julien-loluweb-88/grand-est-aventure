@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { RemoveAdventureForm } from "./RemoveAdventure";
+import { AdventureEditForm } from "./AdventureEditForm";
 import { Adventure } from "../../../../../../../generated/prisma/browser";
 import { StatusAdventure } from "./StatusAdventure";
 
@@ -46,12 +47,20 @@ export default async function AdventurePage({
           <CardDescription>ID: {adventure.id}</CardDescription>
         </CardHeader>
       </Card>
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:gap-8">
+        <Card className="h-fit">
+          <CardHeader>
+            <CardTitle>Modification</CardTitle>
+        <AdventureEditForm adventure={adventure as Adventure}/>
+          </CardHeader>
+          </Card>
+
+        <div className="flex flex-col gap-4">
         <Card>
           <CardHeader>
             <CardTitle>Modération</CardTitle>
             <CardDescription>
-              Modification, changement statut, suppression
+              Changement statut, suppression
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 w-fit mx-auto" >
@@ -63,5 +72,6 @@ export default async function AdventurePage({
         </Card>
       </div>
     </div>
+     </div>
   );
 }
