@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/table"
 import { MoreHorizontalIcon } from "lucide-react"
 import { useRouter } from "next/navigation";
-import { listAdventures } from "./adventure.action";
+import { listAdventuresForAdmin } from "./adventure.action";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 
@@ -38,35 +38,40 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  //const [searchInput, setSearchInput] = useState("");
-  //const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [total, setTotal] = useState<number | null>(null);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-/* useEffect(() => {
+useEffect(() => {
         const t = setTimeout(() => {
             setDebouncedSearch(searchInput.trim());
         }, 400);
         return () => clearTimeout(t);
     }, [searchInput]);
-    useEffect(() => {
-        setPage(1);
-    }, [debouncedSearch]); */
 
-  const load = async () => {
+useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch]); 
+
+  const loadAdventures = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const result = await listAdventures();
+      const result = await listAdventuresForAdmin({
+        page,
+        pageSize: PAGE_SIZE,
+       search: debouncedSearch,
+    });
       if (!result.ok) {
         setError(result.error);
         toast.error(result.error);
         setAdventures([]);
+        setTotal(null);
         return;
-      }
-
-      setAdventures(result.adventures);
+      };
+      setAdventures(result.adventure);
+      setTotal(result.total);
     } catch (e) {
       const msg =
         e instanceof Error
@@ -74,14 +79,17 @@ export default function Page() {
           : "Erreur lors du chargement des aventures.";
       setError(msg);
       toast.error(msg);
+      setAdventures([]);
+      setTotal(null);
     } finally {
       setLoading(false);
+      setInitialLoadDone(true);
     }
-  };
+  }, [page, debouncedSearch]);
 
   useEffect(() => {
-    void load();
-  }, []);
+    void loadAdventures();
+  }, [loadAdventures]);
 
   const totalPages =
         total != null && total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : null;
@@ -93,22 +101,16 @@ export default function Page() {
 
     const showInitialSkeleton = !initialLoadDone && loading && adventures.length === 0 && !error;
   if (showInitialSkeleton) {
-    return <div>Chargement des aventures…</div>;
-  }
-  if (error) {
     return (
-      <div>
-        <p>{error}</p>
-        <Button onClick={() => void load()}>Réessayer</Button>
-      </div>
+    <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
+Chargement des aventures…</div>
     );
   }
-
 
   return (
    <div className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-               { /* <Input
+              <Input
                     type="search"
                     placeholder="Rechercher par nom ou ville"
                     value={searchInput}
@@ -116,7 +118,7 @@ export default function Page() {
                     className="max-w-sm"
                     aria-label="Rechercher un utilisateur (nom ou ville, sans tenir compte des majuscules)"
                     autoComplete="off"
-                /> */}
+                /> 
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <Button
                         type="button"
