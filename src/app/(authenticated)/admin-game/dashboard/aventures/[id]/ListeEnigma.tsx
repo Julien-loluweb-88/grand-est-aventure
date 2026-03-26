@@ -15,6 +15,7 @@ import { listEnigmaForAdmin } from "./enigma.action";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
 import { Adventure } from "../../../../../../../generated/prisma/client";
+import { EditenigmaForm } from "./EnigmaEditForm";
 
 const PAGE_SIZE = 5;
 
@@ -185,7 +186,7 @@ Chargement des enigmes…</div>
                 <TableCell className="text-left">{enigma.number}</TableCell>
                 <TableCell className="text-left">{enigma.question}</TableCell>
                 <TableCell className="text-right">
-                  <button>Modifier</button>
+                  <EditenigmaForm />
                 </TableCell>
               </TableRow>
               ))}

@@ -77,7 +77,7 @@ export default async function AdventurePage({
       <Card className="relative">
   <div className="absolute top-4 right-4">
     <CreateEnigmaForm
-      adventure={adventure as Adventure} 
+       
     />
   </div>
 

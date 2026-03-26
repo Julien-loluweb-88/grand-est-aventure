@@ -62,6 +62,42 @@ export async function createEnigma(
   }
 }
 
+export async function updateEnigma(
+  id: string,
+  form: CreateEnigmaInput
+) : Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: "Non authentifié." };
+    }
+
+  try {
+    const result = await prisma.enigma.update({
+      where: { id },
+      data: {
+        name: form.name,
+        number: form.number,
+        question: form.question,
+        uniqueResponse: form.uniqueResponse,
+        choice: form.choice,
+        answer: form.answer,
+        answerMessage: form.answerMessage,
+        description: form.description,
+        latitude: form.latitude,
+        longitude: form.longitude,
+        adventureId: form.adventureId,
+      },
+    });
+    revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
+    return { success: true, id: result.id, message: "Enigme modifie avec succès." };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
+    };
+  }
+}
+
 export type EnigmaListItem = {
   id: string;
   name: string;
@@ -105,6 +141,7 @@ export async function listEnigmaForAdmin(params: {
             name: true,
             number: true,
             question: true,
+            choice: true,
           },
           orderBy: { name: "asc" },
           skip,
@@ -120,6 +157,7 @@ export async function listEnigmaForAdmin(params: {
           name: u.name,
           number: u.number,
           question: u.question,
+          choices: Array.isArray(u.choice) ? u.choice : [],
         })),
         total,
       };
