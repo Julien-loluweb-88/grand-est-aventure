@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth/auth-user";
 import { Prisma } from "../../../../../../../generated/prisma/browser";
-import { error } from "console";
 
 const ADMIN_ROLES = ["admin", "superadmin"] as const;
 
@@ -65,11 +64,11 @@ export async function createEnigma(
 export async function updateEnigma(
   id: string,
   form: CreateEnigmaInput
-) : Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
-    const user = await getUser();
-    if (!user) {
-      return { success: false, error: "Non authentifié." };
-    }
+): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
+  const user = await getUser();
+  if (!user) {
+    return { success: false, error: "Non authentifié." };
+  }
 
   try {
     const result = await prisma.enigma.update({
@@ -106,65 +105,65 @@ export type EnigmaListItem = {
 }
 
 export async function listEnigmaForAdmin(params: {
-    page: number;
-    pageSize: number;
-    search: string;
-    adventureId: string;
-  }): Promise<
-    { ok: true; enigma: EnigmaListItem[]; total: number } | { ok: false; error: string }
-  > {
-    const user = await getUser();
-    if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
-      return { ok: false, error: "Non autorisé." };
-    }
-  
-    const skip = (params.page - 1) * params.pageSize;
-    const q = params.search.trim();
-  
-    const where =
-      q.length > 0
-        ? {
-            OR: [
-              { name: { contains: q, mode: "insensitive" as const } },
-              { question: { contains: q, mode: "insensitive" as const } },
-               ...(Number.isInteger(Number(q)) ? [{ number: { equals: Number(q) } }] : []),
-            ],
-          }
-        : { adventureId: params.adventureId };
-  
-    try {
-      const [enigma, total] = await Promise.all([
-        prisma.enigma.findMany({
-          where,
-          select: {
-            id: true,
-            name: true,
-            number: true,
-            question: true,
-            choice: true,
-          },
-          orderBy: { name: "asc" },
-          skip,
-          take: params.pageSize,
-        }),
-        prisma.enigma.count({ where }),
-      ]);
-  
-      return {
-        ok: true,
-        enigma: enigma.map((u) => ({
-          id: u.id,
-          name: u.name,
-          number: u.number,
-          question: u.question,
-          choices: Array.isArray(u.choice) ? u.choice : [],
-        })),
-        total,
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        error: e instanceof Error ? e.message : "Erreur lors du chargement des aventures.",
-      };
-    }
+  page: number;
+  pageSize: number;
+  search: string;
+  adventureId: string;
+}): Promise<
+  { ok: true; enigma: EnigmaListItem[]; total: number } | { ok: false; error: string }
+> {
+  const user = await getUser();
+  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+    return { ok: false, error: "Non autorisé." };
   }
+
+  const skip = (params.page - 1) * params.pageSize;
+  const q = params.search.trim();
+
+  const where =
+    q.length > 0
+      ? {
+        OR: [
+          { name: { contains: q, mode: "insensitive" as const } },
+          { question: { contains: q, mode: "insensitive" as const } },
+          ...(Number.isInteger(Number(q)) ? [{ number: { equals: Number(q) } }] : []),
+        ],
+      }
+      : { adventureId: params.adventureId };
+
+  try {
+    const [enigma, total] = await Promise.all([
+      prisma.enigma.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          number: true,
+          question: true,
+          choice: true,
+        },
+        orderBy: { name: "asc" },
+        skip,
+        take: params.pageSize,
+      }),
+      prisma.enigma.count({ where }),
+    ]);
+
+    return {
+      ok: true,
+      enigma: enigma.map((u) => ({
+        id: u.id,
+        name: u.name,
+        number: u.number,
+        question: u.question,
+        choices: Array.isArray(u.choice) ? u.choice : [],
+      })),
+      total,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Erreur lors du chargement des aventures.",
+    };
+  }
+}
