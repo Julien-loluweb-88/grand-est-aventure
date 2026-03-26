@@ -85,13 +85,7 @@ const formSchema = z.object({
 export type FormValues = z.infer<typeof formSchema>
 type EnigmaFormValuesWithId = FormValues & { id: string }
 
-export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId, onSucceess
- } : {
-    enigma: EnigmaFormValuesWithId;
-    onSuccess ?: () => void;
- })
-const [open, setOpen] = useState(false);
- {
+export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
   const router = useRouter()
   const params = useParams<{ id: string }>()
   const defaultChoices = enigma.choices?.length ? enigma.choices : ["", "", "", ""]
@@ -159,7 +153,7 @@ const [open, setOpen] = useState(false);
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog>
       
         <DialogTrigger asChild>
           <Button variant="outline">Modifier</Button>
