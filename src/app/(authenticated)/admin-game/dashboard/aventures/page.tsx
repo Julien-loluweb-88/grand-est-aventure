@@ -100,6 +100,7 @@ useEffect(() => {
             : adventures.length === PAGE_SIZE;
 
     const showInitialSkeleton = !initialLoadDone && loading && adventures.length === 0 && !error;
+    const showEmptyState = !loading && !error && adventures.length === 0;
   if (showInitialSkeleton) {
     return (
     <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
@@ -148,6 +149,13 @@ Chargement des aventures…</div>
                     >
                         Suivant
                     </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => router.push("/admin-game/dashboard/aventures/create")}
+                    >
+                        Créer une aventure
+                    </Button>
                     {loading && (
                         <span className="text-xs text-muted-foreground">Mise à jour…</span>
                     )}
@@ -155,49 +163,70 @@ Chargement des aventures…</div>
             </div>
     <h1>Liste des aventures</h1>
     <div className="p-4">
-    <Table className="m-auto">
-      <TableHeader>
-        <TableRow>
-          <TableHead className="text-left">Nom</TableHead>
-          <TableHead className="text-left">Ville</TableHead>
-          <TableHead className="text-left">Statut</TableHead>
-          <TableHead className="text-right">Actions</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {adventures.map((adventure) => (
-        <TableRow key= {adventure.id}>
-          <TableCell className="text-left">{adventure.name}</TableCell>
-          <TableCell className="text-left">{adventure.city}</TableCell>
-          <TableCell className="text-left">
-            {adventure.status ? (
-              <span className="text-muted-foreground">Active</span>
-  ) : (
-    <span className="text-destructive">Pause</span>
-  )}</TableCell>
-          <TableCell className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <MoreHorizontalIcon />
-                  <span className="sr-only">Open menu</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem
-                onClick={() => {
-                      router.push(
-                        `/admin-game/dashboard/aventures/${adventure.id}`);
-                      }}
-                >Voir l&apos;infomation</DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </TableCell>
-        </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+      {showEmptyState ? (
+        <div className="rounded-lg border border-dashed p-10 text-center">
+          <p className="text-sm font-medium">Aucune aventure pour le moment</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Créez la première aventure pour démarrer.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <Button
+              type="button"
+              onClick={() => router.push("/admin-game/dashboard/aventures/create")}
+            >
+              Créer la première aventure
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Table className="m-auto">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-left">Nom</TableHead>
+              <TableHead className="text-left">Ville</TableHead>
+              <TableHead className="text-left">Statut</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {adventures.map((adventure) => (
+              <TableRow key={adventure.id}>
+                <TableCell className="text-left">{adventure.name}</TableCell>
+                <TableCell className="text-left">{adventure.city}</TableCell>
+                <TableCell className="text-left">
+                  {adventure.status ? (
+                    <span className="text-muted-foreground">Active</span>
+                  ) : (
+                    <span className="text-destructive">Pause</span>
+                  )}
+                </TableCell>
+                <TableCell className="text-right">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="size-8">
+                        <MoreHorizontalIcon />
+                        <span className="sr-only">Open menu</span>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          router.push(
+                            `/admin-game/dashboard/aventures/${adventure.id}`
+                          );
+                        }}
+                      >
+                        Voir l&apos;infomation
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
     </div>
     </div>
   );
