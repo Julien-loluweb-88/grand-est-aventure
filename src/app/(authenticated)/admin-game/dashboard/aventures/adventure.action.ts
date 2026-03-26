@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth/auth-user";
-import { Adventure } from "../../../../../../generated/prisma/browser";
 
 const ADMIN_ROLES = ["admin", "superadmin"] as const;
 

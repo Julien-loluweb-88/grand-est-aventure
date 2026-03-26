@@ -43,7 +43,7 @@ const formSchema = z.object({
     }),
   question: z
     .string()
-    .min(20, "La question doit être comporter au moins 20 caractères")
+    .min(10, "La question doit être comporter au moins 20 caractères")
     .max(250, "La question doit être maximum 250 caractères"),
   uniqueResponse: z
     .boolean().optional(),
@@ -54,7 +54,7 @@ const formSchema = z.object({
     .optional(),
   answerMessage: z
     .string()
-    .min(5, "Le message doit être au moins 5 caractères")
+    .min(3, "Le message doit être au moins 5 caractères")
     .max(250, "Le message doit être maximum 250 caractères"),
   description: z
     .string()

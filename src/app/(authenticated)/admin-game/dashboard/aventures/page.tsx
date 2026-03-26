@@ -117,7 +117,7 @@ Chargement des aventures…</div>
                     value={searchInput}
                     onChange={(e) => setSearchInput(e.target.value)}
                     className="max-w-sm"
-                    aria-label="Rechercher un utilisateur (nom ou ville, sans tenir compte des majuscules)"
+                    aria-label="Rechercher une aventure (nom ou ville, sans tenir compte des majuscules)"
                     autoComplete="off"
                 /> 
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
