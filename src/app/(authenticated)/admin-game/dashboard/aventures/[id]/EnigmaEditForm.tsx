@@ -85,7 +85,13 @@ const formSchema = z.object({
 export type FormValues = z.infer<typeof formSchema>
 type EnigmaFormValuesWithId = FormValues & { id: string }
 
-export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
+export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId, onSucceess
+ } : {
+    enigma: EnigmaFormValuesWithId;
+    onSuccess ?: () => void;
+ })
+const [open, setOpen] = useState(false);
+ {
   const router = useRouter()
   const params = useParams<{ id: string }>()
   const defaultChoices = enigma.choices?.length ? enigma.choices : ["", "", "", ""]
@@ -153,12 +159,13 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
   }
 
   return (
-    <Dialog>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+    <Dialog open={open} onOpenChange={setOpen}>
+      
         <DialogTrigger asChild>
           <Button variant="outline">Modifier</Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
+            <form onSubmit={form.handleSubmit(onSubmit)}>
           <DialogHeader>
             <DialogTitle>Modifier l&apos;énigme</DialogTitle>
             <DialogDescription>
@@ -394,8 +401,9 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
             </DialogClose>
             <Button type="submit">Modifier</Button>
           </DialogFooter>
+          </form>
         </DialogContent>
-      </form>
+      
     </Dialog>
   )
 }
