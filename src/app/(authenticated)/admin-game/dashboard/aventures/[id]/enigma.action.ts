@@ -102,6 +102,14 @@ export type EnigmaListItem = {
   name: string;
   number: number;
   question: string;
+  uniqueResponse: boolean;
+  choices: string[];
+  answer: string;
+  answerMessage: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  adventureId: string;
 }
 
 export async function listEnigmaForAdmin(params: {
@@ -140,7 +148,14 @@ export async function listEnigmaForAdmin(params: {
           name: true,
           number: true,
           question: true,
+            uniqueResponse: true,
           choice: true,
+            answer: true,
+            answerMessage: true,
+            description: true,
+            latitude: true,
+            longitude: true,
+            adventureId: true,
         },
         orderBy: { name: "asc" },
         skip,
@@ -156,7 +171,16 @@ export async function listEnigmaForAdmin(params: {
         name: u.name,
         number: u.number,
         question: u.question,
-        choices: Array.isArray(u.choice) ? u.choice : [],
+          uniqueResponse: u.uniqueResponse,
+          choices: Array.isArray(u.choice)
+            ? u.choice.filter((c): c is string => typeof c === "string")
+            : [],
+          answer: u.answer ?? "",
+          answerMessage: u.answerMessage,
+          description: typeof u.description === "string" ? u.description : "",
+          latitude: u.latitude,
+          longitude: u.longitude,
+          adventureId: u.adventureId,
       })),
       total,
     };

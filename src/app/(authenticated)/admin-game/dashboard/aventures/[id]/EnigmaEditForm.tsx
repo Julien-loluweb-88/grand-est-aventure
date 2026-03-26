@@ -147,9 +147,9 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
       toast.error(result.error)
       return
     }
-    toast.success("Énigme misà jour")
-    form.reset()
-    router.push((`/admin-game/dashboard/aventures/${adventureId}`))
+    toast.success("Énigme mise à jour")
+    router.refresh()
+    router.push(`/admin-game/dashboard/aventures/${adventureId}`)
   }
 
   return (
