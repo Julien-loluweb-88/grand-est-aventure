@@ -26,10 +26,12 @@ import {
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner";
 import { ChoiceInput} from "./Choice.enigma";
 import { createEnigma } from "./enigma.action"
+import { schema } from "better-auth/client/plugins"
 
 const formSchema = z.object({
   name: z
@@ -87,6 +89,7 @@ message: "Longtitude invalide",
     }  
 })
 
+export type FormValues = z.infer<typeof schema>
 export function CreateEnigmaForm() {
   const router = useRouter()
   const form = useForm({
@@ -151,64 +154,88 @@ export function CreateEnigmaForm() {
         id={field.name}
         aria-invalid={fieldState.invalid}
         autoComplete="off"
-                  placeholder="Toto"/>
+        placeholder="Toto"/>
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
               )}
       />
-              <Field>
-                <FieldLabel htmlFor="checkout-7j9-card-number-uw1">
-                  Numéro
-                </FieldLabel>
-                <Input
-                  id="checkout-7j9-card-number-uw1"
-                  placeholder="1"
-                  required
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="checkout-7j9-card-number-uw1">
-                 Question
-                </FieldLabel>
-                <Input
-                  id="checkout-7j9-card-number-uw1"
-                  placeholder="Quel est un fruit rouge et rond?"
-                  required
-                />
-              </Field>
-              <FieldGroup className="gap-3">
-        <Field orientation="horizontal">
-          <FieldLabel htmlFor="checkout-7j9-card-number-uw1">
-                 Choix de la réponse
-                </FieldLabel>
-          <Checkbox
-            id="finder-pref-9k2-hard-disks-ljj-checkbox"
-            name="finder-pref-9k2-hard-disks-ljj-checkbox"
-            defaultChecked
-          />
-          <FieldLabel
-            htmlFor="finder-pref-9k2-hard-disks-ljj-checkbox"
-            className="font-normal"
-          >
-            Vrai
-          </FieldLabel>
+      <Controller
+      name="number"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>
+        Numéro
+        </FieldLabel>
+        <Input
+        {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off"
+        value={String(field.value ?? "")}
+        placeholder="1"/>
+        {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
-        <Field orientation="horizontal">
-          <Checkbox
-            id="finder-pref-9k2-external-disks-1yg-checkbox"
-            name="finder-pref-9k2-external-disks-1yg-checkbox"
-            defaultChecked
-          />
-          <FieldLabel
-            htmlFor="finder-pref-9k2-connected-servers-6l2-checkbox"
-            className="font-normal"
-          >
-            Faux
-          </FieldLabel>
+      )}
+      />
+<Controller
+      name="question"
+      control={form.control}
+      render={({ field, fieldState }) => (
+      <Field data-invalid={fieldState.invalid}>
+        <FieldLabel htmlFor={field.name}>
+        Question
+        </FieldLabel>
+        <Input
+        {...field}
+        id={field.name}
+        aria-invalid={fieldState.invalid}
+        autoComplete="off"
+        value={String(field.value ?? "")}
+        placeholder="Quel est un fruit rouge et rond?"
+      />
+      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+      </Field>
+      )}
+      />
+      <Controller
+      name="uniqueResponse"
+      control={form.control}
+      render={({ field, fieldState }) => (
+        <FieldGroup className="gap-3">
+      <Field >
+        <FieldLabel htmlFor={field.name}>
+                Choix de la réponse
+        </FieldLabel>
+        <RadioGroup
+          value={String(field.value)}
+          onValueChange={(val) => field.onChange(val === "true")}
+        >
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="true" id="vrai" />
+            <FieldLabel htmlFor="vrai" className="font-normal">
+              Vrai
+            </FieldLabel>
+          </div>
+          <div className="flex items-center space-x-2">
+            <RadioGroupItem value="false" id="faux" />
+            <FieldLabel htmlFor="faux" className="font-normal">
+              Faux
+            </FieldLabel>
+          </div>
+        </RadioGroup>
+      {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
         </Field>
-            </FieldGroup>
+        </FieldGroup>
+      )}
+      />
           </FieldSet>
-          <ChoiceInput />
+     
+          <ChoiceInput
+          register={form.register}
+          errors={form.formState.errors}
+           />
+            
            <Field>
                 <FieldLabel htmlFor="checkout-7j9-card-number-uw1">
                   Réponse

@@ -2,11 +2,16 @@
 
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
+import { UseFormRegister, FieldErrors, FieldValue, FieldValues } from "react-hook-form";
+import type { FormValues } from "./EnigmaCreateForm";
+import { Path } from "better-auth";
 
-type Props = {
+type Props<T extends FieldValues> = {
     maxChoices?: number;
-}
-export function ChoiceInput({ maxChoices = 4 }: Props) {
+    register: UseFormRegister<T>;
+    errors?: FieldErrors<T>;
+};
+export function ChoiceInput<T extends FieldValues>({ maxChoices = 4, register, errors }: Props<T>) {
 
     return(
         <div>
@@ -14,9 +19,14 @@ export function ChoiceInput({ maxChoices = 4 }: Props) {
         {Array.from({ length: maxChoices }).map((_, index) => (
         <div key={index}>
         <input
-        name={`Réponse${index +1}`}
+        {...register(`choices.${index}` as Path<T>)}
         placeholder={`Réponse${index +1}`}
 /> 
+{errors?.choices?.[index] && (
+    <p className="text-red-500">
+        {(errors.choices[index] as {message?: string})?.message}
+    </p>
+)}
 </div>
 ))}
 </div>
