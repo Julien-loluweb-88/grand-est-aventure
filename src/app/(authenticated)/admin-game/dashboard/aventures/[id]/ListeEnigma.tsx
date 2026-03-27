@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { GuardedButton } from "@/components/admin/GuardedButton"
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider"
 import {
   Table,
   TableBody,
@@ -14,8 +16,8 @@ import { toast } from "sonner"
 import { deleteEnigma } from "./enigma.action"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { Adventure } from "../../../../../../../generated/prisma/client"
-import { EditenigmaForm } from "./EnigmaEditForm"
+import { EditenigmaForm, type EnigmaEditRow } from "./EnigmaEditForm"
+import type { LocationPickerContextMarker } from "@/components/location/location-picker-types"
 import {
   Dialog,
   DialogContent,
@@ -27,39 +29,31 @@ import {
 
 const PAGE_SIZE = 5
 
-type Enigma = {
-  id: string
-  name: string
-  number: number
-  question: string
-  uniqueResponse: boolean
-  choices: string[]
-  answer: string
-  answerMessage: string
-  description: string
-  latitude: number
-  longitude: number
-  adventureId: string
-}
+type Enigma = EnigmaEditRow
 
 type Props = {
-  adventure: Adventure
+  adventureId: string
   enigmas: Enigma[]
   total: number
   page: number
   search: string
   loadError: string | null
+  mapReferenceMarkers: LocationPickerContextMarker[]
+  routePolyline: [number, number][] | null
 }
 
 export function ListEnigmaTable({
-  adventure,
+  adventureId,
   enigmas,
   total,
   page,
   search,
   loadError,
+  mapReferenceMarkers,
+  routePolyline,
 }: Props) {
   const router = useRouter()
+  const caps = useAdminCapabilities()
   const [searchInput, setSearchInput] = useState(search)
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -82,8 +76,8 @@ export function ListEnigmaTable({
     const params = new URLSearchParams()
     if (debouncedSearch) params.set("search", debouncedSearch)
     params.set("page", "1")
-    router.push(`/admin-game/dashboard/aventures/${adventure.id}?${params.toString()}`)
-  }, [debouncedSearch])
+    router.push(`/admin-game/dashboard/aventures/${adventureId}?${params.toString()}`)
+  }, [debouncedSearch, adventureId, router])
 
   useEffect(() => {
     if (loadError) toast.error(loadError)
@@ -93,7 +87,7 @@ export function ListEnigmaTable({
     async (enigma: Enigma) => {
       setDeletingId(enigma.id)
       try {
-        const result = await deleteEnigma(enigma.id, adventure.id)
+        const result = await deleteEnigma(enigma.id, adventureId)
         if (!result.success) {
           toast.error(result.error)
           return
@@ -106,7 +100,7 @@ export function ListEnigmaTable({
         setDeletingId(null)
       }
     },
-    [adventure.id, router]
+    [adventureId, router]
   )
 
   const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1
@@ -137,7 +131,7 @@ export function ListEnigmaTable({
               const params = new URLSearchParams()
               if (search) params.set("search", search)
               params.set("page", String(Math.max(1, page - 1)))
-              router.push(`/admin-game/dashboard/aventures/${adventure.id}?${params.toString()}`)
+              router.push(`/admin-game/dashboard/aventures/${adventureId}?${params.toString()}`)
             }}
           >
             Precedent
@@ -157,7 +151,7 @@ export function ListEnigmaTable({
               const params = new URLSearchParams()
               if (search) params.set("search", search)
               params.set("page", String(page + 1))
-              router.push(`/admin-game/dashboard/aventures/${adventure.id}?${params.toString()}`)
+              router.push(`/admin-game/dashboard/aventures/${adventureId}?${params.toString()}`)
             }}
           >
             Suivant
@@ -209,15 +203,21 @@ export function ListEnigmaTable({
                   <TableCell className="text-left">{enigma.number}</TableCell>
                   <TableCell className="text-left">{enigma.question}</TableCell>
                   <TableCell className="text-right flex justify-end gap-2">
-                    <EditenigmaForm enigma={enigma} />
-                    <Button
+                    <EditenigmaForm
+                      enigma={enigma}
+                      mapReferenceMarkers={mapReferenceMarkers}
+                      routePolyline={routePolyline}
+                    />
+                    <GuardedButton
                       type="button"
                       variant="destructive"
+                      allowed={caps.adventure.update}
+                      denyReason="Vous ne pouvez pas modifier le contenu de cette aventure."
                       disabled={deletingId === enigma.id}
                       onClick={() => setEnigmaToDelete(enigma)}
                     >
                       {deletingId === enigma.id ? "Suppression..." : "Supprimer"}
-                    </Button>
+                    </GuardedButton>
                   </TableCell>
                 </TableRow>
               ))}

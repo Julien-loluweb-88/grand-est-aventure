@@ -4,6 +4,9 @@ import dynamic from "next/dynamic"
 import { useEffect, useMemo, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import type { LocationPickerContextMarker } from "./location-picker-types"
+
+export type { LocationPickerContextMarker } from "./location-picker-types"
 
 const Map = dynamic(() => import("./LocationPickerMap"), {
   ssr: false,
@@ -26,6 +29,10 @@ type Props = {
   longitude: number
   onChange: (coords: { latitude: number; longitude: number }) => void
   helperText?: string
+  /** Points en lecture seule (énigmes numérotées, trésor), style distinct du marqueur d’édition. */
+  contextMarkers?: LocationPickerContextMarker[]
+  /** Tracé routier ORS [lat, lng], ordre départ → énigmes → trésor. */
+  routePolyline?: [number, number][] | null
 }
 
 export function LocationPicker({
@@ -33,6 +40,8 @@ export function LocationPicker({
   longitude,
   onChange,
   helperText = "Cliquez sur la carte ou recherchez une adresse.",
+  contextMarkers,
+  routePolyline,
 }: Props) {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -205,6 +214,8 @@ export function LocationPicker({
         latitude={effectiveLatitude}
         longitude={effectiveLongitude}
         onChange={onChange}
+        contextMarkers={contextMarkers}
+        routePolyline={routePolyline}
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

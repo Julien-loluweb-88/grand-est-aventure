@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { removeUser } from "./user.action";
 import type { User } from "../../../../../../../generated/prisma/browser";
 import { Button } from "@/components/ui/button";
+import { GuardedButton } from "@/components/admin/GuardedButton";
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogClose,
@@ -20,6 +22,7 @@ import { Input } from "@/components/ui/input";
 
 export function RemoveUserForm({ user }: { user: User }) {
   const router = useRouter();
+  const caps = useAdminCapabilities();
   const dialogRef = useRef<DialogCloseRef>(null);
   const [isPending, startTransition] = useTransition();
   const [confirmText, setConfirmText] = useState("");
@@ -49,6 +52,20 @@ export function RemoveUserForm({ user }: { user: User }) {
       }
     });
   };
+
+  if (!caps.user.delete) {
+    return (
+      <GuardedButton
+        type="button"
+        variant="destructive"
+        size="sm"
+        allowed={false}
+        denyReason="Vous ne pouvez pas supprimer un utilisateur."
+      >
+        Supprimer le compte
+      </GuardedButton>
+    );
+  }
 
   return (
     <Dialog ref={dialogRef}>

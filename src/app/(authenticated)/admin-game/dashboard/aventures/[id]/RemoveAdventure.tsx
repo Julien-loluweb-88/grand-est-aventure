@@ -1,6 +1,8 @@
 "use client"
 import { useState, useRef, useTransition } from "react";
 import { Button } from "@/components/ui/button";
+import { GuardedButton } from "@/components/admin/GuardedButton";
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogClose,
@@ -15,11 +17,15 @@ import {
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { RemoveAdventure } from "./adventure.action"
-import { Adventure } from "../../../../../../../generated/prisma/browser";
 import { useRouter } from "next/navigation";
 
-export function RemoveAdventureForm({adventure}: {adventure: Adventure}){
+export function RemoveAdventureForm({
+  adventure,
+}: {
+  adventure: { id: string; name: string }
+}) {
     const router = useRouter();
+    const caps = useAdminCapabilities();
     const dialogRef = useRef<DialogCloseRef>(null);
     const [isPending, startTransition] = useTransition();
     const [confirmText, setConfirmText] = useState("");
@@ -49,6 +55,20 @@ export function RemoveAdventureForm({adventure}: {adventure: Adventure}){
           }
         });
       };
+
+    if (!caps.adventure.delete) {
+      return (
+        <GuardedButton
+          type="button"
+          variant="destructive"
+          size="sm"
+          allowed={false}
+          denyReason="Vous ne pouvez pas supprimer une aventure."
+        >
+          Supprimer l&apos;aventure
+        </GuardedButton>
+      );
+    }
 
     return (
         <Dialog ref={dialogRef}>

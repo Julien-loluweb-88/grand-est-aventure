@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import { MoreHorizontalIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useAdminCapabilities } from "../AdminCapabilitiesProvider";
 
 const PAGE_SIZE = 10;
 
@@ -35,6 +36,7 @@ type UserRow = {
 
 export default function UtilisateursPage() {
     const router = useRouter();
+    const caps = useAdminCapabilities();
     const [users, setUsers] = useState<UserRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,9 @@ export default function UtilisateursPage() {
 
             if (!result.ok) {
                 setError(result.error);
-                toast.error(result.error);
+                if (result.error !== "Non autorisé.") {
+                    toast.error(result.error);
+                }
                 setUsers([]);
                 setTotal(null);
                 return;
@@ -159,7 +163,11 @@ export default function UtilisateursPage() {
 
             {error && (
                 <div className="flex flex-col gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm">
-                    <p className="text-destructive">{error}</p>
+                    <p className="text-destructive">
+                        {error === "Non autorisé."
+                            ? "Accès refusé. Seuls les comptes autorisés peuvent voir les utilisateurs."
+                            : error}
+                    </p>
                     <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => void loadUsers()}>
                         Réessayer
                     </Button>
@@ -209,7 +217,14 @@ export default function UtilisateursPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuItem
+                                                    disabled={!caps.user.get}
+                                                    title={
+                                                        !caps.user.get
+                                                            ? "Vous ne pouvez pas ouvrir le profil utilisateur."
+                                                            : undefined
+                                                    }
                                                     onClick={() => {
+                                                        if (!caps.user.get) return;
                                                         router.push(
                                                             `/admin-game/dashboard/utilisateurs/${user.id}`
                                                         );

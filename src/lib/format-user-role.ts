@@ -1,5 +1,5 @@
 const ROLE_LABELS: Record<string, string> = {
-  user: "Utilisateur",
+  user: "Joueur",
   admin: "Admin",
   superadmin: "Super admin",
   myCustomRole: "Rôle personnalisé",

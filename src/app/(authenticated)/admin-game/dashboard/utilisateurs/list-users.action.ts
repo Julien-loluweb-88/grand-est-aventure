@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth/auth-user";
+import { roleHasRoutePermission } from "@/lib/permissions";
 
 const ADMIN_ROLES = ["admin", "superadmin"] as const;
 
@@ -22,6 +23,9 @@ export async function listUsersForAdmin(params: {
 > {
   const user = await getUser();
   if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+    return { ok: false, error: "Non autorisé." };
+  }
+  if (!roleHasRoutePermission(user.role, "user", "get")) {
     return { ok: false, error: "Non autorisé." };
   }
 

@@ -4,17 +4,7 @@ import { admin as adminPlugin } from "better-auth/plugins";
 import { ac, admin, user, myCustomRole, superadmin } from "@/lib/permissions";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/prisma";
-import nodemailer from "nodemailer";
-
-const transporter = nodemailer.createTransport({
-  host: process.env.NODEMAILER_HOST as string,
-  port: parseInt(process.env.NODEMAILER_PORT as string, 10),
-  secure: false,
-  auth: {
-    user: process.env.NODEMAILER_USER,
-    pass: process.env.NODEMAILER_PASS,
-  },
-});
+import { getAppMailTransport } from "@/lib/smtp-transport";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -33,6 +23,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     sendResetPassword: async ({ user: u, url }) => {
+      const transporter = getAppMailTransport();
+      if (!transporter) {
+        throw new Error(
+          "SMTP non configuré (NODEMAILER_HOST / NODEMAILER_PORT). Impossible d’envoyer l’e-mail."
+        );
+      }
       await transporter.sendMail({
         from: process.env.NODEMAILER_USER,
         to: u.email,

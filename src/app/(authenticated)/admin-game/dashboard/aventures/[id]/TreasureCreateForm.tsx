@@ -1,10 +1,14 @@
 "use client"
 
-import { useCallback, useState, type FormEvent } from "react"
+import { useCallback, useMemo, useState, type FormEvent } from "react"
+import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoints"
+import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, Controller, useWatch, type SubmitErrorHandler } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
+import { GuardedButton } from "@/components/admin/GuardedButton"
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider"
 import {
   Field,
   FieldDescription,
@@ -24,29 +28,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner";
-import { LocationPicker } from "@/components/location/LocationPicker";
+import { LocationPicker } from "@/components/location/LocationPicker"
+import type { LocationPickerContextMarker } from "@/components/location/location-picker-types"
 import { createTrasure } from "./treasure.action"
+import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor"
+import { EMPTY_TIPTAP_DOCUMENT } from "@/lib/adventure-description-tiptap"
+import { adventureDescriptionCreateZod } from "@/lib/adventure-description-schema"
 
 const formSchema = z.object({
     name: z
     .string()
-    .min(2, "Le nom doit être comporter au moins 2 caractères")
-    .max(30, "Le nom doit être maximum 30 caractères"),
-    description: z
-        .string()
-        .min(20, "Le description doit être comporter au moins 20 caractères")
-        .max(250, "Le description doit être maximum 250 caractères"),
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(30, "Le nom ne doit pas dépasser 30 caractères"),
+    description: adventureDescriptionCreateZod,
     code: z
     .string()
-    .min(2, "Le code doit être comporter au moins 2 caractères")
+    .min(2, "Le code doit contenir au moins 2 caractères")
     .max(30, "Le code doit être maximum 30 caractères"),
     safeCode: z
     .string()
-    .min(2, "Le code de sécurité doit être comporter au moins 2 caractères")
-    .max(30, "Le code de sécuritédoit être maximum 30 caractères"),
+    .min(2, "Le code de sécurité doit contenir au moins 2 caractères")
+    .max(30, "Le code de sécurité ne doit pas dépasser 30 caractères"),
     latitude: z
         .coerce.number()
         .min(-90, "Latitude invalide")
@@ -59,15 +63,29 @@ const formSchema = z.object({
         z.string(),
 })
 
-export function CreateTreasureForm(){
+export function CreateTreasureForm({
+  hasTreasure = false,
+  mapReferenceMarkers,
+  routePolyline,
+}: {
+  hasTreasure?: boolean
+  mapReferenceMarkers: LocationPickerContextMarker[]
+  routePolyline: [number, number][] | null
+}) {
     const router = useRouter()
     const params = useParams<{ id: string }>()
+    const caps = useAdminCapabilities()
+    const canEdit = caps.adventure.update
     const [open, setOpen] = useState(false)
-    const form = useForm<z.input<typeof formSchema>>({
+    const form = useForm<
+        z.input<typeof formSchema>,
+        unknown,
+        z.infer<typeof formSchema>
+    >({
         resolver: zodResolver(formSchema),
         defaultValues: {
             name: "",
-            description: "",
+            description: EMPTY_TIPTAP_DOCUMENT,
             code: "",
             safeCode: "",
             latitude: 48.4072318295932,
@@ -79,15 +97,41 @@ export function CreateTreasureForm(){
     const latitudeValue = useWatch({ control: form.control, name: "latitude" })
     const longitudeValue = useWatch({ control: form.control, name: "longitude" })
 
-    const onSubmit = useCallback(async (data: z.input<typeof formSchema>) => {
+    const waypoints = useMemo(
+        () =>
+            buildAdventureRouteWaypointsLonLat(mapReferenceMarkers, {
+                treasurePosition: {
+                    latitude: Number(latitudeValue),
+                    longitude: Number(longitudeValue),
+                },
+            }),
+        [latitudeValue, longitudeValue, mapReferenceMarkers]
+    )
+
+    const baselineSerialized = useMemo(
+        () => JSON.stringify(buildAdventureRouteWaypointsLonLat(mapReferenceMarkers)),
+        [mapReferenceMarkers]
+    )
+
+    const { liveRoute: liveRoutePreview, loading: routePreviewLoading } =
+        useLiveAdventureRoutePreview(params?.id ?? "", waypoints, {
+            baselineSerialized,
+            enabled: canEdit && open,
+        })
+
+    const displayRoutePolyline =
+        liveRoutePreview != null ? liveRoutePreview.polyline : routePolyline
+
+    const onSubmit = useCallback(async (data: z.infer<typeof formSchema>) => {
+        const plain = JSON.parse(JSON.stringify(data)) as z.infer<typeof formSchema>
         const result = await createTrasure({
-            name: data.name,
-            description: data.description,
-            code: data.code,
-            safeCode: data.safeCode,
-            latitude: Number(data.latitude),
-            longitude: Number(data.longitude),
-            adventureId: data.adventureId,
+            name: plain.name,
+            description: plain.description,
+            code: plain.code,
+            safeCode: plain.safeCode,
+            latitude: Number(plain.latitude),
+            longitude: Number(plain.longitude),
+            adventureId: plain.adventureId,
         })
         if (!result.success) {
         toast.error(result.error)
@@ -98,13 +142,9 @@ export function CreateTreasureForm(){
     router.refresh()
 }, [router])
 
-    const onInvalid: SubmitErrorHandler<z.input<typeof formSchema>> = useCallback(
-        (errors) => {
-        console.warn("Form validation errors:", errors)
+    const onInvalid: SubmitErrorHandler<z.input<typeof formSchema>> = useCallback(() => {
         toast.error("Vérifie les champs du formulaire.")
-    },
-    []
-    )
+    }, [])
 
      const handleFormSubmit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
@@ -115,15 +155,45 @@ export function CreateTreasureForm(){
   )
     
     
+    if (!canEdit) {
+      return (
+        <GuardedButton
+          type="button"
+          variant="outline"
+          allowed={false}
+          denyReason="Vous ne pouvez pas créer ou modifier un trésor."
+        >
+          Créer un trésor
+        </GuardedButton>
+      );
+    }
+
+    if (hasTreasure) {
+      return (
+        <div
+          className="rounded-none border px-4 py-3 text-sm leading-relaxed text-muted-foreground"
+          role="status"
+        >
+          <p className="font-medium text-foreground">
+            Un trésor est déjà défini pour cette aventure.
+          </p>
+          <p className="mt-1.5">
+            Modifiez-le ou supprimez-le via la fiche ci-dessous (boutons en bas
+            de carte).
+          </p>
+        </div>
+      );
+    }
+
     return(
         <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
         <Button variant="outline">Créer un trésor</Button>
     </DialogTrigger>
-    <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="flex max-h-[92vh] w-[min(95vw,72rem)] flex-col gap-4 overflow-y-auto p-6 sm:max-w-[min(95vw,72rem)]">
         <form onSubmit={handleFormSubmit} className="space-y-4">
             <DialogHeader>
-                <DialogTitle>Création un trésor</DialogTitle>
+                <DialogTitle>Création d&apos;un trésor</DialogTitle>
             </DialogHeader>
 
             <FieldGroup className="space-y-4">
@@ -200,7 +270,11 @@ export function CreateTreasureForm(){
                         form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
                         form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
                       }}
-                      helperText="Placez l'énigme sur la carte."
+                      helperText={`Repères : D départ, énigmes numérotées ; itinéraire bleu. Placez le trésor (grand marqueur).${
+                        routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
+                      }`}
+                      contextMarkers={mapReferenceMarkers}
+                      routePolyline={displayRoutePolyline}
                     />
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       <Input
@@ -241,13 +315,13 @@ export function CreateTreasureForm(){
                 render={({ field, fieldState }) => (
                 <FieldGroup>
                 <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Description</FieldLabel>
-                    <Textarea
-                        {...field}
-                        placeholder="Ajoutez description de cette énigme"
-                        className="resize-none"
-                        value={String(field.value ?? "")}
-                        onChange={(e) => field.onChange(e.target.value)}
+                    <FieldLabel htmlFor={field.name}>Description</FieldLabel>
+                    <AdventureDescriptionEditor
+                        id={field.name}
+                        value={field.value}
+                        onChange={field.onChange}
+                        disabled={!canEdit}
+                        aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                     </Field>

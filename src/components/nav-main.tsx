@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import {
   Collapsible,
   CollapsibleContent,
@@ -15,7 +16,14 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { CaretRightIcon } from "@phosphor-icons/react"
+import { DEFAULT_DENY_MESSAGE } from "@/components/admin/GuardedButton"
+import { cn } from "@/lib/utils"
 
 export function NavMain({
   items,
@@ -30,6 +38,8 @@ export function NavMain({
     items?: {
       title: string
       url: string
+      disabled?: boolean
+      disabledReason?: string
     }[]
   }[]
 }) {
@@ -56,11 +66,28 @@ export function NavMain({
                 <SidebarMenuSub>
                   {item.items?.map((subItem) => (
                     <SidebarMenuSubItem key={subItem.title}>
-                      <SidebarMenuSubButton asChild>
-                        <a href={subItem.url}>
-                          <span>{subItem.title}</span>
-                        </a>
-                      </SidebarMenuSubButton>
+                      {subItem.disabled ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span
+                              className={cn(
+                                "flex w-full cursor-not-allowed items-center rounded-md px-2 py-1.5 text-sm opacity-50"
+                              )}
+                            >
+                              {subItem.title}
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="right" className="max-w-xs text-pretty">
+                            {subItem.disabledReason ?? DEFAULT_DENY_MESSAGE}
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <SidebarMenuSubButton asChild>
+                          <Link href={subItem.url}>
+                            <span>{subItem.title}</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      )}
                     </SidebarMenuSubItem>
                   ))}
                 </SidebarMenuSub>

@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { statusAdventure} from "./adventure.action";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { GuardedButton } from "@/components/admin/GuardedButton";
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogContent,
@@ -12,10 +14,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Adventure } from "../../../../../../../generated/prisma/browser";
 
-export function StatusAdventure ({adventure}: {adventure: Adventure}){
+export function StatusAdventure({ adventure }: { adventure: { id: string } }) {
 const router = useRouter();
+const caps = useAdminCapabilities();
 
   const handleStatus = async (status: boolean) => {
     try{
@@ -26,6 +28,19 @@ const router = useRouter();
       toast.error(error instanceof Error ? error.message : "Erreur lors de la mise à jour");
     }
   };
+
+  if (!caps.adventure.update) {
+    return (
+      <GuardedButton
+        type="button"
+        size="sm"
+        allowed={false}
+        denyReason="Vous ne pouvez pas modifier le statut d'une aventure."
+      >
+        Mettre en pause
+      </GuardedButton>
+    );
+  }
 
   return(
     <Dialog>

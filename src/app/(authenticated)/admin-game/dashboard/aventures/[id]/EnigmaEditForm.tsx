@@ -2,8 +2,12 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, Controller, useWatch } from "react-hook-form"
 import * as z from "zod"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoints"
+import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview"
 import { Button } from "@/components/ui/button"
+import { GuardedButton } from "@/components/admin/GuardedButton"
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider"
 import {
   Dialog,
   DialogClose,
@@ -22,19 +26,24 @@ import {
   FieldError,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { updateEnigma } from "./enigma.action"
-import { LocationPicker } from "@/components/location/LocationPicker";
-
+import { LocationPicker } from "@/components/location/LocationPicker"
+import type { LocationPickerContextMarker } from "@/components/location/location-picker-types"
+import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
+import { adventureDescriptionToTiptapJSON } from "@/lib/adventure-description-tiptap";
+import {
+  adventureDescriptionEditZod,
+  enigmaAnswerMessageEditZod,
+} from "@/lib/adventure-description-schema";
 
 const formSchema = z.object({
   name: z
     .string()
-    .min(2, "Le nom doit être comporter au moins 2 caractères")
-    .max(30, "Le nom doit être maximum 30 caractères"),
+    .min(2, "Le nom doit contenir au moins 2 caractères")
+    .max(30, "Le nom ne doit pas dépasser 30 caractères"),
   number: z
     .coerce.number().refine((v) => !isNaN(v), {
       message: "Numéro invalide",
@@ -42,7 +51,7 @@ const formSchema = z.object({
   question: z
     .string()
     .min(10, "La question doit comporter au moins 10 caractères")
-    .max(250, "La question doit être maximum 250 caractères"),
+    .max(250, "La question ne doit pas dépasser 250 caractères"),
   uniqueResponse: z
     .boolean().optional(),
   choices: z
@@ -50,14 +59,8 @@ const formSchema = z.object({
   answer: z
     .string()
     .optional(),
-  answerMessage: z
-    .string()
-    .min(3, "Le message doit être au moins 3 caractères")
-    .max(250, "Le message doit être maximum 250 caractères"),
-  description: z
-    .string()
-    .min(20, "Le description doit être comporter au moins 20 caractères")
-    .max(250, "Le description doit être maximum 250 caractères"),
+  answerMessage: enigmaAnswerMessageEditZod,
+  description: adventureDescriptionEditZod,
   adventureId:
     z.string(),
   latitude: z
@@ -101,15 +104,43 @@ const formSchema = z.object({
     }
   })
 export type FormValues = z.infer<typeof formSchema>
-type EnigmaFormValuesWithId = FormValues & { id: string }
 
-export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
+/** Ligne liste admin : champs Json sérialisés tels que renvoyés par Prisma. */
+export type EnigmaEditRow = {
+  id: string
+  name: string
+  number: number
+  question: string
+  uniqueResponse: boolean
+  choices: string[]
+  answer: string
+  answerMessage: unknown
+  description: unknown
+  latitude: number
+  longitude: number
+  adventureId: string
+}
+
+export function EditenigmaForm({
+  enigma,
+  mapReferenceMarkers,
+  routePolyline,
+}: {
+  enigma: EnigmaEditRow
+  mapReferenceMarkers: LocationPickerContextMarker[]
+  routePolyline: [number, number][] | null
+}) {
   const router = useRouter()
   const params = useParams<{ id: string }>()
+  const caps = useAdminCapabilities()
   const [open, setOpen] = useState(false)
   const defaultChoices = enigma.choices?.length ? enigma.choices : ["", "", "", ""]
 
-  const form = useForm({
+  const form = useForm<
+    z.input<typeof formSchema>,
+    unknown,
+    z.infer<typeof formSchema>
+  >({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: enigma.name,
@@ -118,16 +149,77 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
       uniqueResponse: enigma.uniqueResponse ?? false,
       choices: defaultChoices,
       answer: enigma.answer,
-      answerMessage: enigma.answerMessage,
-      description: enigma.description?.toString() ?? "",
+      answerMessage: adventureDescriptionToTiptapJSON(enigma.answerMessage),
+      description: adventureDescriptionToTiptapJSON(enigma.description),
       latitude: enigma.latitude,
       longitude: enigma.longitude,
       adventureId: params?.id ?? "",
-    }
+    },
   })
   const latitudeValue = useWatch({ control: form.control, name: "latitude" })
   const longitudeValue = useWatch({ control: form.control, name: "longitude" })
+  const numberValue = useWatch({ control: form.control, name: "number" })
   const [choiceInputs, setChoiceInputs] = useState<string[]>(defaultChoices)
+
+  const pickerContextMarkers = useMemo(
+    () =>
+      mapReferenceMarkers.filter(
+        (m) => m.kind !== "enigma" || m.id !== enigma.id
+      ),
+    [mapReferenceMarkers, enigma.id]
+  )
+
+  const waypoints = useMemo(
+    () =>
+      buildAdventureRouteWaypointsLonLat(mapReferenceMarkers, {
+        replaceEnigma: {
+          id: enigma.id,
+          latitude: Number(latitudeValue ?? enigma.latitude),
+          longitude: Number(longitudeValue ?? enigma.longitude),
+          number: Number(numberValue ?? enigma.number),
+        },
+      }),
+    [
+      enigma.id,
+      enigma.latitude,
+      enigma.longitude,
+      enigma.number,
+      latitudeValue,
+      longitudeValue,
+      mapReferenceMarkers,
+      numberValue,
+    ]
+  )
+
+  const baselineWaypointsSerialized = useMemo(
+    () =>
+      JSON.stringify(
+        buildAdventureRouteWaypointsLonLat(mapReferenceMarkers, {
+          replaceEnigma: {
+            id: enigma.id,
+            latitude: enigma.latitude,
+            longitude: enigma.longitude,
+            number: enigma.number,
+          },
+        })
+      ),
+    [
+      enigma.id,
+      enigma.latitude,
+      enigma.longitude,
+      enigma.number,
+      mapReferenceMarkers,
+    ]
+  )
+
+  const { liveRoute: liveRoutePreview, loading: routePreviewLoading } =
+    useLiveAdventureRoutePreview(enigma.adventureId, waypoints, {
+      baselineSerialized: baselineWaypointsSerialized,
+      enabled: caps.adventure.update && open,
+    })
+
+  const displayRoutePolyline =
+    liveRoutePreview != null ? liveRoutePreview.polyline : routePolyline
 
   useEffect(() => {
     form.setValue("choices", choiceInputs, { shouldValidate: true })
@@ -146,23 +238,21 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
     form.setValue("answer", nextAnswer ?? "", { shouldValidate: true })
   }
 
-  const adventureId = params?.id ?? "";
-
-  const onSubmit = async (data: z.input<typeof formSchema>) => {
-    const result = await (
-      updateEnigma(enigma.id, {
-        name: data.name,
-        number: Number(data.number),
-        question: data.question,
-        uniqueResponse: data.uniqueResponse ?? false,
-        answer: data.answer ?? "",
-        answerMessage: data.answerMessage,
-        description: data.description,
-        latitude: Number(data.latitude),
-        longitude: Number(data.longitude),
-        adventureId: data.adventureId,
-        choice: data.choices.filter((c) => c !== ""),
-      }))
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    const plain = JSON.parse(JSON.stringify(data)) as z.infer<typeof formSchema>
+    const result = await updateEnigma(enigma.id, {
+      name: plain.name,
+      number: Number(plain.number),
+      question: plain.question,
+      uniqueResponse: plain.uniqueResponse ?? false,
+      answer: plain.answer ?? "",
+      answerMessage: plain.answerMessage,
+      description: plain.description,
+      latitude: Number(plain.latitude),
+      longitude: Number(plain.longitude),
+      adventureId: plain.adventureId,
+      choice: plain.choices.filter((c) => c !== ""),
+    })
 
     if (!result.success) {
       toast.error(result.error)
@@ -171,6 +261,19 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
     toast.success("Énigme mise à jour")
     setOpen(false)
     router.refresh()
+  }
+
+  if (!caps.adventure.update) {
+    return (
+      <GuardedButton
+        type="button"
+        variant="outline"
+        allowed={false}
+        denyReason="Vous ne pouvez pas modifier des énigmes."
+      >
+        Modifier
+      </GuardedButton>
+    );
   }
 
   return (
@@ -184,7 +287,7 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
           <DialogHeader>
             <DialogTitle>Modifier l&apos;énigme</DialogTitle>
             <DialogDescription>
-              Modifier l&apos;énigme ${enigma.name}
+              Modifier l&apos;énigme « {enigma.name} »
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-3 md:grid-cols-2">
@@ -207,23 +310,26 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
                 </Field>
               )}
             />
+            <Field>
+              <FieldLabel>Ordre dans le parcours</FieldLabel>
+              <p className="text-sm text-muted-foreground">
+                Énigme n°{" "}
+                <span className="font-medium text-foreground">{enigma.number}</span>. Pour changer la
+                suite du parcours, utilisez le bloc <strong>Ordre des énigmes</strong> sous la liste.
+              </p>
+            </Field>
             <Controller
               name="number"
               control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor={field.name}>
-                    Numéro
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id={field.name}
-                    aria-invalid={fieldState.invalid}
-                    autoComplete="off"
-                    value={String(field.value ?? "")}
-                    placeholder="1" />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
+              render={({ field }) => (
+                <input
+                  type="hidden"
+                  name={field.name}
+                  ref={field.ref}
+                  value={String(field.value ?? "")}
+                  onBlur={field.onBlur}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
               )}
             />
             <Controller
@@ -334,73 +440,75 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
             }}
           />
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Controller
-              name="answerMessage"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel>Message</FieldLabel>
+          <Controller
+            name="answerMessage"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor={field.name}>Message (après bonne réponse)</FieldLabel>
+                <AdventureDescriptionEditor
+                  id={field.name}
+                  value={field.value}
+                  onChange={field.onChange}
+                  disabled={!caps.adventure.update}
+                  aria-invalid={fieldState.invalid}
+                />
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="latitude"
+            control={form.control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid || Boolean(form.formState.errors.longitude)}>
+                <FieldLabel>Position sur la carte</FieldLabel>
+                <LocationPicker
+                  latitude={Number(latitudeValue ?? 0)}
+                  longitude={Number(longitudeValue ?? 0)}
+                  onChange={({ latitude, longitude }) => {
+                    form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
+                    form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
+                  }}
+                  helperText={`Repères : D départ, autres énigmes, T trésor ; itinéraire bleu. Déplacez ce point (grand marqueur).${
+                    routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
+                  }`}
+                  contextMarkers={pickerContextMarkers}
+                  routePolyline={displayRoutePolyline}
+                />
+                <div className="mt-2 grid grid-cols-2 gap-2">
                   <Input
                     {...field}
-                    placeholder="Félicitation"
+                    type="number"
+                    step="any"
+                    placeholder="Latitude"
                     autoComplete="off"
                     value={String(field.value ?? "")}
                     onChange={(e) => field.onChange(e.target.value)}
                   />
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                </Field>
-              )}
-            />
-
-            <Controller
-              name="latitude"
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid || Boolean(form.formState.errors.longitude)}>
-                  <FieldLabel>Position sur la carte</FieldLabel>
-                  <LocationPicker
-                    latitude={Number(latitudeValue ?? 0)}
-                    longitude={Number(longitudeValue ?? 0)}
-                    onChange={({ latitude, longitude }) => {
-                      form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
-                      form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
-                    }}
-                    helperText="Déplacez le point de l'énigme sur la carte."
+                  <Input
+                    name="longitude"
+                    type="number"
+                    step="any"
+                    placeholder="Longitude"
+                    autoComplete="off"
+                    value={String(longitudeValue ?? "")}
+                    onChange={(e) =>
+                      form.setValue("longitude", Number(e.target.value), {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
                   />
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    <Input
-                      {...field}
-                      type="number"
-                      step="any"
-                      placeholder="Latitude"
-                      autoComplete="off"
-                      value={String(field.value ?? "")}
-                      onChange={(e) => field.onChange(e.target.value)}
-                    />
-                    <Input
-                      name="longitude"
-                      type="number"
-                      step="any"
-                      placeholder="Longitude"
-                      autoComplete="off"
-                      value={String(longitudeValue ?? "")}
-                      onChange={(e) =>
-                        form.setValue("longitude", Number(e.target.value), {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        })
-                      }
-                    />
-                  </div>
-                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                  {form.formState.errors.longitude && (
-                    <FieldError errors={[form.formState.errors.longitude]} />
-                  )}
-                </Field>
-              )}
-            />
-          </div>
+                </div>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                {form.formState.errors.longitude && (
+                  <FieldError errors={[form.formState.errors.longitude]} />
+                )}
+              </Field>
+            )}
+          />
 
           <FieldSet>
             <Controller
@@ -409,13 +517,13 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
               render={({ field, fieldState }) => (
                 <FieldGroup>
                   <Field data-invalid={fieldState.invalid}>
-                    <FieldLabel>Description</FieldLabel>
-                    <Textarea
-                      {...field}
-                      placeholder="Ajoutez description de cette énigme"
-                      className="resize-none"
-                      value={String(field.value ?? "")}
-                      onChange={(e) => field.onChange(e.target.value)}
+                    <FieldLabel htmlFor={field.name}>Description</FieldLabel>
+                    <AdventureDescriptionEditor
+                      id={field.name}
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={!caps.adventure.update}
+                      aria-invalid={fieldState.invalid}
                     />
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </Field>

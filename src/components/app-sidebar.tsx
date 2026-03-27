@@ -5,6 +5,8 @@ import Link from "next/link"
 
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
+import type { AdminSessionCapabilities } from "@/lib/admin-session-capabilities"
+import { DEFAULT_DENY_MESSAGE } from "@/components/admin/GuardedButton"
 import {
   Sidebar,
   SidebarContent,
@@ -15,7 +17,13 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar"
-import { RowsIcon, TerminalIcon, BookOpenIcon } from "@phosphor-icons/react"
+import {
+  RowsIcon,
+  TerminalIcon,
+  BookOpenIcon,
+  EnvelopeSimpleIcon,
+  ScrollIcon,
+} from "@phosphor-icons/react"
 
 export type DashboardSessionUser = {
   name: string | null
@@ -23,40 +31,92 @@ export type DashboardSessionUser = {
   image?: string | null
 }
 
-const navMain = [
-  {
-    title: "Utilisateurs",
-    url: "/admin-game/dashboard/utilisateurs",
-    icon: <TerminalIcon />,
-    isActive: true,
-    items: [
-      {
-        title: "Liste",
-        url: "/admin-game/dashboard/utilisateurs",
-      },
-    ],
-  },
-  {
-    title: "Aventures",
-    url: "/admin-game/dashboard/aventures",
-    icon: <BookOpenIcon />,
-    items: [
-      {
-        title: "Liste",
-        url: "/admin-game/dashboard/aventures",
-      },
-      {
-        title: "Créer",
-        url: "/admin-game/dashboard/aventures/create",
-      },
-    ],
-  },
-]
+function buildNavMain(caps: AdminSessionCapabilities) {
+  const utilisateursNav = caps.user.get
+    ? [
+        {
+          title: "Utilisateurs",
+          url: "/admin-game/dashboard/utilisateurs",
+          icon: <TerminalIcon />,
+          isActive: true,
+          items: [
+            {
+              title: "Liste",
+              url: "/admin-game/dashboard/utilisateurs",
+            },
+          ],
+        },
+      ]
+    : []
+
+  const demandesAventuresNav = caps.canAssignRolesAndScopes
+    ? [
+        {
+          title: "Demandes d'aventures",
+          url: "/admin-game/dashboard/demandes-aventures",
+          icon: <EnvelopeSimpleIcon />,
+          isActive: false,
+          items: [
+            {
+              title: "Liste des demandes",
+              url: "/admin-game/dashboard/demandes-aventures",
+            },
+          ],
+        },
+        {
+          title: "Journal d'audit",
+          url: "/admin-game/dashboard/journal-admin",
+          icon: <ScrollIcon />,
+          isActive: false,
+          items: [
+            {
+              title: "Événements",
+              url: "/admin-game/dashboard/journal-admin",
+            },
+          ],
+        },
+      ]
+    : []
+
+  return [
+    ...utilisateursNav,
+    ...demandesAventuresNav,
+    {
+      title: "Aventures",
+      url: "/admin-game/dashboard/aventures",
+      icon: <BookOpenIcon />,
+      isActive: !caps.user.get,
+      items: [
+        {
+          title: "Liste",
+          url: "/admin-game/dashboard/aventures",
+          disabled: !caps.adventure.read,
+          disabledReason: !caps.adventure.read
+            ? "Vous ne pouvez pas consulter les aventures."
+            : undefined,
+        },
+        {
+          title: "Créer",
+          url: "/admin-game/dashboard/aventures/create",
+          disabled: !caps.adventure.create,
+          disabledReason: !caps.adventure.create
+            ? "Vous ne pouvez pas créer une aventure."
+            : DEFAULT_DENY_MESSAGE,
+        },
+      ],
+    },
+  ]
+}
 
 export function AppSidebar({
   sessionUser,
+  capabilities,
   ...props
-}: { sessionUser: DashboardSessionUser } & React.ComponentProps<typeof Sidebar>) {
+}: {
+  sessionUser: DashboardSessionUser
+  capabilities: AdminSessionCapabilities
+} & React.ComponentProps<typeof Sidebar>) {
+  const navMain = buildNavMain(capabilities)
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>

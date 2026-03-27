@@ -3,40 +3,93 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth/auth-user";
-
-const ADMIN_ROLES = ["admin", "superadmin"] as const;
+import {
+  getManagedAdventureIds,
+  isAdminRole,
+  isSuperadmin,
+} from "@/lib/admin-access";
+import { roleHasAdventurePermission } from "@/lib/permissions";
+import type { Prisma } from "../../../../../../generated/prisma/browser";
+import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 
 export type CreateAdventureInput = {
   name: string;
-  description: string;
+  description: Prisma.InputJsonValue;
   city: string;
   status?: boolean;
   latitude: number;
   longitude: number;
-  distance: number; 
+  /** Réservé au superadmin : ids utilisateurs `role === "admin"`. */
+  assignedAdminIds?: string[];
 };
 
 export async function createAdventure(
   form: CreateAdventureInput
 ): Promise<{ success: true; id: string } | { success: false; error: string }> {
   const user = await getUser();
-  if (!user) {
-    return { success: false, error: "Non authentifié." };
+  if (!user || !isAdminRole(user.role)) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!roleHasAdventurePermission(user.role, "create")) {
+    return { success: false, error: "Non autorisé." };
   }
 
   try {
-    const result = await prisma.adventure.create({
-      data: {
-        name: form.name,
-        description: form.description,
-        city: form.city,
-        latitude: form.latitude,
-        longitude: form.longitude,
-        distance: form.distance,
-        creatorId: user.id,
-      },
+    let scopeUserIdsToRevalidate: string[] = [];
+    const result = await prisma.$transaction(async (tx) => {
+      const adventure = await tx.adventure.create({
+        data: {
+          name: form.name,
+          description: form.description,
+          city: form.city,
+          latitude: form.latitude,
+          longitude: form.longitude,
+          distance: null,
+          creatorId: user.id,
+        },
+      });
+
+      if (isSuperadmin(user.role) && form.assignedAdminIds?.length) {
+        const uniqueIds: string[] = [...new Set(form.assignedAdminIds)];
+        const validCount = await tx.user.count({
+          where: { id: { in: uniqueIds }, role: "admin" },
+        });
+        if (validCount !== uniqueIds.length) {
+          throw new Error(
+            "Un ou plusieurs comptes ne sont pas des administrateurs (rôle « admin »)."
+          );
+        }
+        await tx.adminAdventureAccess.createMany({
+          data: uniqueIds.map((userId) => ({
+            userId,
+            adventureId: adventure.id,
+          })),
+        });
+        await tx.adminAuditLog.create({
+          data: {
+            action: "adventure.admin.scope.updated",
+            actorUserId: user.id,
+            targetUserId: null,
+            payload: {
+              adventureId: adventure.id,
+              adminUserIds: uniqueIds,
+            },
+          },
+        });
+        scopeUserIdsToRevalidate = uniqueIds;
+      }
+
+      return adventure;
     });
+
+    await syncAdventureRouteDistance(result.id);
+
+    for (const uid of scopeUserIdsToRevalidate) {
+      revalidatePath(`/admin-game/dashboard/utilisateurs/${uid}`);
+    }
     revalidatePath("/admin-game/dashboard/aventures");
+    revalidatePath(`/admin-game/dashboard/aventures/${result.id}`);
+    revalidatePath("/admin-game/dashboard/journal-admin");
     return { success: true, id: result.id };
   } catch (e) {
     return {
@@ -47,14 +100,32 @@ export async function createAdventure(
 } 
 
 export async function listAdventures() {
+  const user = await getUser();
+  if (!user || !isAdminRole(user.role)) {
+    return { ok: false as const, error: "Non autorisé." };
+  }
+  if (!roleHasAdventurePermission(user.role, "read")) {
+    return { ok: false as const, error: "Non autorisé." };
+  }
   try {
-    const adventures = await prisma.adventure.findMany();
+    const managedAdventureIds = isSuperadmin(user.role)
+      ? null
+      : await getManagedAdventureIds(user.id);
+
+    if (managedAdventureIds !== null && managedAdventureIds.length === 0) {
+      return { ok: true as const, adventures: [] };
+    }
+
+    const where =
+      managedAdventureIds !== null ? { id: { in: managedAdventureIds } } : {};
+
+    const adventures = await prisma.adventure.findMany({ where });
 
     return {
       ok: true as const,
       adventures,
     };
-  } catch (e) {
+  } catch {
     return {
       ok: false as const,
       error: "Erreur lors du chargement des aventures.",
@@ -77,9 +148,12 @@ export type AdventureListItem = {
     { ok: true; adventure: AdventureListItem[]; total: number } | { ok: false; error: string }
   > {
     const user = await getUser();
-    if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+  if (!user || !isAdminRole(user.role)) {
       return { ok: false, error: "Non autorisé." };
     }
+  if (!roleHasAdventurePermission(user.role, "read")) {
+    return { ok: false, error: "Non autorisé." };
+  }
   
     const skip = (params.page - 1) * params.pageSize;
     const q = params.search.trim();
@@ -95,9 +169,24 @@ export type AdventureListItem = {
         : {};
   
     try {
-      const [adventure, total] = await Promise.all([
+    const managedAdventureIds = isSuperadmin(user.role)
+      ? null
+      : await getManagedAdventureIds(user.id);
+
+    if (managedAdventureIds !== null && managedAdventureIds.length === 0) {
+      return { ok: true, adventure: [], total: 0 };
+    }
+
+    const scopedWhere = {
+      ...where,
+      ...(managedAdventureIds !== null
+        ? { id: { in: managedAdventureIds } }
+        : {}),
+    };
+
+    const [adventure, total] = await Promise.all([
         prisma.adventure.findMany({
-          where,
+        where: scopedWhere,
           select: {
             id: true,
             name: true,
@@ -109,7 +198,7 @@ export type AdventureListItem = {
           skip,
           take: params.pageSize,
         }),
-        prisma.adventure.count({ where }),
+        prisma.adventure.count({ where: scopedWhere }),
       ]);
   
       return {

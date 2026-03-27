@@ -1,6 +1,7 @@
 "use client"
 import { updateUser } from "./user.action"
-import { Button } from "@/components/ui/button"
+import { GuardedButton } from "@/components/admin/GuardedButton"
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider"
 import {
   Field,
   FieldGroup,
@@ -12,6 +13,7 @@ import { toast } from "sonner"
 import { User } from "../../../../../../../generated/prisma/browser"
   
 export function AddressEditForm({ user }: { user: User }) {
+  const caps = useAdminCapabilities();
 
   const [form, setForm] = useState({
     id: user.id,
@@ -93,7 +95,13 @@ export function AddressEditForm({ user }: { user: User }) {
         />
       </Field>
       <Field orientation="horizontal">
-        <Button type="submit" >Modifier</Button>
+        <GuardedButton
+          type="submit"
+          allowed={caps.user.update}
+          denyReason="Vous ne pouvez pas modifier les coordonnées de cet utilisateur."
+        >
+          Modifier
+        </GuardedButton>
       </Field>
     </FieldGroup>
     </form>

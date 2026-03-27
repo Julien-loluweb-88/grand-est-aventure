@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { GuardedButton } from "@/components/admin/GuardedButton"
+import { useAdminCapabilities } from "../AdminCapabilitiesProvider"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +23,7 @@ import { MoreHorizontalIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
+import { RequestNewAdventureDialog } from "./RequestNewAdventureDialog"
 
 const PAGE_SIZE = 10
 
@@ -47,6 +50,7 @@ export default function AdventuresTable({
   loadError,
 }: Props) {
   const router = useRouter()
+  const caps = useAdminCapabilities()
   const [searchInput, setSearchInput] = useState(search)
   const [debouncedSearch, setDebouncedSearch] = useState("")
 
@@ -122,13 +126,18 @@ export default function AdventuresTable({
           >
             Suivant
           </Button>
-          <Button
+          <GuardedButton
             type="button"
             size="sm"
+            allowed={caps.adventure.create}
+            denyReason="Vous ne pouvez pas créer une aventure."
             onClick={() => router.push("/admin-game/dashboard/aventures/create")}
           >
             Créer une aventure
-          </Button>
+          </GuardedButton>
+          {!caps.adventure.create ? (
+            <RequestNewAdventureDialog size="sm" />
+          ) : null}
         </div>
       </div>
       <h1>Liste des aventures</h1>
@@ -147,15 +156,22 @@ export default function AdventuresTable({
           <div className="rounded-lg border border-dashed p-10 text-center">
             <p className="text-sm font-medium">Aucune aventure pour le moment</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Créez la première aventure pour démarrer.
+              {caps.adventure.create
+                ? "Créez la première aventure pour démarrer."
+                : "Les aventures qui vous sont assignées apparaîtront ici. Pour en ajouter une nouvelle, envoyez une demande au super administrateur."}
             </p>
-            <div className="mt-6 flex justify-center">
-              <Button
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              <GuardedButton
                 type="button"
+                allowed={caps.adventure.create}
+                denyReason="Vous ne pouvez pas créer une aventure."
                 onClick={() => router.push("/admin-game/dashboard/aventures/create")}
               >
                 Créer la première aventure
-              </Button>
+              </GuardedButton>
+              {!caps.adventure.create ? (
+                <RequestNewAdventureDialog size="default" />
+              ) : null}
             </div>
           </div>
         ) : (
@@ -185,16 +201,23 @@ export default function AdventuresTable({
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="size-8">
                           <MoreHorizontalIcon />
-                          <span className="sr-only">Open menu</span>
+                          <span className="sr-only">Ouvrir le menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                          disabled={!caps.adventure.read}
+                          title={
+                            !caps.adventure.read
+                              ? "Vous ne pouvez pas ouvrir le détail de cette aventure."
+                              : undefined
+                          }
                           onClick={() => {
+                            if (!caps.adventure.read) return;
                             router.push(`/admin-game/dashboard/aventures/${adventure.id}`)
                           }}
                         >
-                          Voir l&apos;infomation
+                          Voir le détail
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                       </DropdownMenuContent>

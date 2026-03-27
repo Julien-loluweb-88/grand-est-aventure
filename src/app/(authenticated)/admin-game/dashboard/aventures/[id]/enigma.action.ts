@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth/auth-user";
 import { Prisma } from "../../../../../../../generated/prisma/browser";
-
-const ADMIN_ROLES = ["admin", "superadmin"] as const;
+import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
+import { roleHasAdventurePermission } from "@/lib/permissions";
+import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 
 function isNumberUniqueError(error: unknown) {
   return (
@@ -16,24 +17,35 @@ function isNumberUniqueError(error: unknown) {
   );
 }
 
-export type CreateEnigmaInput = {
+export type EnigmaMutationFields = {
   name: string;
-  number: number;
   question: string;
   uniqueResponse: boolean;
   choice: Prisma.InputJsonValue;
   answer: string;
-  answerMessage: string;
+  answerMessage: Prisma.InputJsonValue;
   description: Prisma.InputJsonValue;
   latitude: number;
   longitude: number;
   adventureId: string;
-}
+};
+
+/** Création : le numéro d’ordre est attribué automatiquement (max + 1). */
+export type CreateEnigmaInput = EnigmaMutationFields;
+
+export type UpdateEnigmaInput = EnigmaMutationFields & { number: number };
+
 export async function createEnigma(
   form: CreateEnigmaInput
 ): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
   const user = await getUser();
-  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+  if (!user || !isAdminRole(user.role)) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!roleHasAdventurePermission(user.role, "update")) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId: form.adventureId }))) {
     return { success: false, error: "Non autorisé." };
   }
   // Vérifier si l'aventure existe
@@ -44,11 +56,17 @@ export async function createEnigma(
     return { success: false, error: "Aventure non trouvée." };
   }
 
+  const maxRow = await prisma.enigma.aggregate({
+    where: { adventureId: form.adventureId },
+    _max: { number: true },
+  });
+  const nextNumber = (maxRow._max.number ?? 0) + 1;
+
   try {
     const result = await prisma.enigma.create({
       data: {
         name: form.name,
-        number: form.number,
+        number: nextNumber,
         question: form.question,
         uniqueResponse: form.uniqueResponse,
         choice: form.choice,
@@ -60,6 +78,7 @@ export async function createEnigma(
         adventureId: form.adventureId,
       },
     });
+    await syncAdventureRouteDistance(form.adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
     return { success: true, id: result.id, message: "Enigme créée avec succès." };
   } catch (e) {
@@ -76,12 +95,88 @@ export async function createEnigma(
   }
 }
 
+/** Réattribue les numéros 1…n selon l’ordre des ids (parcours + itinéraire). */
+export async function reorderEnigmas(
+  adventureId: string,
+  orderedIds: string[]
+): Promise<{ success: true } | { success: false; error: string }> {
+  const user = await getUser();
+  if (!user || !isAdminRole(user.role)) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!roleHasAdventurePermission(user.role, "update")) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (
+    !(await canManageAdventure({
+      userId: user.id,
+      role: user.role,
+      adventureId,
+    }))
+  ) {
+    return { success: false, error: "Non autorisé." };
+  }
+
+  const existing = await prisma.enigma.findMany({
+    where: { adventureId },
+    select: { id: true },
+  });
+  const idSet = new Set(existing.map((e) => e.id));
+
+  if (existing.length === 0) {
+    return { success: false, error: "Aucune énigme à réordonner." };
+  }
+  if (orderedIds.length !== existing.length) {
+    return { success: false, error: "La liste d’énigmes est incomplète." };
+  }
+  if (new Set(orderedIds).size !== orderedIds.length) {
+    return { success: false, error: "Ordre invalide (doublon)." };
+  }
+  for (const eid of orderedIds) {
+    if (!idSet.has(eid)) {
+      return { success: false, error: "Énigme invalide pour cette aventure." };
+    }
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.enigma.update({
+          where: { id: orderedIds[i] },
+          data: { number: -(i + 1) },
+        });
+      }
+      for (let i = 0; i < orderedIds.length; i++) {
+        await tx.enigma.update({
+          where: { id: orderedIds[i] },
+          data: { number: i + 1 },
+        });
+      }
+    });
+    await syncAdventureRouteDistance(adventureId);
+    revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
+    return { success: true };
+  } catch (e) {
+    return {
+      success: false,
+      error:
+        e instanceof Error ? e.message : "Impossible de réordonner les énigmes.",
+    };
+  }
+}
+
 export async function updateEnigma(
   id: string,
-  form: CreateEnigmaInput
+  form: UpdateEnigmaInput
 ): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
   const user = await getUser();
-  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+  if (!user || !isAdminRole(user.role)) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!roleHasAdventurePermission(user.role, "update")) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId: form.adventureId }))) {
     return { success: false, error: "Non autorisé." };
   }
 
@@ -102,6 +197,7 @@ export async function updateEnigma(
         adventureId: form.adventureId,
       },
     });
+    await syncAdventureRouteDistance(form.adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
     return { success: true, id: result.id, message: "Enigme modifie avec succès." };
   } catch (e) {
@@ -123,7 +219,13 @@ export async function deleteEnigma(
   adventureId: string
 ): Promise<{ success: true; message: string } | { success: false; error: string }> {
   const user = await getUser();
-  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+  if (!user || !isAdminRole(user.role)) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!roleHasAdventurePermission(user.role, "update")) {
+    return { success: false, error: "Non autorisé." };
+  }
+  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId }))) {
     return { success: false, error: "Non autorisé." };
   }
 
@@ -134,109 +236,13 @@ export async function deleteEnigma(
     if (result.count === 0) {
       return { success: false, error: "Énigme introuvable." };
     }
+    await syncAdventureRouteDistance(adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
     return { success: true, message: "Énigme supprimée avec succès." };
   } catch (e) {
     return {
       success: false,
       error: e instanceof Error ? e.message : "Erreur lors de la suppression de l'énigme.",
-    };
-  }
-}
-
-export type EnigmaListItem = {
-  id: string;
-  name: string;
-  number: number;
-  question: string;
-  uniqueResponse: boolean;
-  choices: string[];
-  answer: string;
-  answerMessage: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  adventureId: string;
-}
-
-export async function listEnigmaForAdmin(params: {
-  page: number;
-  pageSize: number;
-  search: string;
-  adventureId: string;
-}): Promise<
-  { ok: true; enigma: EnigmaListItem[]; total: number } | { ok: false; error: string }
-> {
-  const user = await getUser();
-  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
-    return { ok: false, error: "Non autorisé." };
-  }
-
-  const skip = (params.page - 1) * params.pageSize;
-  const q = params.search.trim();
-
-  const where = {
-    adventureId: params.adventureId,
-    ...(q.length > 0
-      ? {
-          OR: [
-            { name: { contains: q, mode: "insensitive" as const } },
-            { question: { contains: q, mode: "insensitive" as const } },
-            ...(Number.isInteger(Number(q)) ? [{ number: { equals: Number(q) } }] : []),
-          ],
-        }
-      : {}),
-  };
-
-  try {
-    const [enigma, total] = await Promise.all([
-      prisma.enigma.findMany({
-        where,
-        select: {
-        id: true,
-        name: true,
-        number: true,
-        question: true,
-        uniqueResponse: true,
-        choice: true,
-        answer: true,
-        answerMessage: true,
-        description: true,
-        latitude: true,
-        longitude: true,
-        adventureId: true,
-        },
-        orderBy: { name: "asc" },
-        skip,
-        take: params.pageSize,
-      }),
-      prisma.enigma.count({ where }),
-    ]);
-
-    return {
-      ok: true,
-      enigma: enigma.map((u) => ({
-        id: u.id,
-        name: u.name,
-        number: u.number,
-        question: u.question,
-          uniqueResponse: u.uniqueResponse,
-          choices: Array.isArray(u.choice)
-            ? u.choice.filter((c): c is string => typeof c === "string")
-            : [],
-          answer: u.answer ?? "",
-          answerMessage: u.answerMessage,
-          description: typeof u.description === "string" ? u.description : "",
-          latitude: u.latitude,
-          longitude: u.longitude,
-          adventureId: u.adventureId,
-      })),
-      total,
-    };
-  } catch (e) {
-    return {
-      ok: false,
-      error: e instanceof Error ? e.message : "Erreur lors du chargement des aventures.",
     };
   }
 }

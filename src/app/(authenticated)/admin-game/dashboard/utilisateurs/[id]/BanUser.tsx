@@ -6,6 +6,8 @@ import { DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { GuardedButton } from "@/components/admin/GuardedButton";
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +31,7 @@ import {
 } from "@/components/ui/select";
 
 export function BanEditForm({ user }: { user: User }) {
+  const caps = useAdminCapabilities();
 
   const [motif, setMotif] = useState("");
   const [motifCustom, setMotifCustom] = useState("");
@@ -54,6 +57,20 @@ export function BanEditForm({ user }: { user: User }) {
       );
     }
   };
+
+  if (!caps.user.ban) {
+    return (
+      <GuardedButton
+        type="button"
+        variant="destructive"
+        size="sm"
+        allowed={false}
+        denyReason="Vous ne pouvez pas bannir des utilisateurs."
+      >
+        Bannir l&apos;utilisateur
+      </GuardedButton>
+    );
+  }
 
   return (
     <Dialog>

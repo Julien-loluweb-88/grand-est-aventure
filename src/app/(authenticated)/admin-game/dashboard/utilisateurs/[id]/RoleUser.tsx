@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 import { roleUser } from "./user.action";
 import { User } from "../../../../../../../generated/prisma/browser";
 import { Button } from "@/components/ui/button";
+import { GuardedButton } from "@/components/admin/GuardedButton";
+import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogClose,
@@ -27,6 +29,7 @@ import {
 import { toast } from "sonner";
 
 export function RoleEditForm({ user }: { user: User }) {
+  const caps = useAdminCapabilities();
   const dialogRef = useRef<DialogCloseRef>(null);
   const [role, setRole] = useState<"user" | "admin" | "superadmin" | "myCustomRole">(
     (user?.role as "user" | "admin" | "superadmin" | "myCustomRole") ?? "user"
@@ -45,6 +48,20 @@ export function RoleEditForm({ user }: { user: User }) {
       toast.error(result.message);
     }
   };
+
+  if (!caps.canAssignRolesAndScopes) {
+    return (
+      <GuardedButton
+        type="button"
+        variant="outline"
+        size="sm"
+        allowed={false}
+        denyReason="Seul un super administrateur peut modifier les rôles."
+      >
+        Modifier le rôle
+      </GuardedButton>
+    );
+  }
 
   return (
     <Dialog ref={dialogRef}>
@@ -75,7 +92,9 @@ export function RoleEditForm({ user }: { user: User }) {
               <SelectItem value="user">Utilisateur</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="superadmin">Super admin</SelectItem>
-              <SelectItem value="myCustomRole">Rôle personnalisé</SelectItem>
+              {user.role === "myCustomRole" ? (
+                <SelectItem value="myCustomRole">Rôle personnalisé (actuel)</SelectItem>
+              ) : null}
             </SelectGroup>
           </SelectContent>
         </Select>

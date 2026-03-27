@@ -35,6 +35,10 @@ model User {
   userAdventures UserAdventures[]
   adventures     Adventure[]      @relation("CreatedAdventures")
   clientNotices  ClientNotice[]
+  adminAdventureAccesses AdminAdventureAccess[]
+  adminAuditLogsAsActor AdminAuditLog[] @relation("AdminAuditActor")
+  adminAuditLogsAsTarget AdminAuditLog[] @relation("AdminAuditTarget")
+  adventureCreationRequests AdventureCreationRequest[]
 
   @@map("user")
 }
@@ -94,7 +98,7 @@ model Adventure {
   city           String
   latitude       Float
   longitude      Float
-  distance       Float
+  distance       Float?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @default(now())
   badgeUrl       String           @default("pas de badge")
@@ -104,6 +108,49 @@ model Adventure {
   creator        User             @relation("CreatedAdventures", fields: [creatorId], references: [id])
   userAdventures UserAdventures[] @relation("AdventureUserAdventures")
   treasure       Treasure?
+  adminAccesses  AdminAdventureAccess[]
+}
+
+model AdminAdventureAccess {
+  id          String    @id @default(cuid())
+  userId      String
+  adventureId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, adventureId])
+  @@index([userId])
+  @@index([adventureId])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  action       String
+  actorUserId  String
+  targetUserId String?
+  payload      Json?
+  createdAt    DateTime @default(now())
+  actor        User     @relation("AdminAuditActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  target       User?    @relation("AdminAuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([action])
+}
+
+model AdventureCreationRequest {
+  id          String   @id @default(cuid())
+  message     String?
+  status      String   @default("pending")
+  requesterId String
+  requester   User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([requesterId])
+  @@index([status])
 }
 
 model Enigma {
@@ -114,7 +161,7 @@ model Enigma {
   uniqueResponse Boolean   @default(false)
   choice         Json?
   answer         String
-  answerMessage  String
+  answerMessage  Json
   description    Json
   latitude       Float
   longitude      Float

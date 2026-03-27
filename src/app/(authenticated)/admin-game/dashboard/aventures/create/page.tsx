@@ -1,14 +1,11 @@
 import React from "react";
 import { CreateAdventureForm } from "./AdventureCreateForm";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardTitle } from "@/components/ui/card";
+import { listAdminUsersForNewAdventureScope } from "../[id]/adventure-admin-scope-queries";
 
-export default function Page() {
+export default async function Page() {
+  const assignableAdmins = await listAdminUsersForNewAdventureScope();
+
   return (
     <>
       <div className="m-8">
@@ -17,7 +14,7 @@ export default function Page() {
             Créer une aventure
           </CardTitle>
 
-          <CreateAdventureForm />
+          <CreateAdventureForm assignableAdmins={assignableAdmins} />
         </Card>
       </div>
     </>

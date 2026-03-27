@@ -7,6 +7,8 @@ import { BanEditForm } from "./BanUser";
 import { UnBanEditForm } from "./UnBanUser";
 import { RoleEditForm } from "./RoleUser";
 import { RemoveUserForm } from "./RemoveUser";
+import { AdminAdventureRightsForm } from "./AdminAdventureRightsForm";
+import { getAdminAdventureRights } from "./user.action";
 import {
   Card,
   CardContent,
@@ -15,6 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { User } from "../../../../../../../generated/prisma/browser";
+import { getUser } from "@/lib/auth/auth-user";
 
 export default async function UserPage({
   params,
@@ -22,7 +25,7 @@ export default async function UserPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await getUserById(id);
+  const [user, currentUser] = await Promise.all([getUserById(id), getUser()]);
 
   if (!user) {
     return (
@@ -33,6 +36,8 @@ export default async function UserPage({
   }
 
   const displayName = user.name ?? user.email ?? "cet utilisateur";
+  const canManageAdminScopes = currentUser?.role === "superadmin" && user.role === "admin";
+  const rightsData = canManageAdminScopes ? await getAdminAdventureRights(user.id) : null;
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -84,6 +89,23 @@ export default async function UserPage({
               <RemoveUserForm user={user as User} />
             </CardContent>
           </Card>
+          {canManageAdminScopes && rightsData && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Droits admin par aventure</CardTitle>
+                <CardDescription>
+                  Le super admin choisit quelles aventures cet admin peut gérer.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AdminAdventureRightsForm
+                  userId={user.id}
+                  adventures={rightsData.adventures}
+                  initialAssignedIds={rightsData.assignedAdventureIds}
+                />
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
     </div>
