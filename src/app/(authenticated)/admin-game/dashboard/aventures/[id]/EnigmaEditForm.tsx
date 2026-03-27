@@ -178,72 +178,74 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
         <DialogTrigger asChild>
           <Button variant="outline">Modifier</Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-md">
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <DialogHeader>
             <DialogTitle>Modifier l&apos;énigme</DialogTitle>
             <DialogDescription>
               Modifier l&apos;énigme ${enigma.name}
             </DialogDescription>
           </DialogHeader>
-          <Controller
-            name="name"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>
-                  Nom d&apos;énigme
-                </FieldLabel>
-                <Input
-                  className="w-100!"
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  autoComplete="off"
-                  placeholder="Toto" />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-          <Controller
-            name="number"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>
-                  Numéro
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  autoComplete="off"
-                  value={String(field.value ?? "")}
-                  placeholder="1" />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-          <Controller
-            name="question"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor={field.name}>
-                  Question
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  autoComplete="off"
-                  value={String(field.value ?? "")}
-                  placeholder="Quel est un fruit rouge et rond?"
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
+          <div className="grid gap-3 md:grid-cols-2">
+            <Controller
+              name="name"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>
+                    Nom d&apos;énigme
+                  </FieldLabel>
+                  <Input
+                    className="w-100!"
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    autoComplete="off"
+                    placeholder="Toto" />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            <Controller
+              name="number"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>
+                    Numéro
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    autoComplete="off"
+                    value={String(field.value ?? "")}
+                    placeholder="1" />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+            <Controller
+              name="question"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field className="md:col-span-2" data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor={field.name}>
+                    Question
+                  </FieldLabel>
+                  <Input
+                    {...field}
+                    id={field.name}
+                    aria-invalid={fieldState.invalid}
+                    autoComplete="off"
+                    value={String(field.value ?? "")}
+                    placeholder="Quel est un fruit rouge et rond?"
+                  />
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+          </div>
           <Controller
             name="answer"
             control={form.control}
@@ -331,71 +333,73 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
             }}
           />
 
-          <Controller
-            name="answerMessage"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Message</FieldLabel>
-                <Input
-                  {...field}
-                  placeholder="Félicitation"
-                  autoComplete="off"
-                  value={String(field.value ?? "")}
-                  onChange={(e) => field.onChange(e.target.value)}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="latitude"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid || Boolean(form.formState.errors.longitude)}>
-                <FieldLabel>Position sur la carte</FieldLabel>
-                <LocationPicker
-                  latitude={Number(latitudeValue ?? 0)}
-                  longitude={Number(longitudeValue ?? 0)}
-                  onChange={({ latitude, longitude }) => {
-                    form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
-                    form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
-                  }}
-                  helperText="Déplacez le point de l'énigme sur la carte."
-                />
-                <div className="mt-2 grid grid-cols-2 gap-2">
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Controller
+              name="answerMessage"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Message</FieldLabel>
                   <Input
                     {...field}
-                    type="number"
-                    step="any"
-                    placeholder="Latitude"
+                    placeholder="Félicitation"
                     autoComplete="off"
                     value={String(field.value ?? "")}
                     onChange={(e) => field.onChange(e.target.value)}
                   />
-                  <Input
-                    name="longitude"
-                    type="number"
-                    step="any"
-                    placeholder="Longitude"
-                    autoComplete="off"
-                    value={String(longitudeValue ?? "")}
-                    onChange={(e) =>
-                      form.setValue("longitude", Number(e.target.value), {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      })
-                    }
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                </Field>
+              )}
+            />
+
+            <Controller
+              name="latitude"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid || Boolean(form.formState.errors.longitude)}>
+                  <FieldLabel>Position sur la carte</FieldLabel>
+                  <LocationPicker
+                    latitude={Number(latitudeValue ?? 0)}
+                    longitude={Number(longitudeValue ?? 0)}
+                    onChange={({ latitude, longitude }) => {
+                      form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
+                      form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
+                    }}
+                    helperText="Déplacez le point de l'énigme sur la carte."
                   />
-                </div>
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-                {form.formState.errors.longitude && (
-                  <FieldError errors={[form.formState.errors.longitude]} />
-                )}
-              </Field>
-            )}
-          />
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <Input
+                      {...field}
+                      type="number"
+                      step="any"
+                      placeholder="Latitude"
+                      autoComplete="off"
+                      value={String(field.value ?? "")}
+                      onChange={(e) => field.onChange(e.target.value)}
+                    />
+                    <Input
+                      name="longitude"
+                      type="number"
+                      step="any"
+                      placeholder="Longitude"
+                      autoComplete="off"
+                      value={String(longitudeValue ?? "")}
+                      onChange={(e) =>
+                        form.setValue("longitude", Number(e.target.value), {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }
+                    />
+                  </div>
+                  {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                  {form.formState.errors.longitude && (
+                    <FieldError errors={[form.formState.errors.longitude]} />
+                  )}
+                </Field>
+              )}
+            />
+          </div>
 
           <FieldSet>
             <Controller
