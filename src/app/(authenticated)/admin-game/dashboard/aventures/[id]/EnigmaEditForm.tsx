@@ -1,6 +1,6 @@
 "use client"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, Controller } from "react-hook-form"
+import { useForm, Controller, useWatch } from "react-hook-form"
 import * as z from "zod"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -27,6 +27,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { updateEnigma } from "./enigma.action"
+import { LocationPicker } from "@/components/location/LocationPicker";
 
 
 const formSchema = z.object({
@@ -60,13 +61,13 @@ const formSchema = z.object({
   adventureId:
     z.string(),
   latitude: z
-    .coerce.number().refine((v) => !isNaN(v), {
-      message: "Latitude invalide",
-    }),
+    .coerce.number()
+    .min(-90, "Latitude invalide")
+    .max(90, "Latitude invalide"),
   longitude: z
-    .coerce.number().refine((v) => !isNaN(v), {
-      message: "Longtitude invalide",
-    })
+    .coerce.number()
+    .min(-180, "Longitude invalide")
+    .max(180, "Longitude invalide")
 })
   .superRefine((data, ctx) => {
     const hasUnique = data.uniqueResponse === true;
@@ -123,6 +124,8 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
       adventureId: params?.id ?? "",
     }
   })
+  const latitudeValue = useWatch({ control: form.control, name: "latitude" })
+  const longitudeValue = useWatch({ control: form.control, name: "longitude" })
   const [choiceInputs, setChoiceInputs] = useState<string[]>(defaultChoices)
 
   useEffect(() => {
@@ -350,36 +353,46 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
             name="latitude"
             control={form.control}
             render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Latitude</FieldLabel>
-                <Input
-                  {...field}
-                  type="number"
-                  placeholder="12.3456"
-                  autoComplete="off"
-                  value={String(field.value ?? "")}
-                  onChange={(e) => field.onChange(e.target.value)}
+              <Field data-invalid={fieldState.invalid || Boolean(form.formState.errors.longitude)}>
+                <FieldLabel>Position sur la carte</FieldLabel>
+                <LocationPicker
+                  latitude={Number(latitudeValue ?? 0)}
+                  longitude={Number(longitudeValue ?? 0)}
+                  onChange={({ latitude, longitude }) => {
+                    form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
+                    form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
+                  }}
+                  helperText="Déplacez le point de l'énigme sur la carte."
                 />
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <Input
+                    {...field}
+                    type="number"
+                    step="any"
+                    placeholder="Latitude"
+                    autoComplete="off"
+                    value={String(field.value ?? "")}
+                    onChange={(e) => field.onChange(e.target.value)}
+                  />
+                  <Input
+                    name="longitude"
+                    type="number"
+                    step="any"
+                    placeholder="Longitude"
+                    autoComplete="off"
+                    value={String(longitudeValue ?? "")}
+                    onChange={(e) =>
+                      form.setValue("longitude", Number(e.target.value), {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                </div>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-
-          <Controller
-            name="longitude"
-            control={form.control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Longtitude</FieldLabel>
-                <Input
-                  {...field}
-                  type="number"
-                  placeholder="12.3456"
-                  autoComplete="off"
-                  value={String(field.value ?? "")}
-                  onChange={(e) => field.onChange(e.target.value)}
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                {form.formState.errors.longitude && (
+                  <FieldError errors={[form.formState.errors.longitude]} />
+                )}
               </Field>
             )}
           />
