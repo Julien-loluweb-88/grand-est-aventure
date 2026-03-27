@@ -106,6 +106,7 @@ type EnigmaFormValuesWithId = FormValues & { id: string }
 export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
   const router = useRouter()
   const params = useParams<{ id: string }>()
+  const [open, setOpen] = useState(false)
   const defaultChoices = enigma.choices?.length ? enigma.choices : ["", "", "", ""]
 
   const form = useForm({
@@ -168,18 +169,18 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
       return
     }
     toast.success("Énigme mise à jour")
+    setOpen(false)
     router.refresh()
-    router.push(`/admin-game/dashboard/aventures/${adventureId}`)
   }
 
   return (
-    <Dialog>
-      
-        <DialogTrigger asChild>
-          <Button variant="outline">Modifier</Button>
-        </DialogTrigger>
-        <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+    <Dialog open={open} onOpenChange={setOpen}>
+
+      <DialogTrigger asChild>
+        <Button variant="outline">Modifier</Button>
+      </DialogTrigger>
+      <DialogContent className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <DialogHeader>
             <DialogTitle>Modifier l&apos;énigme</DialogTitle>
             <DialogDescription>
@@ -429,9 +430,9 @@ export function EditenigmaForm({ enigma }: { enigma: EnigmaFormValuesWithId }) {
             </DialogClose>
             <Button type="submit">Modifier</Button>
           </DialogFooter>
-          </form>
-        </DialogContent>
-      
+        </form>
+      </DialogContent>
+
     </Dialog>
   )
 }

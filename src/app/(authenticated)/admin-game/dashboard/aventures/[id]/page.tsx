@@ -14,13 +14,19 @@ import { Adventure } from "../../../../../../../generated/prisma/browser";
 import { StatusAdventure } from "./StatusAdventure";
 import { CreateEnigmaForm } from "./EnigmaCreateForm";
 import { ListEnigmaTable } from "./ListeEnigma";
+import { listEnigmaForAdmin } from "./enigma.action";
 
 export default async function AdventurePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string; search?: string }>;
 }) {
   const { id } = await params;
+  const query = await searchParams;
+  const page = Math.max(1, Number(query.page ?? "1") || 1);
+  const search = (query.search ?? "").trim();
   const adventure = await getAdventureById(id);
 
   if (!adventure) {
@@ -30,6 +36,16 @@ export default async function AdventurePage({
       </div>
     );
   }
+
+  const enigmaResult = await listEnigmaForAdmin({
+    page,
+    pageSize: 5,
+    search,
+    adventureId: id,
+  });
+
+  const enigma = enigmaResult.ok ? enigmaResult.enigma : [];
+  const total = enigmaResult.ok ? enigmaResult.total : 0;
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -87,7 +103,14 @@ export default async function AdventurePage({
   </CardHeader>
 
   <CardContent>
-    <ListEnigmaTable adventure={adventure as Adventure} />
+    <ListEnigmaTable
+      adventure={adventure as Adventure}
+      enigmas={enigma}
+      total={total}
+      page={page}
+      search={search}
+      loadError={enigmaResult.ok ? null : enigmaResult.error}
+    />
   </CardContent>
 </Card>
     

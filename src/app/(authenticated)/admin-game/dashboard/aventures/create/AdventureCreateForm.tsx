@@ -67,8 +67,7 @@ export function CreateAdventureForm() {
         return
       }
       toast.success("Aventure créée.")
-      form.reset()
-      router.push("/admin-game/dashboard/aventures")
+      router.push("/admin-game/dashboard/aventures/" + result.id)
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Erreur lors de la création."
       console.error(e)

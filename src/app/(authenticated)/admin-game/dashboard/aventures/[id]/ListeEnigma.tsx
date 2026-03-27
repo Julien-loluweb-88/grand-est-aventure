@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { deleteEnigma, listEnigmaForAdmin } from "./enigma.action"
+import { deleteEnigma } from "./enigma.action"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { Adventure } from "../../../../../../../generated/prisma/client"
@@ -44,21 +44,31 @@ type Enigma = {
 
 type Props = {
   adventure: Adventure
+  enigmas: Enigma[]
+  total: number
+  page: number
+  search: string
+  loadError: string | null
 }
 
-export function ListEnigmaTable({ adventure }: Props) {
+export function ListEnigmaTable({
+  adventure,
+  enigmas,
+  total,
+  page,
+  search,
+  loadError,
+}: Props) {
   const router = useRouter()
-  const [enigmas, setEnigmas] = useState<Enigma[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [page, setPage] = useState(1)
-  const [searchInput, setSearchInput] = useState("")
+  const [searchInput, setSearchInput] = useState(search)
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [total, setTotal] = useState<number | null>(null)
-  const [initialLoadDone, setInitialLoadDone] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [enigmaToDelete, setEnigmaToDelete] = useState<Enigma | null>(null)
   const [deleteConfirmText, setDeleteConfirmText] = useState("")
+
+  useEffect(() => {
+    setSearchInput(search)
+  }, [search])
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -68,47 +78,16 @@ export function ListEnigmaTable({ adventure }: Props) {
   }, [searchInput])
 
   useEffect(() => {
-    setPage(1)
+    if (debouncedSearch === search) return
+    const params = new URLSearchParams()
+    if (debouncedSearch) params.set("search", debouncedSearch)
+    params.set("page", "1")
+    router.push(`/admin-game/dashboard/aventures/${adventure.id}?${params.toString()}`)
   }, [debouncedSearch])
 
-  const loadEnigmas = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await listEnigmaForAdmin({
-        page,
-        pageSize: PAGE_SIZE,
-        search: debouncedSearch,
-        adventureId: adventure.id,
-      })
-      if (!result.ok) {
-        setError(result.error)
-        toast.error(result.error)
-        setEnigmas([])
-        setTotal(null)
-        return
-      }
-
-      setEnigmas(result.enigma)
-      setTotal(result.total)
-    } catch (e) {
-      const msg =
-        e instanceof Error
-          ? e.message
-          : "Erreur lors du chargement des enigmes."
-      setError(msg)
-      toast.error(msg)
-      setEnigmas([])
-      setTotal(null)
-    } finally {
-      setLoading(false)
-      setInitialLoadDone(true)
-    }
-  }, [page, debouncedSearch, adventure.id])
-
   useEffect(() => {
-    void loadEnigmas()
-  }, [loadEnigmas])
+    if (loadError) toast.error(loadError)
+  }, [loadError])
 
   const handleDeleteEnigma = useCallback(
     async (enigma: Enigma) => {
@@ -120,34 +99,21 @@ export function ListEnigmaTable({ adventure }: Props) {
           return
         }
         toast.success(result.message)
-        await loadEnigmas()
+        router.refresh()
         setEnigmaToDelete(null)
         setDeleteConfirmText("")
       } finally {
         setDeletingId(null)
       }
     },
-    [adventure.id, loadEnigmas]
+    [adventure.id, router]
   )
 
-  const totalPages =
-    total != null && total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : null
+  const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1
   const canPrev = page > 1
-  const canNext =
-    total != null
-      ? page < (totalPages ?? 1)
-      : enigmas.length === PAGE_SIZE
+  const canNext = page < totalPages
 
-  const showInitialSkeleton =
-    !initialLoadDone && loading && enigmas.length === 0 && !error
-  const showEmptyState = !loading && !error && enigmas.length === 0
-  if (showInitialSkeleton) {
-    return (
-      <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-        Chargement des enigmes...
-      </div>
-    )
-  }
+  const showEmptyState = !loadError && enigmas.length === 0
 
   return (
     <div className="flex flex-col gap-3">
@@ -166,8 +132,13 @@ export function ListEnigmaTable({ adventure }: Props) {
             type="button"
             variant="outline"
             size="sm"
-            disabled={!canPrev || loading}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={!canPrev}
+            onClick={() => {
+              const params = new URLSearchParams()
+              if (search) params.set("search", search)
+              params.set("page", String(Math.max(1, page - 1)))
+              router.push(`/admin-game/dashboard/aventures/${adventure.id}?${params.toString()}`)
+            }}
           >
             Precedent
           </Button>
@@ -175,30 +146,38 @@ export function ListEnigmaTable({ adventure }: Props) {
             className="min-w-[120px] text-center tabular-nums"
             aria-live="polite"
           >
-            {total != null ? (
-              <>Page {page} sur {totalPages ?? 1}</>
-            ) : (
-              <>Page {page}</>
-            )}
+            <>Page {page} sur {totalPages}</>
           </span>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            disabled={!canNext || loading}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={!canNext}
+            onClick={() => {
+              const params = new URLSearchParams()
+              if (search) params.set("search", search)
+              params.set("page", String(page + 1))
+              router.push(`/admin-game/dashboard/aventures/${adventure.id}?${params.toString()}`)
+            }}
           >
             Suivant
           </Button>
-          {loading && (
-            <span className="text-xs text-muted-foreground">Mise a jour...</span>
-          )}
         </div>
       </div>
 
       <h1>Liste d&apos;enigme</h1>
       <div className="p-4">
-        {showEmptyState ? (
+        {loadError ? (
+          <div className="rounded-lg border border-dashed p-10 text-center">
+            <p className="text-sm font-medium">Erreur lors du chargement des énigmes</p>
+            <p className="mt-1 text-sm text-muted-foreground">{loadError}</p>
+            <div className="mt-6 flex justify-center">
+              <Button type="button" onClick={() => router.refresh()}>
+                Réessayer
+              </Button>
+            </div>
+          </div>
+        ) : showEmptyState ? (
           <div className="rounded-lg border border-dashed p-10 text-center">
             <p className="text-sm font-medium">Aucune enigme pour le moment</p>
             <p className="mt-1 text-sm text-muted-foreground">
