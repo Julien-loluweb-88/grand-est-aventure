@@ -122,6 +122,8 @@ model Enigma {
   updatedAt      DateTime  @default(now())
   adventureId    String
   adventure      Adventure @relation(fields: [adventureId], references: [id])
+
+  @@unique([adventureId, number])
 }
 
 model Treasure {

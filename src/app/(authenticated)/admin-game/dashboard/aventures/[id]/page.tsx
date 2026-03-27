@@ -34,7 +34,7 @@ export default async function AdventurePage({
   return (
     <div className="space-y-8 p-4 md:p-6">
       <Link
-        href="/admin-game/dashboard//aventures"
+        href="/admin-game/dashboard/aventures"
         className="inline-flex items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="size-4" aria-hidden />
@@ -44,7 +44,7 @@ export default async function AdventurePage({
       <Card className="h-fit">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold tracking-tight">
-            Informations de adventure {adventure.name}
+            Informations de l&apos;aventure {adventure.name}
           </CardTitle>
           <CardDescription>ID: {adventure.id}</CardDescription>
         </CardHeader>

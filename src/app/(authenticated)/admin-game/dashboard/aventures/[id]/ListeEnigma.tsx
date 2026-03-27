@@ -11,11 +11,19 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { listEnigmaForAdmin } from "./enigma.action"
+import { deleteEnigma, listEnigmaForAdmin } from "./enigma.action"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { Adventure } from "../../../../../../../generated/prisma/client"
 import { EditenigmaForm } from "./EnigmaEditForm"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const PAGE_SIZE = 5
 
@@ -48,6 +56,9 @@ export function ListEnigmaTable({ adventure }: Props) {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [total, setTotal] = useState<number | null>(null)
   const [initialLoadDone, setInitialLoadDone] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [enigmaToDelete, setEnigmaToDelete] = useState<Enigma | null>(null)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -98,6 +109,26 @@ export function ListEnigmaTable({ adventure }: Props) {
   useEffect(() => {
     void loadEnigmas()
   }, [loadEnigmas])
+
+  const handleDeleteEnigma = useCallback(
+    async (enigma: Enigma) => {
+      setDeletingId(enigma.id)
+      try {
+        const result = await deleteEnigma(enigma.id, adventure.id)
+        if (!result.success) {
+          toast.error(result.error)
+          return
+        }
+        toast.success(result.message)
+        await loadEnigmas()
+        setEnigmaToDelete(null)
+        setDeleteConfirmText("")
+      } finally {
+        setDeletingId(null)
+      }
+    },
+    [adventure.id, loadEnigmas]
+  )
 
   const totalPages =
     total != null && total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : null
@@ -176,9 +207,9 @@ export function ListEnigmaTable({ adventure }: Props) {
             <div className="mt-6 flex justify-center">
               <Button
                 type="button"
-                onClick={() => router.push("/admin-game/dashboard/aventures/create")}
+                onClick={() => router.refresh()}
               >
-                Creer la premiere enigme
+                Rafraichir
               </Button>
             </div>
           </div>
@@ -198,8 +229,16 @@ export function ListEnigmaTable({ adventure }: Props) {
                   <TableCell className="text-left">{enigma.name}</TableCell>
                   <TableCell className="text-left">{enigma.number}</TableCell>
                   <TableCell className="text-left">{enigma.question}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right flex justify-end gap-2">
                     <EditenigmaForm enigma={enigma} />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={deletingId === enigma.id}
+                      onClick={() => setEnigmaToDelete(enigma)}
+                    >
+                      {deletingId === enigma.id ? "Suppression..." : "Supprimer"}
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -207,6 +246,72 @@ export function ListEnigmaTable({ adventure }: Props) {
           </Table>
         )}
       </div>
+      <Dialog
+        open={Boolean(enigmaToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deletingId) {
+            setEnigmaToDelete(null)
+            setDeleteConfirmText("")
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Supprimer l&apos;énigme</DialogTitle>
+            <DialogDescription>
+              Cette action est irréversible. Saisissez exactement{" "}
+              <span className="font-medium text-foreground">
+                {enigmaToDelete?.name}
+              </span>{" "}
+              pour confirmer la suppression.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="my-2">
+            <Input
+              type="text"
+              placeholder={enigmaToDelete?.name ?? "Nom de l'énigme"}
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <DialogDescription>
+            Vous allez supprimer{" "}
+            <span className="font-medium text-foreground">
+              {enigmaToDelete?.name}
+            </span>
+            . Cette action est définitive.
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={Boolean(deletingId)}
+              onClick={() => {
+                setEnigmaToDelete(null)
+                setDeleteConfirmText("")
+              }}
+            >
+              Annuler
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={
+                !enigmaToDelete ||
+                Boolean(deletingId) ||
+                deleteConfirmText !== enigmaToDelete.name
+              }
+              onClick={() => {
+                if (!enigmaToDelete) return
+                void handleDeleteEnigma(enigmaToDelete)
+              }}
+            >
+              {deletingId ? "Suppression..." : "Supprimer"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

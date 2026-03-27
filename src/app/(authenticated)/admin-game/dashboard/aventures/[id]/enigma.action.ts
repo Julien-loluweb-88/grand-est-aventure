@@ -7,6 +7,15 @@ import { Prisma } from "../../../../../../../generated/prisma/browser";
 
 const ADMIN_ROLES = ["admin", "superadmin"] as const;
 
+function isNumberUniqueError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: string }).code === "P2002"
+  );
+}
+
 export type CreateEnigmaInput = {
   name: string;
   number: number;
@@ -24,8 +33,8 @@ export async function createEnigma(
   form: CreateEnigmaInput
 ): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
   const user = await getUser();
-  if (!user) {
-    return { success: false, error: "Non authentifié." };
+  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+    return { success: false, error: "Non autorisé." };
   }
   // Vérifier si l'aventure existe
   const adventure = await prisma.adventure.findUnique({
@@ -54,6 +63,12 @@ export async function createEnigma(
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
     return { success: true, id: result.id, message: "Enigme créée avec succès." };
   } catch (e) {
+    if (isNumberUniqueError(e)) {
+      return {
+        success: false,
+        error: "Le numéro d'énigme existe déjà pour cette aventure.",
+      };
+    }
     return {
       success: false,
       error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
@@ -66,8 +81,8 @@ export async function updateEnigma(
   form: CreateEnigmaInput
 ): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
   const user = await getUser();
-  if (!user) {
-    return { success: false, error: "Non authentifié." };
+  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+    return { success: false, error: "Non autorisé." };
   }
 
   try {
@@ -90,9 +105,41 @@ export async function updateEnigma(
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
     return { success: true, id: result.id, message: "Enigme modifie avec succès." };
   } catch (e) {
+    if (isNumberUniqueError(e)) {
+      return {
+        success: false,
+        error: "Le numéro d'énigme existe déjà pour cette aventure.",
+      };
+    }
     return {
       success: false,
       error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
+    };
+  }
+}
+
+export async function deleteEnigma(
+  id: string,
+  adventureId: string
+): Promise<{ success: true; message: string } | { success: false; error: string }> {
+  const user = await getUser();
+  if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+    return { success: false, error: "Non autorisé." };
+  }
+
+  try {
+    const result = await prisma.enigma.deleteMany({
+      where: { id, adventureId },
+    });
+    if (result.count === 0) {
+      return { success: false, error: "Énigme introuvable." };
+    }
+    revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
+    return { success: true, message: "Énigme supprimée avec succès." };
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : "Erreur lors de la suppression de l'énigme.",
     };
   }
 }
@@ -128,16 +175,18 @@ export async function listEnigmaForAdmin(params: {
   const skip = (params.page - 1) * params.pageSize;
   const q = params.search.trim();
 
-  const where =
-    q.length > 0
+  const where = {
+    adventureId: params.adventureId,
+    ...(q.length > 0
       ? {
-        OR: [
-          { name: { contains: q, mode: "insensitive" as const } },
-          { question: { contains: q, mode: "insensitive" as const } },
-          ...(Number.isInteger(Number(q)) ? [{ number: { equals: Number(q) } }] : []),
-        ],
-      }
-      : { adventureId: params.adventureId };
+          OR: [
+            { name: { contains: q, mode: "insensitive" as const } },
+            { question: { contains: q, mode: "insensitive" as const } },
+            ...(Number.isInteger(Number(q)) ? [{ number: { equals: Number(q) } }] : []),
+          ],
+        }
+      : {}),
+  };
 
   try {
     const [enigma, total] = await Promise.all([

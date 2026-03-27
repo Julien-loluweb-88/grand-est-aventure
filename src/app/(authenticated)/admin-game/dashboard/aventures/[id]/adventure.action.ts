@@ -4,9 +4,10 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { toast } from "sonner";
 import { getUser } from "@/lib/auth/auth-user";
 import { CreateAdventureInput } from "../adventure.action";
+
+const ADMIN_ROLES = ["admin", "superadmin"] as const;
 
 export async function getAdventureById(id: string) {
     const adventure = await prisma.adventure.findUnique({
@@ -16,6 +17,10 @@ export async function getAdventureById(id: string) {
 }
 
 export async function statusAdventure(id: string, status: boolean) {
+    const user = await getUser();
+    if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+      throw new Error("Non autorisé.");
+    }
     return await prisma.adventure.update({
     where: { id },
     data: { status },
@@ -27,8 +32,8 @@ export async function updateAdventure(
   form: CreateAdventureInput
   ): Promise<{ success: true; id: string } | { success: false; error: string }> {
     const user = await getUser();
-    if (!user) {
-      return { success: false, error: "Non authentifié." };
+    if (!user || !ADMIN_ROLES.includes(user.role as (typeof ADMIN_ROLES)[number])) {
+      return { success: false, error: "Non autorisé." };
     }
   
     try {
@@ -87,12 +92,12 @@ export async function RemoveAdventure(adventureId: string) {
     revalidatePath("/admin-game/dashboard/aventures");
     return {
         success: true,
-        message: toast.success("Aventure a été supprimé")
+        message: "Aventure supprimée avec succès."
     };
 } catch (error){
     return {
         success: false,
-        message: toast.error("Erreur lors de la suppression.")
+        message: "Erreur lors de la suppression."
 };
 }  
 }

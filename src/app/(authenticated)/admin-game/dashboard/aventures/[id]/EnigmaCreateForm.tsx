@@ -11,7 +11,6 @@ import {
   FieldGroup,
   FieldLabel,
   FieldLegend,
-  FieldSeparator,
   FieldSet,
   FieldError,
 } from "@/components/ui/field"
@@ -43,7 +42,7 @@ const formSchema = z.object({
     }),
   question: z
     .string()
-    .min(10, "La question doit être comporter au moins 20 caractères")
+    .min(10, "La question doit comporter au moins 10 caractères")
     .max(250, "La question doit être maximum 250 caractères"),
   uniqueResponse: z
     .boolean().optional(),
@@ -54,7 +53,7 @@ const formSchema = z.object({
     .optional(),
   answerMessage: z
     .string()
-    .min(3, "Le message doit être au moins 5 caractères")
+    .min(3, "Le message doit être au moins 3 caractères")
     .max(250, "Le message doit être maximum 250 caractères"),
   description: z
     .string()
@@ -74,13 +73,30 @@ const formSchema = z.object({
   .superRefine((data, ctx) => {
     const hasUnique = data.uniqueResponse === true;
     const hasAnswer = data.answer && data.answer.trim() !== "";
-    const hasChoices = data.choices.filter((c) => c.trim() !== "").length > 0;
+    const nonEmptyChoices = data.choices.map((c) => c.trim()).filter((c) => c !== "");
+    const hasChoices = nonEmptyChoices.length > 0;
 
     if (!hasUnique && !hasAnswer && !hasChoices) {
       ctx.addIssue({
         code: "custom",
         message:
           "Vous devez remplir uniqueResponse ou answer ou des choix",
+        path: ["answer"],
+      });
+    }
+
+    if (hasChoices && !hasAnswer) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Sélectionnez une bonne réponse parmi les choix.",
+        path: ["answer"],
+      });
+    }
+
+    if (hasAnswer && hasChoices && !nonEmptyChoices.includes(data.answer!.trim())) {
+      ctx.addIssue({
+        code: "custom",
+        message: "La bonne réponse doit correspondre à un choix.",
         path: ["answer"],
       });
     }
@@ -195,7 +211,7 @@ export function CreateEnigmaForm() {
                       Nom d&apos;énigme
                     </FieldLabel>
                     <Input
-                      className="!w-100"
+                      className="w-100!"
                       {...field}
                       id={field.name}
                       aria-invalid={fieldState.invalid}

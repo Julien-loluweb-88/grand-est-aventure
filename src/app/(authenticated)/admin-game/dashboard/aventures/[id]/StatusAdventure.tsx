@@ -23,7 +23,7 @@ const router = useRouter();
       toast.success("Statut mis à jour")
       router.push("/admin-game/dashboard/aventures");
     } catch(error) {
-      toast.error("Erreur lors de la mis à jour");
+      toast.error(error instanceof Error ? error.message : "Erreur lors de la mise à jour");
     }
   };
 
