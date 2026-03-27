@@ -11,7 +11,10 @@ const ADMIN_ROLES = ["admin", "superadmin"] as const;
 
 export async function getAdventureById(id: string) {
     const adventure = await prisma.adventure.findUnique({
-        where: {id}
+        where: {id},
+        include: {
+          treasure: true
+        }
     });
    return adventure
 }

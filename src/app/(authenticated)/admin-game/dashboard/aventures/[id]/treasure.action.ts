@@ -53,3 +53,11 @@ try {
 }
 }
     
+export async function getTreasure(id: string) {
+  return await prisma.adventure.findUnique({
+    where: { id },
+    include: {
+      treasure: true,
+    },
+  })
+}

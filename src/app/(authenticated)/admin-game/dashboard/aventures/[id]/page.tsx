@@ -10,12 +10,13 @@ import {
 } from "@/components/ui/card";
 import { RemoveAdventureForm } from "./RemoveAdventure";
 import { AdventureEditForm } from "./AdventureEditForm";
-import { Adventure } from "../../../../../../../generated/prisma/browser";
+import { Adventure, Treasure } from "../../../../../../../generated/prisma/browser";
 import { StatusAdventure } from "./StatusAdventure";
 import { CreateEnigmaForm } from "./EnigmaCreateForm";
 import { ListEnigmaTable } from "./ListeEnigma";
 import { listEnigmaForAdmin } from "./enigma.action";
 import { CreateTreasureForm } from "./TreasureCreateForm"
+import { TreasureCard } from "./TreasureCard";
 
 export default async function AdventurePage({
   params,
@@ -90,14 +91,14 @@ export default async function AdventurePage({
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:gap-8">
+{/* Énigme */}
+      <div className="grid gap-6 lg:grid-cols-1 lg:gap-8">
       <Card className="relative">
   <div className="absolute top-4 right-4">
     <CreateEnigmaForm
        
     />
   </div>
-
   <CardHeader className="flex flex-col items-center text-center">
     <CardTitle>Énigme</CardTitle>
     <CardDescription>Liste des énigmes</CardDescription>
@@ -115,17 +116,26 @@ export default async function AdventurePage({
   </CardContent>
 </Card>
       </div>
-    </div>
+      </div>
+    
+    {/* Trésor */}
+    <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:gap-8">
+      <Card className="relative">
     <div className="flex flex-col items-center text-center">
-      <Card>
+      <CreateTreasureForm />
+      </div>
         <CardHeader className="flex flex-col items-center text-center">
         <CardTitle>Trésor</CardTitle>
+        <CardDescription>L&apos;infomation de trésor</CardDescription>
         </CardHeader>
         <CardContent>
-        <CreateTreasureForm />
+          {adventure.treasure && (
+          <TreasureCard treasure={adventure.treasure} />
+          )}
         </CardContent>
       </Card>
       </div>
-     </div>
+    
+    </div>
   );
 }
