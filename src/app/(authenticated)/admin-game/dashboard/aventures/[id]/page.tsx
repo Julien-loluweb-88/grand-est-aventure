@@ -15,6 +15,7 @@ import { StatusAdventure } from "./StatusAdventure";
 import { CreateEnigmaForm } from "./EnigmaCreateForm";
 import { ListEnigmaTable } from "./ListeEnigma";
 import { listEnigmaForAdmin } from "./enigma.action";
+import { CreateTreasureForm } from "./TreasureCreateForm"
 
 export default async function AdventurePage({
   params,
@@ -113,9 +114,18 @@ export default async function AdventurePage({
     />
   </CardContent>
 </Card>
-    
       </div>
     </div>
+    <div className="flex flex-col items-center text-center">
+      <Card>
+        <CardHeader className="flex flex-col items-center text-center">
+        <CardTitle>Trésor</CardTitle>
+        </CardHeader>
+        <CardContent>
+        <CreateTreasureForm />
+        </CardContent>
+      </Card>
+      </div>
      </div>
   );
 }

@@ -201,9 +201,9 @@ export function CreateEnigmaForm() {
 
           <FieldGroup className="space-y-4">
             <FieldSet>
-              <FieldLegend>Créer une énigme</FieldLegend>
               <FieldDescription>
-                Création d&apos;énigme
+                Formulaire de la création d&apos;énigme
+                
               </FieldDescription>
               <div className="grid gap-3 md:grid-cols-2">
                 <Controller
