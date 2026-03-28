@@ -1,7 +1,7 @@
 "use client";
 
 import { formatUserRoleLabel } from "@/lib/format-user-role";
-import { listUsersForAdmin } from "./list-users.action";
+import { listUsersForAdmin } from "./_lib/list-users.action";
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

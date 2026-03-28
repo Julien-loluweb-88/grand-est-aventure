@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { roleUser } from "./user.action";
-import { User } from "../../../../../../../generated/prisma/browser";
+import { roleUser } from "../_lib/user.action";
+import { User } from "../../../../../../../../generated/prisma/browser";
 import { Button } from "@/components/ui/button";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogClose,

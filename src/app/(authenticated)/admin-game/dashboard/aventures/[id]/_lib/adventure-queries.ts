@@ -41,3 +41,5 @@ export async function getAdventureById(id: string) {
     },
   });
 }
+
+export type AdventureAdminDetail = NonNullable<Awaited<ReturnType<typeof getAdventureById>>>;

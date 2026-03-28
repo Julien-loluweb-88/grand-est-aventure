@@ -58,3 +58,7 @@ export async function getAdventureAdminScopeEditorData(adventureId: string) {
     assignedAdminIds: accesses.map((a) => a.userId),
   };
 }
+
+export type AdventureAdminScopeEditorResult = Awaited<
+  ReturnType<typeof getAdventureAdminScopeEditorData>
+>;

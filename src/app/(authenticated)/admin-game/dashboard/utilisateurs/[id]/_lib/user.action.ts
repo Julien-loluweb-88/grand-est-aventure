@@ -1,45 +1,21 @@
-"use server"
+"use server";
+
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { durationToSeconds } from "@/utils/durationToSeconds";
 import { dateToSeconds } from "@/utils/dateToSeconds";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { isSuperadmin } from "@/lib/admin-access";
-import { roleHasRoutePermission } from "@/lib/permissions";
-
-async function requireUserPermission(permission: "get" | "update" | "ban" | "delete") {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const currentUser = session?.user;
-  if (!currentUser) {
-    throw new Error("Non autorisé.");
-  }
-  if (!roleHasRoutePermission(currentUser.role, "user", permission)) {
-    throw new Error("Non autorisé.");
-  }
-  return currentUser;
-}
-
-export async function getUserById(id: string) {
-  await requireUserPermission("get");
-  const user = await auth.api.getUser({
-    query: {
-      id,
-    },
-    headers: await headers(),
-  });
-
-  return user
-}
+import { requireSuperadmin, requireUserPermission } from "./user-admin-guard";
 
 export async function updateUser(data: {
-  id: string
-  name?: string
-  address?: string
-  postalCode?: string
-  city?: string
-  country?: string
-  phone?: string
+  id: string;
+  name?: string;
+  address?: string;
+  postalCode?: string;
+  city?: string;
+  country?: string;
+  phone?: string;
 }) {
   await requireUserPermission("update");
   const result = await auth.api.adminUpdateUser({
@@ -52,13 +28,12 @@ export async function updateUser(data: {
         city: data.city,
         country: data.country,
         phone: data.phone,
-      }
-
+      },
     },
     headers: await headers(),
-  })
+  });
 
-  return result
+  return result;
 }
 
 export async function banUser(
@@ -83,9 +58,8 @@ export async function banUser(
   revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`);
   revalidatePath("/admin-game/dashboard/utilisateurs");
 }
-export async function unBanUser(
-  userId: string,
-) {
+
+export async function unBanUser(userId: string) {
   await requireUserPermission("ban");
 
   await auth.api.unbanUser({
@@ -141,9 +115,7 @@ export async function roleUser(
     return {
       success: false,
       message:
-        error instanceof Error
-          ? error.message
-          : "Erreur lors de la mise à jour du rôle.",
+        error instanceof Error ? error.message : "Erreur lors de la mise à jour du rôle.",
     };
   }
 }
@@ -152,58 +124,30 @@ export async function removeUser(userId: string) {
   try {
     await requireUserPermission("delete");
   } catch {
-    return{
-       success: false,
+    return {
+      success: false,
       message: "Vous n’avez pas l’autorisation de supprimer des utilisateurs.",
     };
   }
-  try{
- await auth.api.removeUser({
-    body: {
-      userId
-    },
-    headers: await headers(),
-  });
-  revalidatePath(`/admin-game/dashboard/utilisateurs`);
-  return {
+  try {
+    await auth.api.removeUser({
+      body: {
+        userId,
+      },
+      headers: await headers(),
+    });
+    revalidatePath("/admin-game/dashboard/utilisateurs");
+    return {
       success: true,
       message: "L’utilisateur a été supprimé.",
-    }; 
+    };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Erreur lors de la suppression de l'utilisateur.",
+      message:
+        error instanceof Error ? error.message : "Erreur lors de la suppression de l'utilisateur.",
     };
   }
-}
-
-async function requireSuperadmin() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const currentUser = session?.user;
-  if (!currentUser || !isSuperadmin(currentUser.role)) {
-    throw new Error("Non autorisé.");
-  }
-  return currentUser;
-}
-
-export async function getAdminAdventureRights(userId: string) {
-  await requireSuperadmin();
-
-  const [allAdventures, assignedAccesses] = await Promise.all([
-    prisma.adventure.findMany({
-      select: { id: true, name: true, city: true },
-      orderBy: [{ city: "asc" }, { name: "asc" }],
-    }),
-    prisma.adminAdventureAccess.findMany({
-      where: { userId },
-      select: { adventureId: true },
-    }),
-  ]);
-
-  return {
-    adventures: allAdventures,
-    assignedAdventureIds: assignedAccesses.map((access) => access.adventureId),
-  };
 }
 
 export async function setAdminAdventureRights(userId: string, adventureIds: string[]) {

@@ -4,8 +4,8 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
-import { setAdminAdventureRights } from "./user.action";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
+import { setAdminAdventureRights } from "../_lib/user.action";
 
 type AdventureItem = {
   id: string;

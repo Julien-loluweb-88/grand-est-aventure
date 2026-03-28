@@ -1,11 +1,11 @@
 "use client";
 import { useTransition, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { removeUser } from "./user.action";
-import type { User } from "../../../../../../../generated/prisma/browser";
+import { removeUser } from "../_lib/user.action";
+import type { User } from "../../../../../../../../generated/prisma/browser";
 import { Button } from "@/components/ui/button";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogClose,

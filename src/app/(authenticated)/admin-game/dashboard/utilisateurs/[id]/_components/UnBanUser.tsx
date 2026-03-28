@@ -1,12 +1,12 @@
 "use client";
-import { User } from "../../../../../../../generated/prisma/browser";
-import { unBanUser } from "./user.action";
+import { User } from "../../../../../../../../generated/prisma/browser";
+import { unBanUser } from "../_lib/user.action";
 import { DialogClose } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogContent,

@@ -1,14 +1,12 @@
-import React from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getUserById } from "./user.action";
-import { AddressEditForm } from "./AdressEditForm";
-import { BanEditForm } from "./BanUser";
-import { UnBanEditForm } from "./UnBanUser";
-import { RoleEditForm } from "./RoleUser";
-import { RemoveUserForm } from "./RemoveUser";
-import { AdminAdventureRightsForm } from "./AdminAdventureRightsForm";
-import { getAdminAdventureRights } from "./user.action";
+import { getUserById, getAdminAdventureRights } from "./_lib/user-queries";
+import { AddressEditForm } from "./_components/AddressEditForm";
+import { BanEditForm } from "./_components/BanUser";
+import { UnBanEditForm } from "./_components/UnBanUser";
+import { RoleEditForm } from "./_components/RoleUser";
+import { RemoveUserForm } from "./_components/RemoveUser";
+import { AdminAdventureRightsForm } from "./_components/AdminAdventureRightsForm";
 import {
   Card,
   CardContent,
@@ -54,20 +52,15 @@ export default async function UserPage({
           <CardTitle className="text-2xl font-bold tracking-tight">
             Informations de {displayName}
           </CardTitle>
-          <CardDescription>
-            ID: {user.id}
-          </CardDescription>
+          <CardDescription>ID: {user.id}</CardDescription>
         </CardHeader>
       </Card>
 
-      {/* Grille : adresse à gauche, actions à droite */}
       <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:gap-8">
         <Card className="h-fit">
           <CardHeader>
             <CardTitle>Adresse & contact</CardTitle>
-            <CardDescription>
-              Adresse postale et numéro de téléphone
-            </CardDescription>
+            <CardDescription>Adresse postale et numéro de téléphone</CardDescription>
           </CardHeader>
           <CardContent>
             <AddressEditForm user={user as User} />
@@ -78,9 +71,7 @@ export default async function UserPage({
           <Card>
             <CardHeader>
               <CardTitle>Rôle & modération</CardTitle>
-              <CardDescription>
-                Rôle, bannissement et suppression du compte
-              </CardDescription>
+              <CardDescription>Rôle, bannissement et suppression du compte</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               <RoleEditForm user={user as User} />

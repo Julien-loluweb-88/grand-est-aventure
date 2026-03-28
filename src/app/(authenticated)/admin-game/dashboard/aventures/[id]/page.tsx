@@ -1,85 +1,25 @@
 import Link from "next/link";
 import { getAdventureById } from "./_lib/adventure-queries";
 import { getAdventureAdminScopeEditorData } from "./_lib/adventure-admin-scope-queries";
-import { AdventureAdminAssigneesForm } from "./_components/AdventureAdminAssigneesForm";
 import { getUser } from "@/lib/auth/auth-user";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RemoveAdventureForm } from "./_components/RemoveAdventure";
-import { AdventureEditFormClient } from "./_components/AdventureEditFormClient";
-import { StatusAdventure } from "./_components/StatusAdventure";
-import { CreateEnigmaForm } from "./_components/EnigmaCreateForm";
-import { ListEnigmaTable } from "./_components/ListeEnigma";
-import { EnigmaOrderEditor } from "./_components/EnigmaOrderEditor";
 import { listEnigmaForAdmin, listEnigmaOrderForAdmin } from "./_lib/enigma-queries";
-import { CreateTreasureForm } from "./_components/TreasureCreateForm";
-import { TreasureCard } from "./_components/TreasureCard";
-import type { AdventureEditFormPayload } from "./_lib/adventure-edit-payload";
-import type { TreasureEditPayload } from "./_lib/treasure-edit-payload";
 import { getAdventureRoutePolylineForMap } from "@/lib/adventure-route-distance";
-import { buildMapReferenceMarkers } from "./_lib/map-reference-markers";
-import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
-
-/** Props client : JSON pur (évite références / objets non sérialisables côté RSC). */
-function adventurePayloadForEditForm(
-  adventure: NonNullable<Awaited<ReturnType<typeof getAdventureById>>>,
-  routePolyline: [number, number][] | null
-): AdventureEditFormPayload {
-  const mapContextMarkers: AdventureEditFormPayload["mapContextMarkers"] = [
-    ...adventure.enigmas.map((e) => ({
-      kind: "enigma" as const,
-      id: e.id,
-      number: e.number,
-      name: e.name,
-      latitude: e.latitude,
-      longitude: e.longitude,
-    })),
-  ];
-  if (adventure.treasure) {
-    mapContextMarkers.push({
-      kind: "treasure",
-      name: adventure.treasure.name,
-      latitude: adventure.treasure.latitude,
-      longitude: adventure.treasure.longitude,
-    });
-  }
-  return JSON.parse(
-    JSON.stringify({
-      id: adventure.id,
-      name: adventure.name,
-      description: adventure.description,
-      city: adventure.city,
-      latitude: adventure.latitude,
-      longitude: adventure.longitude,
-      distance: adventure.distance,
-      mapContextMarkers,
-      routePolyline,
-    })
-  ) as AdventureEditFormPayload;
-}
-
-function treasurePayloadForCard(
-  treasure: NonNullable<
-    NonNullable<Awaited<ReturnType<typeof getAdventureById>>>["treasure"]
-  >
-): TreasureEditPayload {
-  return JSON.parse(
-    JSON.stringify({
-      id: treasure.id,
-      name: treasure.name,
-      description: treasure.description,
-      code: treasure.code,
-      safeCode: treasure.safeCode,
-      latitude: treasure.latitude,
-      longitude: treasure.longitude,
-    })
-  ) as TreasureEditPayload;
-}
+import {
+  adventurePayloadForEditForm,
+  treasurePayloadForCard,
+  clientMapReferenceMarkersFromAdventure,
+  cloneJsonForClient,
+} from "./_lib/serialize-adventure-admin";
+import { AdventureAdminGeneralSection } from "./_components/AdventureAdminGeneralSection";
+import { AdventureAdminEnigmasSection } from "./_components/AdventureAdminEnigmasSection";
+import { AdventureAdminTreasureSection } from "./_components/AdventureAdminTreasureSection";
+import { AdventureAdminModerationAside } from "./_components/AdventureAdminModerationAside";
 
 export default async function AdventurePage({
   params,
@@ -97,9 +37,7 @@ export default async function AdventurePage({
   if (!adventure) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-muted-foreground">
-          Aventure introuvable ou accès refusé.
-        </p>
+        <p className="text-muted-foreground">Aventure introuvable ou accès refusé.</p>
       </div>
     );
   }
@@ -112,14 +50,8 @@ export default async function AdventurePage({
     enigmas: adventure.enigmas,
     treasure: adventure.treasure,
   };
-  const mapReferenceMarkersAll = JSON.parse(
-    JSON.stringify(buildMapReferenceMarkers(adventureForMapRefs))
-  ) as LocationPickerContextMarker[];
-  const mapReferenceMarkersNoTreasure = JSON.parse(
-    JSON.stringify(
-      buildMapReferenceMarkers(adventureForMapRefs, { omitTreasure: true })
-    )
-  ) as LocationPickerContextMarker[];
+  const { all: mapReferenceMarkersAll, withoutTreasure: mapReferenceMarkersNoTreasure } =
+    clientMapReferenceMarkersFromAdventure(adventureForMapRefs);
 
   const enigmaResult = await listEnigmaForAdmin({
     page,
@@ -134,18 +66,15 @@ export default async function AdventurePage({
   const enigmaOrderResult = await listEnigmaOrderForAdmin(id);
   const enigmaOrderRows = enigmaOrderResult.ok ? enigmaOrderResult.rows : [];
   const nextEnigmaNumber =
-    enigmaOrderRows.length === 0
-      ? 1
-      : Math.max(...enigmaOrderRows.map((r) => r.number)) + 1;
-  const enigmaOrderInitial = JSON.parse(
-    JSON.stringify(enigmaOrderRows)
-  ) as typeof enigmaOrderRows;
+    enigmaOrderRows.length === 0 ? 1 : Math.max(...enigmaOrderRows.map((r) => r.number)) + 1;
+  const enigmaOrderInitial = cloneJsonForClient(enigmaOrderRows);
 
   const currentUser = await getUser();
   const adminScopeSection =
-    currentUser?.role === "superadmin"
-      ? await getAdventureAdminScopeEditorData(id)
-      : null;
+    currentUser?.role === "superadmin" ? await getAdventureAdminScopeEditorData(id) : null;
+
+  const adventurePayload = adventurePayloadForEditForm(adventure, routePolyline);
+  const treasurePayload = adventure.treasure ? treasurePayloadForCard(adventure.treasure) : null;
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -181,121 +110,35 @@ export default async function AdventurePage({
       </Card>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-start">
-        {/* Colonne principale : contenu éditable (superadmin comme admin client) */}
         <div className="flex min-w-0 flex-col gap-6">
-          <Card className="h-fit overflow-visible">
-            <CardHeader>
-              <CardTitle>Informations générales</CardTitle>
-              <CardDescription>
-                Aperçu en lecture seule ; utilisez « Modifier » pour éditer nom, ville, description
-                et point de départ (distance recalculée via OpenRouteService après enregistrement).
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AdventureEditFormClient
-                adventure={adventurePayloadForEditForm(adventure, routePolyline)}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="relative">
-            <div className="absolute inset-e-4 top-4 z-10">
-              <CreateEnigmaForm
-                nextEnigmaNumber={nextEnigmaNumber}
-                mapReferenceMarkers={mapReferenceMarkersAll}
-                routePolyline={routePolyline}
-              />
-            </div>
-            <CardHeader className="flex flex-col items-center text-center pe-24 sm:pe-4">
-              <CardTitle>Énigmes</CardTitle>
-              <CardDescription>Liste des énigmes de cette aventure</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ListEnigmaTable
-                adventureId={adventure.id}
-                enigmas={enigma}
-                total={total}
-                page={page}
-                search={search}
-                loadError={enigmaResult.ok ? null : enigmaResult.error}
-                mapReferenceMarkers={mapReferenceMarkersAll}
-                routePolyline={routePolyline}
-              />
-              {enigmaOrderRows.length > 0 ? (
-                <EnigmaOrderEditor
-                  adventureId={adventure.id}
-                  initialRows={enigmaOrderInitial}
-                />
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Trésor</CardTitle>
-              <CardDescription>
-                Dernière étape du parcours : position du coffre, texte présenté
-                aux joueurs et codes (accès et coffre).
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <CreateTreasureForm
-                hasTreasure={Boolean(adventure.treasure)}
-                mapReferenceMarkers={mapReferenceMarkersNoTreasure}
-                routePolyline={routePolyline}
-              />
-              {adventure.treasure ? (
-                <TreasureCard
-                  adventureId={adventure.id}
-                  treasure={treasurePayloadForCard(adventure.treasure)}
-                  mapReferenceMarkers={mapReferenceMarkersNoTreasure}
-                  routePolyline={routePolyline}
-                />
-              ) : null}
-            </CardContent>
-          </Card>
+          <AdventureAdminGeneralSection adventurePayload={adventurePayload} />
+          <AdventureAdminEnigmasSection
+            adventureId={adventure.id}
+            nextEnigmaNumber={nextEnigmaNumber}
+            mapReferenceMarkers={mapReferenceMarkersAll}
+            routePolyline={routePolyline}
+            enigmas={enigma}
+            total={total}
+            page={page}
+            search={search}
+            loadError={enigmaResult.ok ? null : enigmaResult.error}
+            enigmaOrderRows={enigmaOrderRows}
+            enigmaOrderInitial={enigmaOrderInitial}
+          />
+          <AdventureAdminTreasureSection
+            adventureId={adventure.id}
+            hasTreasure={Boolean(adventure.treasure)}
+            treasurePayload={treasurePayload}
+            mapReferenceMarkers={mapReferenceMarkersNoTreasure}
+            routePolyline={routePolyline}
+          />
         </div>
 
-        {/* Colonne latérale : actions sensibles + assignation admins (superadmin) */}
-        <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Modération</CardTitle>
-              <CardDescription>Changement statut, suppression</CardDescription>
-            </CardHeader>
-            <CardContent className="mx-auto flex w-full max-w-xs flex-col gap-3">
-              <StatusAdventure adventure={{ id: adventure.id }} />
-              <RemoveAdventureForm
-                adventure={{ id: adventure.id, name: adventure.name }}
-              />
-            </CardContent>
-          </Card>
-
-          {adminScopeSection?.ok ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Admins sur cette aventure</CardTitle>
-                <CardDescription>
-                  Comptes admin client autorisés à gérer le contenu (équivalent à la fiche
-                  utilisateur).
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <AdventureAdminAssigneesForm
-                  adventureId={id}
-                  admins={adminScopeSection.admins}
-                  initialAssignedIds={adminScopeSection.assignedAdminIds}
-                />
-              </CardContent>
-            </Card>
-          ) : adminScopeSection && !adminScopeSection.ok ? (
-            <Card>
-              <CardContent className="pt-6">
-                <p className="text-sm text-destructive">{adminScopeSection.error}</p>
-              </CardContent>
-            </Card>
-          ) : null}
-        </aside>
+        <AdventureAdminModerationAside
+          adventureId={id}
+          adventureName={adventure.name}
+          adminScopeSection={adminScopeSection}
+        />
       </div>
     </div>
   );
