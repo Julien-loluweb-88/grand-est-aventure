@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useMemo, useState } from "react"
+import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -19,8 +20,19 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
-import { getResetPasswordRedirectUrl } from "@/lib/public-app-url"
+import {
+  getEmailVerificationCallbackUrl,
+  getResetPasswordRedirectUrl,
+} from "@/lib/public-app-url"
 import { toast } from "sonner"
+import {
+  EmailVerificationPrompt,
+  EmailVerificationQueryToasts,
+  isEmailNotVerifiedAuthError,
+} from "@/components/email-verification-prompt"
+import { DiscordSignInButton } from "@/components/discord-sign-in-button"
+import { FacebookSignInButton } from "@/components/facebook-sign-in-button"
+import { GoogleSignInButton } from "@/components/google-sign-in-button"
 
 function safeCallbackUrl(raw: string | null): string {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
@@ -43,10 +55,15 @@ export function LoginForm() {
     password: "",
   })
   const [loading, setLoading] = useState(false)
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<
+    string | null
+  >(null)
+  const verificationCallbackUrl = getEmailVerificationCallbackUrl("login")
 
   const handleSignIn = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault()
+      setPendingVerificationEmail(null)
       setLoading(true)
       const { error } = await authClient.signIn.email({
         email: signInForm.email,
@@ -55,6 +72,11 @@ export function LoginForm() {
       })
       setLoading(false)
       if (error) {
+        if (isEmailNotVerifiedAuthError(error)) {
+          setPendingVerificationEmail(signInForm.email.trim())
+          toast.error(error.message)
+          return
+        }
         toast.error(error.message)
         return
       }
@@ -64,12 +86,24 @@ export function LoginForm() {
   )
 
   return (
-    <LoginFormComponent
-      signInForm={signInForm}
-      setSignInForm={setSignInForm}
-      handleSignIn={handleSignIn}
-      loading={loading}
-    />
+    <>
+      <EmailVerificationQueryToasts />
+      {pendingVerificationEmail ? (
+        <EmailVerificationPrompt
+          className="mb-4 rounded-none border border-border bg-muted/40 p-4 text-sm text-foreground"
+          email={pendingVerificationEmail}
+          callbackURL={verificationCallbackUrl}
+        />
+      ) : null}
+      <LoginFormComponent
+        signInForm={signInForm}
+        setSignInForm={setSignInForm}
+        handleSignIn={handleSignIn}
+        loading={loading}
+        oauthCallbackURL={callbackUrl}
+        signupHintVariant="public-login"
+      />
+    </>
   )
 }
 
@@ -87,6 +121,13 @@ type LoginFormProps = {
   >
   handleSignIn: (e: React.FormEvent<HTMLFormElement>) => void
   loading: boolean
+  /**
+   * Si défini, affiche les boutons OAuth configurés (`NEXT_PUBLIC_GOOGLE_CLIENT_ID`,
+   * `NEXT_PUBLIC_FACEBOOK_CLIENT_ID`, `NEXT_PUBLIC_DISCORD_CLIENT_ID`).
+   */
+  oauthCallbackURL?: string
+  /** `/login` : lien vers /admin-game. `/admin-game` : texte « onglet Inscription ». */
+  signupHintVariant?: "public-login" | "admin-tabs"
 }
 
 export function LoginFormComponent({
@@ -95,6 +136,8 @@ export function LoginFormComponent({
   setSignInForm,
   handleSignIn,
   loading,
+  oauthCallbackURL,
+  signupHintVariant = "admin-tabs",
 }: LoginFormProps) {
 
 const handleForgotPassword = async () => {
@@ -164,12 +207,41 @@ const handleForgotPassword = async () => {
                   {loading ? "Connexion…" : "Se connecter"}
                 </Button>
 
-                <Button variant="outline" type="button">
-                  Se connecter avec Google
-                </Button>
+                {oauthCallbackURL ? (
+                  <>
+                    <GoogleSignInButton
+                      callbackURL={oauthCallbackURL}
+                      disabled={loading}
+                      label="Se connecter avec Google"
+                    />
+                    <FacebookSignInButton
+                      callbackURL={oauthCallbackURL}
+                      disabled={loading}
+                      label="Se connecter avec Facebook"
+                    />
+                    <DiscordSignInButton
+                      callbackURL={oauthCallbackURL}
+                      disabled={loading}
+                      label="Se connecter avec Discord"
+                    />
+                  </>
+                ) : null}
 
                 <FieldDescription className="text-center">
-                  Pas encore de compte ? Utilisez l’onglet « Inscription ».
+                  {signupHintVariant === "public-login" ? (
+                    <>
+                      Compte équipe (création d’aventures) :{" "}
+                      <Link
+                        href="/admin-game"
+                        className="font-medium text-foreground underline underline-offset-4 hover:no-underline"
+                      >
+                        inscription sur /admin-game
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    <>Pas encore de compte ? Utilisez l’onglet « Inscription ».</>
+                  )}
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -198,6 +270,7 @@ type SignUpFormProps = {
   >
   handleSignUp: (e: React.FormEvent<HTMLFormElement>) => void
   loading: boolean
+  oauthCallbackURL?: string
 }
 
 export function SignUpFormComponent({
@@ -205,6 +278,7 @@ export function SignUpFormComponent({
   setSignUpForm,
   handleSignUp,
   loading,
+  oauthCallbackURL,
 }: SignUpFormProps) {
   return (
     <div className={cn("flex flex-col gap-6")}>
@@ -212,7 +286,9 @@ export function SignUpFormComponent({
         <CardHeader>
           <CardTitle>Inscription</CardTitle>
           <CardDescription>
-            Créez un compte avec votre nom, votre adresse e-mail et un mot de passe.
+            Créez un compte avec votre nom, votre adresse e-mail et un mot de passe. Un e-mail de
+            confirmation vous sera envoyé : vous devrez cliquer sur le lien avant de pouvoir vous
+            connecter.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -275,9 +351,22 @@ export function SignUpFormComponent({
                   {loading ? "Inscription en cours…" : "S&apos;inscrire"}
                 </Button>
 
-                <Button variant="outline" type="button">
-                  Continuer avec Google
-                </Button>
+                {oauthCallbackURL ? (
+                  <>
+                    <GoogleSignInButton
+                      callbackURL={oauthCallbackURL}
+                      disabled={loading}
+                    />
+                    <FacebookSignInButton
+                      callbackURL={oauthCallbackURL}
+                      disabled={loading}
+                    />
+                    <DiscordSignInButton
+                      callbackURL={oauthCallbackURL}
+                      disabled={loading}
+                    />
+                  </>
+                ) : null}
 
                 <FieldDescription className="text-center">
                   Déjà un compte ? Utilisez l’onglet « Connexion ».

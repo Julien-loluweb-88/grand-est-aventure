@@ -4,25 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { getUser } from "@/lib/auth/auth-user";
-import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+import {
+  gateAdventureAction,
+  gateAdventureUpdateContent,
+} from "@/lib/adventure-authorization";
 
 export async function statusAdventure(id: string, status: boolean) {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    throw new Error("Non autorisé.");
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    throw new Error("Non autorisé.");
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId: id,
-    }))
-  ) {
+  const gate = await gateAdventureUpdateContent(id);
+  if (!gate.ok) {
     throw new Error("Non autorisé.");
   }
   return await prisma.adventure.update({
@@ -35,27 +24,8 @@ const MSG_NO_DELETE_RIGHT =
   "Vous n’avez pas l’autorisation de supprimer cette aventure.";
 
 export async function RemoveAdventure(adventureId: string) {
-  const session = await auth.api.getSession({ headers: await headers() });
-  const user = session?.user;
-  if (!user || !isAdminRole(user.role)) {
-    return {
-      success: false,
-      message: MSG_NO_DELETE_RIGHT,
-    };
-  }
-  if (!roleHasAdventurePermission(user.role, "delete")) {
-    return {
-      success: false,
-      message: MSG_NO_DELETE_RIGHT,
-    };
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId,
-    }))
-  ) {
+  const gate = await gateAdventureAction(adventureId, "delete");
+  if (!gate.ok) {
     return {
       success: false,
       message: MSG_NO_DELETE_RIGHT,

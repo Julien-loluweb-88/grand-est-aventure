@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getUserById, getAdminAdventureRights } from "./_lib/user-queries";
+import {
+  getAdminAdventureRights,
+  getUserById,
+  getUserSessionsForAdminPage,
+} from "./_lib/user-queries";
 import { AddressEditForm } from "./_components/AddressEditForm";
 import { BanEditForm } from "./_components/BanUser";
 import { UnBanEditForm } from "./_components/UnBanUser";
 import { RoleEditForm } from "./_components/RoleUser";
 import { RemoveUserForm } from "./_components/RemoveUser";
 import { AdminAdventureRightsForm } from "./_components/AdminAdventureRightsForm";
+import { SetUserPasswordForm } from "./_components/SetUserPasswordForm";
+import { UserSessionsPanel } from "./_components/UserSessionsPanel";
+import { ImpersonateUserButton } from "./_components/ImpersonateUserButton";
 import {
   Card,
   CardContent,
@@ -35,7 +42,10 @@ export default async function UserPage({
 
   const displayName = user.name ?? user.email ?? "cet utilisateur";
   const canManageAdminScopes = currentUser?.role === "superadmin" && user.role === "admin";
-  const rightsData = canManageAdminScopes ? await getAdminAdventureRights(user.id) : null;
+  const [rightsData, sessionRows] = await Promise.all([
+    canManageAdminScopes ? getAdminAdventureRights(user.id) : Promise.resolve(null),
+    getUserSessionsForAdminPage(user.id),
+  ]);
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -74,12 +84,31 @@ export default async function UserPage({
               <CardDescription>Rôle, bannissement et suppression du compte</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
+              <ImpersonateUserButton
+                targetUserId={user.id}
+                targetLabel={displayName}
+                currentUserId={currentUser?.id}
+              />
               <RoleEditForm user={user as User} />
+              <SetUserPasswordForm user={user as User} />
               {user.banned === false && <BanEditForm user={user as User} />}
               {user.banned && <UnBanEditForm user={user as User} />}
               <RemoveUserForm user={user as User} />
             </CardContent>
           </Card>
+          {sessionRows !== null && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Sessions</CardTitle>
+                <CardDescription>
+                  Appareils et navigateurs connectés (Better Auth).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UserSessionsPanel userId={user.id} rows={sessionRows} />
+              </CardContent>
+            </Card>
+          )}
           {canManageAdminScopes && rightsData && (
             <Card>
               <CardHeader>

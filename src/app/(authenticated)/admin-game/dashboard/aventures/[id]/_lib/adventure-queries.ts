@@ -1,26 +1,12 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { getUser } from "@/lib/auth/auth-user";
-import { canManageAdventure } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+import { gateAdventureAction } from "@/lib/adventure-authorization";
 
 /** Données aventure (hors server actions) — évite de mélanger requêtes et `"use server"`. */
 export async function getAdventureById(id: string) {
-  const user = await getUser();
-  if (!user) {
-    return null;
-  }
-  if (!roleHasAdventurePermission(user.role, "read")) {
-    return null;
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId: id,
-    }))
-  ) {
+  const gate = await gateAdventureAction(id, "read");
+  if (!gate.ok) {
     return null;
   }
 

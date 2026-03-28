@@ -16,3 +16,29 @@ export function getResetPasswordRedirectUrl(): string {
   }
   return `${origin}${path}`;
 }
+
+/**
+ * URL de retour après clic sur le lien de vérification (param `callbackURL` Better Auth).
+ * Doit être une origine autorisée : utiliser une URL absolue si `NEXT_PUBLIC_BETTER_AUTH_URL` est défini.
+ */
+export function getEmailVerificationCallbackUrl(
+  context: "login" | "admin-game"
+): string {
+  const origin = getPublicAppOrigin();
+  const path =
+    context === "login" ? "/login?verified=1" : "/admin-game?verified=1";
+  if (!origin) {
+    return path;
+  }
+  return `${origin}${path}`;
+}
+
+/** Après confirmation du lien « changement d’e-mail » (Better Auth `changeEmail`). */
+export function getChangeEmailCallbackUrl(): string {
+  const origin = getPublicAppOrigin();
+  const path = "/admin-game/dashboard/parametres#email";
+  if (!origin) {
+    return path;
+  }
+  return `${origin}${path}`;
+}

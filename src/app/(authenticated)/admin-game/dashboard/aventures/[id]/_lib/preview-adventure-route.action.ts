@@ -1,12 +1,10 @@
 "use server";
 
-import { getUser } from "@/lib/auth/auth-user";
-import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
 import {
   fetchOpenRouteServiceRouteAsLatLngPath,
   fetchOpenRouteServiceRouteDistanceKm,
 } from "@/lib/openrouteservice";
+import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 
 const MAX_WAYPOINTS = 48;
 
@@ -63,20 +61,8 @@ export async function previewAdventureRouteForAdmin(
     }
   | { ok: false; error: string }
 > {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { ok: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { ok: false, error: "Non autorisé." };
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId,
-    }))
-  ) {
+  const gate = await gateAdventureUpdateContent(adventureId);
+  if (!gate.ok) {
     return { ok: false, error: "Non autorisé." };
   }
 

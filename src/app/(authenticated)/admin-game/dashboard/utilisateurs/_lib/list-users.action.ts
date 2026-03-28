@@ -1,10 +1,9 @@
 "use server";
 
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { bridgeListUsers } from "@/lib/better-auth-admin-bridge";
 import { getUser } from "@/lib/auth/auth-user";
-import { roleHasRoutePermission } from "@/lib/permissions";
+import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 
 export type ListUsersAdminRow = {
   id: string;
@@ -22,24 +21,6 @@ type ListUsersApiEntry = {
   banned?: boolean | null;
 };
 
-/** Réponse plate ou enveloppée (`data`) selon la version Better Auth / better-call. */
-function normalizeListUsersResponse(res: unknown): {
-  users: ListUsersApiEntry[];
-  total: number;
-} {
-  if (!res || typeof res !== "object") {
-    return { users: [], total: 0 };
-  }
-  const r = res as Record<string, unknown>;
-  const inner =
-    r.data !== undefined && typeof r.data === "object" && r.data !== null
-      ? (r.data as Record<string, unknown>)
-      : r;
-  const users = Array.isArray(inner.users) ? (inner.users as ListUsersApiEntry[]) : [];
-  const total = typeof inner.total === "number" ? inner.total : 0;
-  return { users, total };
-}
-
 function mapToRow(u: ListUsersApiEntry): ListUsersAdminRow {
   return {
     id: u.id,
@@ -51,7 +32,7 @@ function mapToRow(u: ListUsersApiEntry): ListUsersAdminRow {
 }
 
 /**
- * Liste paginée : `auth.api.listUsers` (plugin admin Better Auth) sans recherche ;
+ * Liste paginée : `bridgeListUsers` (API admin ou Prisma sous impersonation) sans recherche ;
  * recherche nom **ou** e-mail via Prisma (l’API admin n’expose qu’un seul `searchField` à la fois).
  */
 export async function listUsersForAdmin(params: {
@@ -66,8 +47,8 @@ export async function listUsersForAdmin(params: {
     return { ok: false, error: "Non autorisé." };
   }
   const canList =
-    roleHasRoutePermission(user.role, "user", "list") ||
-    roleHasRoutePermission(user.role, "user", "get");
+    (await userHasPermissionServer({ permissions: { user: ["list"] } })) ||
+    (await userHasPermissionServer({ permissions: { user: ["get"] } }));
   if (!canList) {
     return { ok: false, error: "Non autorisé." };
   }
@@ -77,16 +58,12 @@ export async function listUsersForAdmin(params: {
 
   try {
     if (q.length === 0) {
-      const res = await auth.api.listUsers({
-        query: {
-          limit: params.pageSize,
-          offset: skip,
-          sortBy: "name",
-          sortDirection: "asc",
-        },
-        headers: await headers(),
+      const { users: rawUsers, total } = await bridgeListUsers({
+        limit: params.pageSize,
+        offset: skip,
+        sortBy: "name",
+        sortDirection: "asc",
       });
-      const { users: rawUsers, total } = normalizeListUsersResponse(res);
       return {
         ok: true,
         users: rawUsers.map((u) => mapToRow(u)),

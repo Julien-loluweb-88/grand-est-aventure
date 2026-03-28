@@ -18,14 +18,26 @@ async function getSessionFromAuthApi(request: NextRequest) {
 
 export default async function proxy(request: NextRequest) {
   const session = await getSessionFromAuthApi(request);
-  const role = session?.user?.role;
   const pathname = request.nextUrl.pathname;
 
   if (!session?.user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (!["admin", "superadmin"].includes(role ?? "")) {
+  const permCtxRes = await fetch(
+    `${request.nextUrl.origin}/api/admin-game/permission-context`,
+    {
+      headers: { cookie: request.headers.get("cookie") ?? "" },
+      cache: "no-store",
+    }
+  );
+  if (!permCtxRes.ok) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+  const permCtx = (await permCtxRes.json()) as { role?: string };
+  const role = permCtx.role;
+
+  if (!role || !["admin", "superadmin"].includes(role)) {
     return NextResponse.redirect(new URL("/admin-game", request.url));
   }
 

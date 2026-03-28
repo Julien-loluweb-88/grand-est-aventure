@@ -2,13 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getUser } from "@/lib/auth/auth-user";
 import {
-  getManagedAdventureIds,
-  isAdminRole,
-  isSuperadmin,
-} from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+  canCreateAdventure,
+  getAdminActorForAuthorization,
+} from "@/lib/adventure-authorization";
+import { getManagedAdventureIds, isSuperadmin } from "@/lib/admin-access";
+import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import type { Prisma } from "../../../../../../generated/prisma/browser";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 
@@ -26,11 +25,11 @@ export type CreateAdventureInput = {
 export async function createAdventure(
   form: CreateAdventureInput
 ): Promise<{ success: true; id: string } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) {
     return { success: false, error: "Non autorisé." };
   }
-  if (!roleHasAdventurePermission(user.role, "create")) {
+  if (!(await canCreateAdventure())) {
     return { success: false, error: "Non autorisé." };
   }
 
@@ -45,11 +44,11 @@ export async function createAdventure(
           latitude: form.latitude,
           longitude: form.longitude,
           distance: null,
-          creatorId: user.id,
+          creatorId: actor.id,
         },
       });
 
-      if (isSuperadmin(user.role) && form.assignedAdminIds?.length) {
+      if (isSuperadmin(actor.role) && form.assignedAdminIds?.length) {
         const uniqueIds: string[] = [...new Set(form.assignedAdminIds)];
         const validCount = await tx.user.count({
           where: { id: { in: uniqueIds }, role: "admin" },
@@ -68,7 +67,7 @@ export async function createAdventure(
         await tx.adminAuditLog.create({
           data: {
             action: "adventure.admin.scope.updated",
-            actorUserId: user.id,
+            actorUserId: actor.id,
             targetUserId: null,
             payload: {
               adventureId: adventure.id,
@@ -97,20 +96,20 @@ export async function createAdventure(
       error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
     };
   }
-} 
+}
 
 export async function listAdventures() {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) {
     return { ok: false as const, error: "Non autorisé." };
   }
-  if (!roleHasAdventurePermission(user.role, "read")) {
+  if (!(await userHasPermissionServer({ permissions: { adventure: ["read"] } }))) {
     return { ok: false as const, error: "Non autorisé." };
   }
   try {
-    const managedAdventureIds = isSuperadmin(user.role)
+    const managedAdventureIds = isSuperadmin(actor.role)
       ? null
-      : await getManagedAdventureIds(user.id);
+      : await getManagedAdventureIds(actor.id);
 
     if (managedAdventureIds !== null && managedAdventureIds.length === 0) {
       return { ok: true as const, adventures: [] };
@@ -131,47 +130,47 @@ export async function listAdventures() {
       error: "Erreur lors du chargement des aventures.",
     };
   }
-} 
+}
 
 export type AdventureListItem = {
   id: string;
   name: string;
   city: string;
   status: boolean;
-}
+};
 
-  export async function listAdventuresForAdmin(params: {
-    page: number;
-    pageSize: number;
-    search: string;
-  }): Promise<
-    { ok: true; adventure: AdventureListItem[]; total: number } | { ok: false; error: string }
-  > {
-    const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-      return { ok: false, error: "Non autorisé." };
-    }
-  if (!roleHasAdventurePermission(user.role, "read")) {
+export async function listAdventuresForAdmin(params: {
+  page: number;
+  pageSize: number;
+  search: string;
+}): Promise<
+  { ok: true; adventure: AdventureListItem[]; total: number } | { ok: false; error: string }
+> {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) {
     return { ok: false, error: "Non autorisé." };
   }
-  
-    const skip = (params.page - 1) * params.pageSize;
-    const q = params.search.trim();
-  
-    const where =
-      q.length > 0
-        ? {
-            OR: [
-              { name: { contains: q, mode: "insensitive" as const } },
-              { city: { contains: q, mode: "insensitive" as const } },
-            ],
-          }
-        : {};
-  
-    try {
-    const managedAdventureIds = isSuperadmin(user.role)
+  if (!(await userHasPermissionServer({ permissions: { adventure: ["read"] } }))) {
+    return { ok: false, error: "Non autorisé." };
+  }
+
+  const skip = (params.page - 1) * params.pageSize;
+  const q = params.search.trim();
+
+  const where =
+    q.length > 0
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" as const } },
+            { city: { contains: q, mode: "insensitive" as const } },
+          ],
+        }
+      : {};
+
+  try {
+    const managedAdventureIds = isSuperadmin(actor.role)
       ? null
-      : await getManagedAdventureIds(user.id);
+      : await getManagedAdventureIds(actor.id);
 
     if (managedAdventureIds !== null && managedAdventureIds.length === 0) {
       return { ok: true, adventure: [], total: 0 };
@@ -185,39 +184,35 @@ export type AdventureListItem = {
     };
 
     const [adventure, total] = await Promise.all([
-        prisma.adventure.findMany({
+      prisma.adventure.findMany({
         where: scopedWhere,
-          select: {
-            id: true,
-            name: true,
-            city: true,
-            status: true,
-    
-          },
-          orderBy: { name: "asc" },
-          skip,
-          take: params.pageSize,
-        }),
-        prisma.adventure.count({ where: scopedWhere }),
-      ]);
-  
-      return {
-        ok: true,
-        adventure: adventure.map((u) => ({
-          id: u.id,
-          name: u.name,
-          city: u.city,
-          status: u.status ?? false,
-        })),
-        total,
-      };
-    } catch (e) {
-      return {
-        ok: false,
-        error: e instanceof Error ? e.message : "Erreur lors du chargement des aventures.",
-      };
-    }
+        select: {
+          id: true,
+          name: true,
+          city: true,
+          status: true,
+        },
+        orderBy: { name: "asc" },
+        skip,
+        take: params.pageSize,
+      }),
+      prisma.adventure.count({ where: scopedWhere }),
+    ]);
+
+    return {
+      ok: true,
+      adventure: adventure.map((u) => ({
+        id: u.id,
+        name: u.name,
+        city: u.city,
+        status: u.status ?? false,
+      })),
+      total,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Erreur lors du chargement des aventures.",
+    };
   }
-
-
-
+}

@@ -1,34 +1,29 @@
-"use server"
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getUser } from "@/lib/auth/auth-user";
 import { Prisma } from "../../../../../../../../generated/prisma/browser";
-import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+import {
+  gateAdventureAction,
+  gateAdventureUpdateContent,
+} from "@/lib/adventure-authorization";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 
 export type CreateTrasureInput = {
-    name: string;
-    description: Prisma.InputJsonValue;
-    latitude: number;
-    longitude: number;
-    code: string;
-    safeCode: string;
-    adventureId: string;
-}
+  name: string;
+  description: Prisma.InputJsonValue;
+  latitude: number;
+  longitude: number;
+  code: string;
+  safeCode: string;
+  adventureId: string;
+};
 
 export async function createTrasure(
-    form: CreateTrasureInput
+  form: CreateTrasureInput
 ): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId: form.adventureId }))) {
+  const gate = await gateAdventureUpdateContent(form.adventureId);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
   const adventure = await prisma.adventure.findUnique({
@@ -38,9 +33,9 @@ export async function createTrasure(
     return { success: false, error: "Aventure introuvable." };
   }
 
-try {
+  try {
     const result = await prisma.treasure.create({
-    data: {
+      data: {
         name: form.name,
         description: form.description,
         latitude: form.latitude,
@@ -48,37 +43,25 @@ try {
         code: form.code,
         safeCode: form.safeCode,
         adventureId: form.adventureId,
-        },
+      },
     });
     await syncAdventureRouteDistance(form.adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
     return { success: true, id: result.id, message: "Trésor créé avec succès." };
-} catch (e) {
+  } catch (e) {
     return {
-    success: false,
-    error: e instanceof Error ? e.message : "Impossible de créer un trésor.",
+      success: false,
+      error: e instanceof Error ? e.message : "Impossible de créer un trésor.",
     };
-}
+  }
 }
 
 export async function updateTreasure(
   treasureId: string,
   form: CreateTrasureInput
 ): Promise<{ success: true } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId: form.adventureId,
-    }))
-  ) {
+  const gate = await gateAdventureUpdateContent(form.adventureId);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
 
@@ -118,20 +101,8 @@ export async function deleteTreasure(
   treasureId: string,
   adventureId: string
 ): Promise<{ success: true; message: string } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId,
-    }))
-  ) {
+  const gate = await gateAdventureUpdateContent(adventureId);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
 
@@ -157,22 +128,16 @@ export async function deleteTreasure(
   }
 }
 
-export async function getTreasure(id: string) {
-  const user = await getUser();
-  if (!user) {
-    return null;
-  }
-  if (!roleHasAdventurePermission(user.role, "read")) {
-    return null;
-  }
-  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId: id }))) {
+export async function getTreasure(adventureId: string) {
+  const gate = await gateAdventureAction(adventureId, "read");
+  if (!gate.ok) {
     return null;
   }
 
   return await prisma.adventure.findUnique({
-    where: { id },
+    where: { id: adventureId },
     include: {
       treasure: true,
     },
-  })
+  });
 }

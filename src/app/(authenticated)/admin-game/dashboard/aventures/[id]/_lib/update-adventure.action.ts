@@ -2,10 +2,8 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { getUser } from "@/lib/auth/auth-user";
 import type { CreateAdventureInput } from "../../adventure.action";
-import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 
 /** Action isolée : évite de regrouper toutes les mutations avec la page RSC. */
@@ -13,14 +11,8 @@ export async function updateAdventure(
   id: string,
   form: CreateAdventureInput
 ): Promise<{ success: true; id: string } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId: id }))) {
+  const gate = await gateAdventureUpdateContent(id);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
 

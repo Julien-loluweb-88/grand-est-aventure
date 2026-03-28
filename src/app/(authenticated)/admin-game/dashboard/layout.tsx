@@ -8,6 +8,7 @@ import {
 
 import { getUser } from "@/lib/auth/auth-user";
 import Header from "../../_components/layout/Header";
+import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 import { getAdminSessionCapabilities } from "@/lib/admin-session-capabilities";
 import { AdminCapabilitiesProvider } from "./AdminCapabilitiesProvider";
 import { redirect } from "next/navigation";
@@ -40,6 +41,7 @@ export default async function DashboardLayout({
           />
         )}
         <SidebarInset>
+          <ImpersonationBanner />
           {user && <Header />}
           <main>{children}</main>
         </SidebarInset>

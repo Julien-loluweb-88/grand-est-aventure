@@ -23,6 +23,7 @@ import {
 import { MoreHorizontalIcon } from "lucide-react";
 import { toast } from "sonner";
 import { useAdminCapabilities } from "../AdminCapabilitiesProvider";
+import { CreateUserDialog } from "./_components/CreateUserDialog";
 
 const PAGE_SIZE = 10;
 
@@ -117,6 +118,7 @@ export default function UtilisateursPage() {
     return (
         <div className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-wrap items-center gap-2">
                 <Input
                     type="search"
                     placeholder="Rechercher par nom ou e-mail…"
@@ -126,6 +128,8 @@ export default function UtilisateursPage() {
                     aria-label="Rechercher un utilisateur (nom ou e-mail, sans tenir compte des majuscules)"
                     autoComplete="off"
                 />
+                <CreateUserDialog />
+                </div>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     <Button
                         type="button"

@@ -1,10 +1,11 @@
 import { createAccessControl } from "better-auth/plugins/access";
-import { adminAc } from "better-auth/plugins/admin/access";
+import { adminAc, defaultStatements } from "better-auth/plugins/admin/access";
 
+/** Comme la doc Admin : vocabulaire complet `user` / `session` + ressources métier. */
 const statement = {
+  ...defaultStatements,
   project: ["create", "share", "update", "delete"],
   adventure: ["read", "create", "update", "delete"],
-  ...adminAc.statements,
 } as const;
 export const ac = createAccessControl(statement);
 
@@ -17,8 +18,10 @@ const ADVENTURE_PERMS_FULL = ["read", "create", "update", "delete"] as const;
 const ADVENTURE_PERMS_CLIENT = ["read", "update"] as const;
 /** Admin métier : pas la gestion des comptes utilisateurs. */
 const ADMIN_USER_PERMS = [] as const;
+/** Inclut `impersonate-admins` comme dans la doc Better Auth (superadmin peut impersonner d’autres admins). */
 const SUPERADMIN_USER_PERMS = [
   ...(adminAc.statements.user ?? []),
+  "impersonate-admins",
   "get",
   "create",
   "update",
@@ -26,18 +29,21 @@ const SUPERADMIN_USER_PERMS = [
   "ban",
 ] as const;
 
-export type RoutePermissionResource = "adventure" | "user";
+const SUPERADMIN_SESSION_PERMS = [...(adminAc.statements.session ?? [])] as const;
+
+export type RoutePermissionResource = "adventure" | "user" | "session";
 
 /**
  * ## Source unique des droits dashboard admin (UI, proxy, actions serveur)
  *
  * Ce tableau définit ce que chaque rôle peut faire sur les ressources `adventure` et `user`.
  * Ne pas dupliquer cette logique ailleurs : utiliser `roleHasRoutePermission`,
- * `roleHasAdventurePermission`, ou `getAdminSessionCapabilities` (dérivé de ce mapping).
+ * les helpers `adventure-authorization` (acteur + périmètre aventure),
+ * ou `getAdminSessionCapabilities` pour l’UI dashboard.
  *
  * Les rôles Better Auth (`admin`, `superadmin` dans `auth.ts`) doivent rester alignés avec ces listes
  * (mêmes actions sur les mêmes ressources). Le périmètre par aventure (`AdminAdventureAccess`)
- * s’ajoute côté serveur via `canManageAdventure` — ce n’est pas dans ce fichier.
+ * s’ajoute côté serveur via `adventure-authorization` (`canActOnAdventure` + `canManageAdventure`).
  *
  * Le fichier `proxy.ts` applique en plus une **liste blanche** des chemins dashboard : toute nouvelle
  * section sous `/admin-game/dashboard/` doit y être autorisée (préfixe dédié + rôles, ou page d’accueil /
@@ -47,10 +53,12 @@ export const routePermissionsByRole = {
   admin: {
     adventure: ADVENTURE_PERMS_CLIENT,
     user: ADMIN_USER_PERMS,
+    session: [] as const,
   },
   superadmin: {
     adventure: ADVENTURE_PERMS_FULL,
     user: SUPERADMIN_USER_PERMS,
+    session: SUPERADMIN_SESSION_PERMS,
   },
 } as const;
 

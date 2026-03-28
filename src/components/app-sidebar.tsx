@@ -89,6 +89,14 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       isActive: false,
       items: [
         {
+          title: "Adresse e-mail",
+          url: "/admin-game/dashboard/parametres#email",
+        },
+        {
+          title: "Mot de passe",
+          url: "/admin-game/dashboard/parametres#mot-de-passe",
+        },
+        {
           title: "Application (PWA)",
           url: "/admin-game/dashboard/parametres",
         },

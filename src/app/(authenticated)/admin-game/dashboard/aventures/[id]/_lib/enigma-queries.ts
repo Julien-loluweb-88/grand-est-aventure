@@ -1,9 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { getUser } from "@/lib/auth/auth-user";
-import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+import { canActOnAdventure, getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import type { EnigmaOrderRow } from "./enigma-order-types";
 
 export type { EnigmaOrderRow } from "./enigma-order-types";
@@ -32,20 +30,8 @@ export async function listEnigmaForAdmin(params: {
   | { ok: true; enigma: EnigmaListItem[]; total: number }
   | { ok: false; error: string }
 > {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { ok: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "read")) {
-    return { ok: false, error: "Non autorisé." };
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId: params.adventureId,
-    }))
-  ) {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor || !(await canActOnAdventure(actor, params.adventureId, "read"))) {
     return { ok: false, error: "Non autorisé." };
   }
 
@@ -128,20 +114,8 @@ export async function listEnigmaOrderForAdmin(
   | { ok: true; rows: EnigmaOrderRow[] }
   | { ok: false; error: string }
 > {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { ok: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "read")) {
-    return { ok: false, error: "Non autorisé." };
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId,
-    }))
-  ) {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor || !(await canActOnAdventure(actor, adventureId, "read"))) {
     return { ok: false, error: "Non autorisé." };
   }
 

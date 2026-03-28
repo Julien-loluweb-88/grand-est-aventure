@@ -1,11 +1,9 @@
-"use server"
+"use server";
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getUser } from "@/lib/auth/auth-user";
 import { Prisma } from "../../../../../../../../generated/prisma/browser";
-import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 
 function isNumberUniqueError(error: unknown) {
@@ -38,17 +36,10 @@ export type UpdateEnigmaInput = EnigmaMutationFields & { number: number };
 export async function createEnigma(
   form: CreateEnigmaInput
 ): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
+  const gate = await gateAdventureUpdateContent(form.adventureId);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId: form.adventureId }))) {
-    return { success: false, error: "Non autorisé." };
-  }
-  // Vérifier si l'aventure existe
   const adventure = await prisma.adventure.findUnique({
     where: { id: form.adventureId },
   });
@@ -104,20 +95,8 @@ export async function reorderEnigmas(
   adventureId: string,
   orderedIds: string[]
 ): Promise<{ success: true } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (
-    !(await canManageAdventure({
-      userId: user.id,
-      role: user.role,
-      adventureId,
-    }))
-  ) {
+  const gate = await gateAdventureUpdateContent(adventureId);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
 
@@ -173,14 +152,8 @@ export async function updateEnigma(
   id: string,
   form: UpdateEnigmaInput
 ): Promise<{ success: true; id: string; message: string } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId: form.adventureId }))) {
+  const gate = await gateAdventureUpdateContent(form.adventureId);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
 
@@ -226,14 +199,8 @@ export async function deleteEnigma(
   id: string,
   adventureId: string
 ): Promise<{ success: true; message: string } | { success: false; error: string }> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!roleHasAdventurePermission(user.role, "update")) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!(await canManageAdventure({ userId: user.id, role: user.role, adventureId }))) {
+  const gate = await gateAdventureUpdateContent(adventureId);
+  if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
   }
 

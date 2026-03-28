@@ -1,6 +1,8 @@
-import { getUser } from "@/lib/auth/auth-user";
-import { isAdminRole, isSuperadmin } from "@/lib/admin-access";
-import { roleHasRoutePermission } from "@/lib/permissions";
+import { getSession } from "@/lib/auth/auth-user";
+import { getPermissionSubjectUserId } from "@/lib/auth/permission-subject";
+import { isSuperadmin } from "@/lib/admin-access";
+import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
+import { prisma } from "@/lib/prisma";
 
 export type AdminSessionCapabilities = {
   adventure: {
@@ -14,32 +16,88 @@ export type AdminSessionCapabilities = {
     update: boolean;
     ban: boolean;
     delete: boolean;
+    create: boolean;
+    setPassword: boolean;
+    impersonate: boolean;
+  };
+  session: {
+    list: boolean;
+    revoke: boolean;
   };
   canAssignRolesAndScopes: boolean;
 };
 
-/** Capacités UI — même matrice que `routePermissionsByRole` / `roleHasRoutePermission` / proxy. */
 export async function getAdminSessionCapabilities(): Promise<AdminSessionCapabilities | null> {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
+  const session = await getSession();
+  if (!session?.user) {
     return null;
   }
 
-  const r = user.role;
+  const subjectId = await getPermissionSubjectUserId();
+  if (!subjectId) {
+    return null;
+  }
+
+  const canAccessDashboard = await userHasPermissionServer({
+    permissions: { adventure: ["read"] },
+  });
+  if (!canAccessDashboard) {
+    return null;
+  }
+
+  const actorRow = await prisma.user.findUnique({
+    where: { id: subjectId },
+    select: { role: true },
+  });
+
+  const [
+    advCreate,
+    advUpdate,
+    advDelete,
+    uGet,
+    uUpdate,
+    uBan,
+    uDelete,
+    uCreate,
+    uSetPassword,
+    uImpersonate,
+    sList,
+    sRevoke,
+  ] = await Promise.all([
+    userHasPermissionServer({ permissions: { adventure: ["create"] } }),
+    userHasPermissionServer({ permissions: { adventure: ["update"] } }),
+    userHasPermissionServer({ permissions: { adventure: ["delete"] } }),
+    userHasPermissionServer({ permissions: { user: ["get"] } }),
+    userHasPermissionServer({ permissions: { user: ["update"] } }),
+    userHasPermissionServer({ permissions: { user: ["ban"] } }),
+    userHasPermissionServer({ permissions: { user: ["delete"] } }),
+    userHasPermissionServer({ permissions: { user: ["create"] } }),
+    userHasPermissionServer({ permissions: { user: ["set-password"] } }),
+    userHasPermissionServer({ permissions: { user: ["impersonate"] } }),
+    userHasPermissionServer({ permissions: { session: ["list"] } }),
+    userHasPermissionServer({ permissions: { session: ["revoke"] } }),
+  ]);
 
   return {
     adventure: {
-      read: roleHasRoutePermission(r, "adventure", "read"),
-      create: roleHasRoutePermission(r, "adventure", "create"),
-      update: roleHasRoutePermission(r, "adventure", "update"),
-      delete: roleHasRoutePermission(r, "adventure", "delete"),
+      read: canAccessDashboard,
+      create: advCreate,
+      update: advUpdate,
+      delete: advDelete,
     },
     user: {
-      get: roleHasRoutePermission(r, "user", "get"),
-      update: roleHasRoutePermission(r, "user", "update"),
-      ban: roleHasRoutePermission(r, "user", "ban"),
-      delete: roleHasRoutePermission(r, "user", "delete"),
+      get: uGet,
+      update: uUpdate,
+      ban: uBan,
+      delete: uDelete,
+      create: uCreate,
+      setPassword: uSetPassword,
+      impersonate: uImpersonate,
     },
-    canAssignRolesAndScopes: isSuperadmin(r),
+    session: {
+      list: sList,
+      revoke: sRevoke,
+    },
+    canAssignRolesAndScopes: isSuperadmin(actorRow?.role),
   };
 }

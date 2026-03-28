@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { getUser } from "@/lib/auth/auth-user";
+import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import { isSuperadmin } from "@/lib/admin-access";
 
 export type AdminScopePickerUser = {
@@ -14,7 +14,7 @@ export type AdminScopePickerUser = {
 export async function listAdminUsersForNewAdventureScope(): Promise<
   AdminScopePickerUser[]
 > {
-  const actor = await getUser();
+  const actor = await getAdminActorForAuthorization();
   if (!actor || !isSuperadmin(actor.role)) {
     return [];
   }
@@ -27,7 +27,7 @@ export async function listAdminUsersForNewAdventureScope(): Promise<
 }
 
 export async function getAdventureAdminScopeEditorData(adventureId: string) {
-  const actor = await getUser();
+  const actor = await getAdminActorForAuthorization();
   if (!actor || !isSuperadmin(actor.role)) {
     return { ok: false as const, error: "Non autorisé." };
   }

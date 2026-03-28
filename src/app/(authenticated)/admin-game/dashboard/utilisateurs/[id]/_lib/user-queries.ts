@@ -3,14 +3,26 @@ import "server-only";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
-import { requireSuperadmin, requireUserPermission } from "./user-admin-guard";
+import { bridgeGetUser, bridgeListUserSessions } from "@/lib/better-auth-admin-bridge";
+import {
+  requireRoutePermission,
+  requireSuperadmin,
+  requireUserPermission,
+} from "./user-admin-guard";
+
+export type UserSessionRow = {
+  id: string;
+  createdAt: string;
+  expiresAt: string;
+  ipAddress: string | null;
+  userAgent: string | null;
+  impersonatedBy: string | null;
+  isCurrent: boolean;
+};
 
 export async function getUserById(id: string) {
   await requireUserPermission("get");
-  return auth.api.getUser({
-    query: { id },
-    headers: await headers(),
-  });
+  return bridgeGetUser({ id });
 }
 
 export async function getAdminAdventureRights(userId: string) {
@@ -31,4 +43,35 @@ export async function getAdminAdventureRights(userId: string) {
     adventures: allAdventures,
     assignedAdventureIds: assignedAccesses.map((access) => access.adventureId),
   };
+}
+
+function toIso(d: Date | string): string {
+  if (d instanceof Date) return d.toISOString();
+  return typeof d === "string" ? d : new Date(d).toISOString();
+}
+
+export async function getUserSessionsForAdminPage(
+  userId: string
+): Promise<UserSessionRow[] | null> {
+  try {
+    await requireRoutePermission("session", "list");
+  } catch {
+    return null;
+  }
+  const h = await headers();
+  const [actor, listRes] = await Promise.all([
+    auth.api.getSession({ headers: h }),
+    bridgeListUserSessions({ userId }),
+  ]);
+  const actorToken = actor?.session?.token ?? null;
+  const sessions = listRes?.sessions ?? [];
+  return sessions.map((s) => ({
+    id: s.id,
+    createdAt: toIso(s.createdAt),
+    expiresAt: toIso(s.expiresAt),
+    ipAddress: s.ipAddress ?? null,
+    userAgent: s.userAgent ?? null,
+    impersonatedBy: s.impersonatedBy ?? null,
+    isCurrent: actorToken !== null && s.token === actorToken,
+  }));
 }

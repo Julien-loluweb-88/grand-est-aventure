@@ -3,22 +3,30 @@
 import { revalidatePath } from "next/cache";
 import { getUser } from "@/lib/auth/auth-user";
 import { prisma } from "@/lib/prisma";
-import { isAdminRole, isSuperadmin } from "@/lib/admin-access";
-import { roleHasAdventurePermission } from "@/lib/permissions";
+import {
+  canCreateAdventure,
+  getAdminActorForAuthorization,
+} from "@/lib/adventure-authorization";
+import { isSuperadmin } from "@/lib/admin-access";
 import { notifySuperadminsNewAdventureRequest } from "@/lib/notify-superadmins-adventure-request";
 
 export async function submitAdventureCreationRequest(message: string) {
-  const user = await getUser();
-  if (!user || !isAdminRole(user.role)) {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) {
     return { success: false as const, error: "Non autorisé." };
   }
-  if (roleHasAdventurePermission(user.role, "create")) {
+  if (await canCreateAdventure()) {
     return {
       success: false as const,
       error:
         "Vous pouvez créer une aventure directement depuis le bouton « Créer une aventure ».",
     };
   }
+  const user = await getUser();
+  if (!user) {
+    return { success: false as const, error: "Non autorisé." };
+  }
+
   const trimmed = message.trim();
   if (trimmed.length > 2000) {
     return { success: false as const, error: "Message trop long (2000 caractères maximum)." };
@@ -46,7 +54,7 @@ export async function submitAdventureCreationRequest(message: string) {
   await prisma.adminAuditLog.create({
     data: {
       action: "adventure.creation_requested",
-      actorUserId: user.id,
+      actorUserId: actor.id,
       targetUserId: null,
       payload: {
         requestId: created.id,
@@ -72,8 +80,8 @@ export async function submitAdventureCreationRequest(message: string) {
 }
 
 export async function listAdventureCreationRequests() {
-  const user = await getUser();
-  if (!user || !isSuperadmin(user.role)) {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor || !isSuperadmin(actor.role)) {
     return { ok: false as const, error: "Non autorisé." };
   }
 
@@ -89,8 +97,8 @@ export async function listAdventureCreationRequests() {
 }
 
 export async function markAdventureCreationRequestTreated(id: string) {
-  const user = await getUser();
-  if (!user || !isSuperadmin(user.role)) {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor || !isSuperadmin(actor.role)) {
     return { success: false as const, error: "Non autorisé." };
   }
 
