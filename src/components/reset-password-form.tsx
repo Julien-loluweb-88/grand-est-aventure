@@ -42,13 +42,13 @@ export function ResetPasswordFormComponent({
     e.preventDefault()
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("Les mots de passe ne correspondent pas")
+      toast.error("Les mots de passe ne correspondent pas.")
       return
     }
 
     const token = new URLSearchParams(window.location.search).get("token")
     if (!token) {
-      toast.error("Token non trouvé")
+      toast.error("Lien de réinitialisation introuvable ou expiré.")
       return
     }
 
@@ -70,7 +70,7 @@ export function ResetPasswordFormComponent({
       <CardHeader>
         <CardTitle>Changer votre mot de passe</CardTitle>
         <CardDescription>
-          Veuillez saisir un nouveau mot de passe
+          Saisissez un nouveau mot de passe pour votre compte.
         </CardDescription>
       </CardHeader>
       <CardContent>

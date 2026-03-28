@@ -2,7 +2,7 @@
 import { useState, useRef, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogClose,
@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import { RemoveAdventure } from "./adventure.action"
+import { RemoveAdventure } from "../_lib/adventure.action"
 import { useRouter } from "next/navigation";
 
 export function RemoveAdventureForm({
@@ -24,54 +24,54 @@ export function RemoveAdventureForm({
 }: {
   adventure: { id: string; name: string }
 }) {
-    const router = useRouter();
-    const caps = useAdminCapabilities();
-    const dialogRef = useRef<DialogCloseRef>(null);
-    const [isPending, startTransition] = useTransition();
-    const [confirmText, setConfirmText] = useState("");
-    const expectedConfirm = adventure.name ?? "";
+  const router = useRouter();
+  const caps = useAdminCapabilities();
+  const dialogRef = useRef<DialogCloseRef>(null);
+  const [isPending, startTransition] = useTransition();
+  const [confirmText, setConfirmText] = useState("");
+  const expectedConfirm = adventure.name ?? "";
 
-    const handleRemove = async(e: React.SyntheticEvent) => {
-        e.preventDefault();
-        if (confirmText !== expectedConfirm) {
+  const handleRemove = async (e: React.SyntheticEvent) => {
+    e.preventDefault();
+    if (confirmText !== expectedConfirm) {
       toast.error("Le texte saisi ne correspond pas au nom affiché.");
       return;
     }
 
     startTransition(async () => {
-          try {
-            const result = await RemoveAdventure(adventure.id);
-            if (result.success){
-              toast.success(result.message);
-              setConfirmText("");
-              dialogRef.current?.close();
-              router.push("/admin-game/dashboard/aventures");
-            } else {
-              toast.error(result.message);
-            }
-          } catch (error) {
-            console.error("Erreur lors de la suppression :", error);
-            toast.error("Échec de la suppression.");
-          }
-        });
-      };
+      try {
+        const result = await RemoveAdventure(adventure.id);
+        if (result.success) {
+          toast.success(result.message);
+          setConfirmText("");
+          dialogRef.current?.close();
+          router.push("/admin-game/dashboard/aventures");
+        } else {
+          toast.error(result.message);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la suppression :", error);
+        toast.error("Échec de la suppression.");
+      }
+    });
+  };
 
-    if (!caps.adventure.delete) {
-      return (
-        <GuardedButton
-          type="button"
-          variant="destructive"
-          size="sm"
-          allowed={false}
-          denyReason="Vous ne pouvez pas supprimer une aventure."
-        >
-          Supprimer l&apos;aventure
-        </GuardedButton>
-      );
-    }
-
+  if (!caps.adventure.delete) {
     return (
-        <Dialog ref={dialogRef}>
+      <GuardedButton
+        type="button"
+        variant="destructive"
+        size="sm"
+        allowed={false}
+        denyReason="Vous ne pouvez pas supprimer une aventure."
+      >
+        Supprimer l&apos;aventure
+      </GuardedButton>
+    );
+  }
+
+  return (
+    <Dialog ref={dialogRef}>
       <DialogTrigger asChild>
         <Button type="button" variant="destructive" size="sm">
           Supprimer l&apos;aventure
@@ -106,7 +106,7 @@ export function RemoveAdventureForm({
               className="bg-red-500 text-white p-2"
               disabled={confirmText !== expectedConfirm || isPending || !expectedConfirm}
             >
-              {isPending ? "Suppression..." : "Supprimer"}
+              {isPending ? "Suppression…" : "Supprimer"}
             </Button>
 
             <DialogClose asChild>
@@ -116,5 +116,5 @@ export function RemoveAdventureForm({
         </form>
       </DialogContent>
     </Dialog>
-    )
+  )
 }

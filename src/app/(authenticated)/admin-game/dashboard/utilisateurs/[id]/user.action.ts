@@ -135,12 +135,15 @@ export async function roleUser(
     revalidatePath("/admin-game/dashboard/journal-admin");
     return {
       success: true,
-      message: "Rôle mis à jour",
+      message: "Rôle mis à jour.",
     };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Erreur lors de la mise à jour du rôle",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Erreur lors de la mise à jour du rôle.",
     };
   }
 }
@@ -151,7 +154,7 @@ export async function removeUser(userId: string) {
   } catch {
     return{
        success: false,
-      message: "Vous n'avez pas le droit de supprimer des utilisateurs.",
+      message: "Vous n’avez pas l’autorisation de supprimer des utilisateurs.",
     };
   }
   try{
@@ -164,7 +167,7 @@ export async function removeUser(userId: string) {
   revalidatePath(`/admin-game/dashboard/utilisateurs`);
   return {
       success: true,
-      message: "L'utilisateur a été supprimé.",
+      message: "L’utilisateur a été supprimé.",
     }; 
   } catch (error) {
     return {
@@ -216,7 +219,11 @@ export async function setAdminAdventureRights(userId: string, adventureIds: stri
   }
 
   if (targetUser.role !== "admin") {
-    return { success: false, message: "Les droits d'aventure sont réservés aux admins." };
+    return {
+      success: false,
+      message:
+        "Les droits sur les aventures ne s’appliquent qu’aux comptes avec le rôle « admin ».",
+    };
   }
 
   const uniqueAdventureIds = [...new Set(adventureIds)];

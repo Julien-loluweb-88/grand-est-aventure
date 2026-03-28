@@ -99,7 +99,7 @@ export function LoginFormComponent({
 
 const handleForgotPassword = async () => {
   if(!signInForm.email){
-    toast.error("Veuillez saisir votre email");
+    toast.error("Veuillez saisir votre adresse e-mail.");
     return;
   }
   const { error } = await authClient.requestPasswordReset({
@@ -116,16 +116,16 @@ const handleForgotPassword = async () => {
     <div className={cn("flex flex-col gap-6", className)}>
       <Card>
         <CardHeader>
-          <CardTitle>Formulaire de connexion</CardTitle>
+          <CardTitle>Connexion</CardTitle>
           <CardDescription>
-            Entrez votre adresse e-mail ci-dessous pour vous connecter à votre compte.
+            Saisissez votre adresse e-mail et votre mot de passe pour accéder à votre compte.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSignIn}>
             <FieldGroup>
               <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <FieldLabel htmlFor="email">E-mail</FieldLabel>
                 <Input
                   id="email"
                   type="email"
@@ -145,7 +145,7 @@ const handleForgotPassword = async () => {
                   type="button"
                   onClick={handleForgotPassword}
                   className="ml-auto text-sm underline hover:underline">
-                    Mot de passe oublié ?
+                    Mot de passe oublié ?
                   </button>
                 </div>
                 <Input
@@ -161,7 +161,7 @@ const handleForgotPassword = async () => {
 
               <Field className="flex flex-col gap-3">
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Connexion..." : "Login"}
+                  {loading ? "Connexion…" : "Se connecter"}
                 </Button>
 
                 <Button variant="outline" type="button">
@@ -169,7 +169,7 @@ const handleForgotPassword = async () => {
                 </Button>
 
                 <FieldDescription className="text-center">
-                  Vous n&apos;avez pas encore de compte ? <a href="#">Inscrivez-vous</a>
+                  Pas encore de compte ? Utilisez l’onglet « Inscription ».
                 </FieldDescription>
               </Field>
             </FieldGroup>
@@ -210,9 +210,9 @@ export function SignUpFormComponent({
     <div className={cn("flex flex-col gap-6")}>
       <Card>
         <CardHeader>
-          <CardTitle>Formulaire de inscription</CardTitle>
+          <CardTitle>Inscription</CardTitle>
           <CardDescription>
-            Entrez votre nom, votre adresse e-mail et votre mots de pass ci-dessous pour créer votre compte.
+            Créez un compte avec votre nom, votre adresse e-mail et un mot de passe.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -231,11 +231,11 @@ export function SignUpFormComponent({
                 />
               </Field>
               <Field>
-                <FieldLabel htmlFor="fieldgroup-email">Email</FieldLabel>
+                <FieldLabel htmlFor="signup-email">E-mail</FieldLabel>
                 <Input
-                  id="email"
+                  id="signup-email"
                   type="email"
-                  placeholder="m@example.com"
+                  placeholder="vous@exemple.fr"
                   value={signUpForm.email}
                   onChange={(e) =>
                     setSignUpForm({ ...signUpForm, email: e.target.value })
@@ -260,7 +260,9 @@ export function SignUpFormComponent({
                 />
               </Field>
               <Field>
-              <FieldLabel htmlFor="fieldgroup-name">Confirmez le mots de pass</FieldLabel>
+              <FieldLabel htmlFor="confirmPassword">
+                Confirmez le mot de passe
+              </FieldLabel>
               <Input
                 id="confirmPassword"
                 placeholder="Confirmez votre mot de passe"
@@ -270,15 +272,15 @@ export function SignUpFormComponent({
 
               <Field className="flex flex-col gap-3">
                 <Button type="submit" disabled={loading}>
-                  {loading ? "Connexion..." : "Inscription"}
+                  {loading ? "Inscription en cours…" : "S&apos;inscrire"}
                 </Button>
 
                 <Button variant="outline" type="button">
-                  S&apos;inscrir avec Google
+                  Continuer avec Google
                 </Button>
 
                 <FieldDescription className="text-center">
-                  Vous n&apos;avez pas encore de compte ? <a href="#">Inscrivez-vous</a>
+                  Déjà un compte ? Utilisez l’onglet « Connexion ».
                 </FieldDescription>
               </Field>
             </FieldGroup>

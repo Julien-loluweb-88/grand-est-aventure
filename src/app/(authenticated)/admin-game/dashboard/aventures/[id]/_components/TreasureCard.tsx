@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { KeyRound, MapPin, Shield } from "lucide-react";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import {
   Card,
   CardContent,
@@ -24,8 +24,8 @@ import {
 } from "@/components/ui/dialog";
 import { tiptapStoredValueToPlainText } from "@/lib/adventure-description-tiptap";
 import { TreasureEditForm } from "./TreasureEditForm";
-import { deleteTreasure } from "./treasure.action";
-import type { TreasureEditPayload } from "./treasure-edit-payload";
+import { deleteTreasure } from "../_lib/treasure.action";
+import type { TreasureEditPayload } from "../_lib/treasure-edit-payload";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
 
 type Props = {

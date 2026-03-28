@@ -186,7 +186,7 @@ export default function UtilisateursPage() {
                         <TableHeader>
                             <TableRow>
                                 <TableHead>Nom</TableHead>
-                                <TableHead>Email</TableHead>
+                                <TableHead>E-mail</TableHead>
                                 <TableHead>Rôle</TableHead>
                                 <TableHead>Statut</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>

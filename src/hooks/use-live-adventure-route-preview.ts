@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { previewAdventureRouteForAdmin } from "@/app/(authenticated)/admin-game/dashboard/aventures/[id]/preview-adventure-route.action";
+import { previewAdventureRouteForAdmin } from "@/app/(authenticated)/admin-game/dashboard/aventures/[id]/_lib/preview-adventure-route.action";
 
 function serializeWaypoints(wp: [number, number][]): string {
   return JSON.stringify(wp);

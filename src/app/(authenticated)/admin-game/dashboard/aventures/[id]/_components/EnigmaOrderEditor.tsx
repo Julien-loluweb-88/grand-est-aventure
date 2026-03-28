@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import { Separator } from "@/components/ui/separator";
 import {
   Table,
@@ -16,8 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { EnigmaOrderRow } from "./enigma-order-types";
-import { reorderEnigmas } from "./enigma.action";
+import type { EnigmaOrderRow } from "../_lib/enigma-order-types";
+import { reorderEnigmas } from "../_lib/enigma.action";
 
 type Props = {
   adventureId: string;

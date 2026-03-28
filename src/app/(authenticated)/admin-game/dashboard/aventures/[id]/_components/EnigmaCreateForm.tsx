@@ -8,7 +8,7 @@ import { useForm, Controller, useWatch, type SubmitErrorHandler } from "react-ho
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { GuardedButton } from "@/components/admin/GuardedButton"
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider"
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider"
 import {
   Field,
   FieldDescription,
@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner";
-import { createEnigma } from "./enigma.action"
+import { createEnigma } from "../_lib/enigma.action"
 import { LocationPicker } from "@/components/location/LocationPicker"
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types"
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
@@ -221,7 +221,7 @@ export function CreateEnigmaForm({
   }, [router])
 
   const onInvalid: SubmitErrorHandler<z.input<typeof formSchema>> = useCallback(() => {
-    toast.error("Vérifie les champs du formulaire.")
+    toast.error("Vérifiez les champs du formulaire.")
   }, [])
 
   const handleFormSubmit = useCallback(
@@ -260,7 +260,7 @@ export function CreateEnigmaForm({
             <FieldSet>
               <FieldDescription>
                 Formulaire de la création d&apos;énigme
-                
+
               </FieldDescription>
               <div className="grid gap-3 md:grid-cols-2">
                 <Controller
@@ -277,7 +277,7 @@ export function CreateEnigmaForm({
                         id={field.name}
                         aria-invalid={fieldState.invalid}
                         autoComplete="off"
-                        placeholder="Toto" />
+                        placeholder={"Ex. : nom de l'énigme"} />
                       {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                     </Field>
                   )}
@@ -431,9 +431,8 @@ export function CreateEnigmaForm({
                       form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
                       form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
                     }}
-                    helperText={`Repères : D départ, numéros = énigmes, T = trésor ; trait bleu = itinéraire ORS. Placez la nouvelle énigme (grand marqueur bleu).${
-                      routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
-                    }`}
+                    helperText={`Repères : D départ, numéros = énigmes, T = trésor ; trait bleu = itinéraire ORS. Placez la nouvelle énigme (grand marqueur bleu).${routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
+                      }`}
                     contextMarkers={mapReferenceMarkers}
                     routePolyline={displayRoutePolyline}
                   />

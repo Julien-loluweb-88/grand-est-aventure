@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth/auth-user";
-import { Prisma } from "../../../../../../../generated/prisma/browser";
+import { Prisma } from "../../../../../../../../generated/prisma/browser";
 import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
 import { roleHasAdventurePermission } from "@/lib/permissions";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
@@ -53,7 +53,7 @@ export async function createEnigma(
     where: { id: form.adventureId },
   });
   if (!adventure) {
-    return { success: false, error: "Aventure non trouvée." };
+    return { success: false, error: "Aventure introuvable." };
   }
 
   const maxRow = await prisma.enigma.aggregate({
@@ -80,17 +80,21 @@ export async function createEnigma(
     });
     await syncAdventureRouteDistance(form.adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
-    return { success: true, id: result.id, message: "Enigme créée avec succès." };
+    return {
+      success: true,
+      id: result.id,
+      message: "Énigme créée avec succès.",
+    };
   } catch (e) {
     if (isNumberUniqueError(e)) {
       return {
         success: false,
-        error: "Le numéro d'énigme existe déjà pour cette aventure.",
+        error: "Ce numéro d’énigme est déjà utilisé pour cette aventure.",
       };
     }
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
+      error: e instanceof Error ? e.message : "Impossible de créer l’énigme.",
     };
   }
 }
@@ -199,17 +203,21 @@ export async function updateEnigma(
     });
     await syncAdventureRouteDistance(form.adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
-    return { success: true, id: result.id, message: "Enigme modifie avec succès." };
+    return {
+      success: true,
+      id: result.id,
+      message: "Énigme mise à jour avec succès.",
+    };
   } catch (e) {
     if (isNumberUniqueError(e)) {
       return {
         success: false,
-        error: "Le numéro d'énigme existe déjà pour cette aventure.",
+        error: "Ce numéro d’énigme est déjà utilisé pour cette aventure.",
       };
     }
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
+      error: e instanceof Error ? e.message : "Impossible de mettre à jour l’énigme.",
     };
   }
 }
@@ -238,11 +246,14 @@ export async function deleteEnigma(
     }
     await syncAdventureRouteDistance(adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
-    return { success: true, message: "Énigme supprimée avec succès." };
+    return { success: true, message: "Énigme supprimée." };
   } catch (e) {
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Erreur lors de la suppression de l'énigme.",
+      error:
+        e instanceof Error
+          ? e.message
+          : "Erreur lors de la suppression de l’énigme.",
     };
   }
 }

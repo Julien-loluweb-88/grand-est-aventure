@@ -36,6 +36,26 @@ function breadcrumbsForPath(pathname: string | null): Crumb[] {
 
   const crumbs: Crumb[] = [{ label: "Tableau de bord", href: DASHBOARD }]
 
+  if (tail === "parametres" || tail.startsWith("parametres/")) {
+    crumbs.push({ label: "Paramètres", href: null })
+    return crumbs
+  }
+
+  if (tail.startsWith("demandes-aventures")) {
+    crumbs.push({ label: "Demandes d'aventures", href: null })
+    return crumbs
+  }
+
+  if (tail.startsWith("journal-admin")) {
+    crumbs.push({ label: "Journal d'audit", href: null })
+    return crumbs
+  }
+
+  if (tail.startsWith("acces-refuse")) {
+    crumbs.push({ label: "Accès refusé", href: null })
+    return crumbs
+  }
+
   if (tail === "utilisateurs") {
     crumbs.push({ label: "Utilisateurs", href: null })
     return crumbs
@@ -53,12 +73,18 @@ function breadcrumbsForPath(pathname: string | null): Crumb[] {
     return crumbs
   }
 
-  if (tail === "aventures" || tail.startsWith("aventures/")) {
+  if (tail === "aventures") {
+    crumbs.push({ label: "Aventures", href: null })
+    return crumbs
+  }
+
+  if (tail.startsWith("aventures/")) {
     if (tail === "aventures/create" || tail.endsWith("/aventures/create")) {
       crumbs.push({ label: "Aventures", href: `${DASHBOARD}/aventures` })
       crumbs.push({ label: "Créer une aventure", href: null })
     } else {
-      crumbs.push({ label: "Aventures", href: null })
+      crumbs.push({ label: "Aventures", href: `${DASHBOARD}/aventures` })
+      crumbs.push({ label: "Fiche aventure", href: null })
     }
     return crumbs
   }

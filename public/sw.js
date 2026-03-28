@@ -12,6 +12,24 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(self.clients.claim());
 });
 
+/**
+ * Ne pas intercepter les requêtes cross-origin (tuiles carte, CDN, API externes).
+ * Un `respondWith(fetch)` sur tout le scope peut empêcher le chargement des images
+ * tuiles / marqueurs dans certains navigateurs.
+ */
+self.addEventListener("fetch", (event) => {
+  let url;
+  try {
+    url = new URL(event.request.url);
+  } catch {
+    return;
+  }
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+  event.respondWith(fetch(event.request));
+});
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
 

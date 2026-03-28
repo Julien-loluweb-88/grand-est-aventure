@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { GuardedButton } from "@/components/admin/GuardedButton"
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider"
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider"
 import {
   Table,
   TableBody,
@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { toast } from "sonner"
-import { deleteEnigma } from "./enigma.action"
+import { deleteEnigma } from "../_lib/enigma.action"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import { EditenigmaForm, type EnigmaEditRow } from "./EnigmaEditForm"
@@ -216,7 +216,7 @@ export function ListEnigmaTable({
                       disabled={deletingId === enigma.id}
                       onClick={() => setEnigmaToDelete(enigma)}
                     >
-                      {deletingId === enigma.id ? "Suppression..." : "Supprimer"}
+                      {deletingId === enigma.id ? "Suppression…" : "Supprimer"}
                     </GuardedButton>
                   </TableCell>
                 </TableRow>
@@ -286,7 +286,7 @@ export function ListEnigmaTable({
                 void handleDeleteEnigma(enigmaToDelete)
               }}
             >
-              {deletingId ? "Suppression..." : "Supprimer"}
+              {deletingId ? "Suppression…" : "Supprimer"}
             </Button>
           </DialogFooter>
         </DialogContent>

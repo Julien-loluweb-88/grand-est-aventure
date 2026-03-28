@@ -38,7 +38,7 @@ export function RoleEditForm({ user }: { user: User }) {
   const handleRole = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (!role) {
-      return toast.error("Veuillez choisir un rôle");
+      return toast.error("Veuillez choisir un rôle.");
     }
     const result = await roleUser(user.id, role);
     if (result.success) {

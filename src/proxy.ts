@@ -73,7 +73,8 @@ export default async function proxy(request: NextRequest) {
   const isDashboardHome =
     pathname === dashboardRoot || pathname === `${dashboardRoot}/`;
   const isAccesRefuse = pathname.startsWith(`${dashboardRoot}/acces-refuse`);
-  if (isDashboardHome || isAccesRefuse) {
+  const isParametres = pathname.startsWith(`${dashboardRoot}/parametres`);
+  if (isDashboardHome || isAccesRefuse || isParametres) {
     return NextResponse.next();
   }
 

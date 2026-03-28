@@ -11,7 +11,7 @@ import Header from "../../_components/layout/Header";
 import { getAdminSessionCapabilities } from "@/lib/admin-session-capabilities";
 import { AdminCapabilitiesProvider } from "./AdminCapabilitiesProvider";
 import { redirect } from "next/navigation";
-
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +27,7 @@ export default async function DashboardLayout({
 
   return (
     <AdminCapabilitiesProvider value={capabilities}>
+      <ServiceWorkerRegister />
       <SidebarProvider>
         {user && (
           <AppSidebar

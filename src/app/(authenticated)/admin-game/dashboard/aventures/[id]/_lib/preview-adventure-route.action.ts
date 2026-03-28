@@ -89,14 +89,24 @@ export async function previewAdventureRouteForAdmin(
     };
   }
 
-  const [distanceKm, polyline] = await Promise.all([
-    fetchOpenRouteServiceRouteDistanceKm(coords),
-    fetchOpenRouteServiceRouteAsLatLngPath(coords),
-  ]);
+  try {
+    const [distanceKm, polyline] = await Promise.all([
+      fetchOpenRouteServiceRouteDistanceKm(coords),
+      fetchOpenRouteServiceRouteAsLatLngPath(coords),
+    ]);
 
-  return {
-    ok: true,
-    distanceKm,
-    polyline,
-  };
+    return {
+      ok: true,
+      distanceKm,
+      polyline,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        e instanceof Error
+          ? e.message
+          : "Impossible de calculer l’aperçu d’itinéraire pour le moment.",
+    };
+  }
 }

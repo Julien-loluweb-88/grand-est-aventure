@@ -7,7 +7,7 @@ import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoi
 import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview"
 import { Button } from "@/components/ui/button"
 import { GuardedButton } from "@/components/admin/GuardedButton"
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider"
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider"
 import {
   Dialog,
   DialogClose,
@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useParams, useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { updateEnigma } from "./enigma.action"
+import { updateEnigma } from "../_lib/enigma.action"
 import { LocationPicker } from "@/components/location/LocationPicker"
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types"
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
@@ -258,7 +258,7 @@ export function EditenigmaForm({
       toast.error(result.error)
       return
     }
-    toast.success("Énigme mise à jour")
+    toast.success("Énigme mise à jour.")
     setOpen(false)
     router.refresh()
   }
@@ -305,7 +305,7 @@ export function EditenigmaForm({
                     id={field.name}
                     aria-invalid={fieldState.invalid}
                     autoComplete="off"
-                    placeholder="Toto" />
+                    placeholder={"Ex. : nom de l'énigme"} />
                   {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                 </Field>
               )}
@@ -471,9 +471,8 @@ export function EditenigmaForm({
                     form.setValue("latitude", latitude, { shouldDirty: true, shouldValidate: true })
                     form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
                   }}
-                  helperText={`Repères : D départ, autres énigmes, T trésor ; itinéraire bleu. Déplacez ce point (grand marqueur).${
-                    routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
-                  }`}
+                  helperText={`Repères : D départ, autres énigmes, T trésor ; itinéraire bleu. Déplacez ce point (grand marqueur).${routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
+                    }`}
                   contextMarkers={pickerContextMarkers}
                   routePolyline={displayRoutePolyline}
                 />

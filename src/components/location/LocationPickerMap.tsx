@@ -2,6 +2,9 @@
 
 import "leaflet/dist/leaflet.css"
 import L from "leaflet"
+import markerIconUrl from "leaflet/dist/images/marker-icon.png"
+import markerIconRetinaUrl from "leaflet/dist/images/marker-icon-2x.png"
+import markerShadowUrl from "leaflet/dist/images/marker-shadow.png"
 import { useEffect, useMemo, useRef } from "react"
 import { cn } from "@/lib/utils"
 import {
@@ -177,7 +180,7 @@ export default function LocationPickerMap({
       >
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {hasSmartFit ? (
           <SmartFit
@@ -268,10 +271,15 @@ export default function LocationPickerMap({
         .location-picker-map .leaflet-container img {
           max-width: none !important;
         }
-        .location-picker-map .leaflet-pane,
+        /* Ne pas forcer z-index sur .leaflet-pane : Leaflet dépend des couches (tuile / overlay / marqueurs).
+         * Abaisser seulement les barres de contrôle pour qu’elles passent sous les modales (z-50). */
         .location-picker-map .leaflet-top,
         .location-picker-map .leaflet-bottom {
-          z-index: 1;
+          z-index: 40;
+        }
+        /* Évite tuiles invisibles ou artefacts selon zoom / contexte d’empilement (blend + parents isolés). */
+        .location-picker-map .leaflet-container img.leaflet-tile {
+          mix-blend-mode: normal !important;
         }
         .location-picker-map .location-picker-context-marker {
           background: transparent;

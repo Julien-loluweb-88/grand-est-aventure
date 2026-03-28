@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { getUser } from "@/lib/auth/auth-user";
-import type { CreateAdventureInput } from "../adventure.action";
+import type { CreateAdventureInput } from "../../adventure.action";
 import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
 import { roleHasAdventurePermission } from "@/lib/permissions";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
@@ -42,7 +42,7 @@ export async function updateAdventure(
   } catch (e) {
     return {
       success: false,
-      error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
+      error: e instanceof Error ? e.message : "Impossible de mettre à jour l’aventure.",
     };
   }
 }

@@ -1,10 +1,12 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin as adminPlugin } from "better-auth/plugins";
+import { i18n } from "@better-auth/i18n";
 import { ac, admin, user, myCustomRole, superadmin } from "@/lib/permissions";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/prisma";
 import { getAppMailTransport } from "@/lib/smtp-transport";
+import { betterAuthFrMessages } from "@/lib/better-auth-i18n-fr";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -61,7 +63,15 @@ export const auth = betterAuth({
         superadmin,
       },
       adminRoles: ["admin", "superadmin"],
-      defaultBanReason: "Spam!",
+      defaultBanReason: "Comportement abusif (spam).",
+    }),
+    i18n({
+      defaultLocale: "fr",
+      translations: {
+        fr: betterAuthFrMessages,
+      },
+      detection: ["header", "cookie"],
+      localeCookie: "locale",
     }),
     nextCookies(),
   ],

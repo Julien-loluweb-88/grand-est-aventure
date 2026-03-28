@@ -65,7 +65,7 @@ export function BanEditForm({ user }: { user: User }) {
         variant="destructive"
         size="sm"
         allowed={false}
-        denyReason="Vous ne pouvez pas bannir des utilisateurs."
+        denyReason="Vous ne pouvez pas bannir d&apos;utilisateurs."
       >
         Bannir l&apos;utilisateur
       </GuardedButton>
@@ -82,11 +82,11 @@ export function BanEditForm({ user }: { user: User }) {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            Bannir {user.name ?? user.email ?? "cet utilisateur"} ?
+            Bannir {user.name ?? user.email ?? "cet utilisateur"} ?
           </DialogTitle>
           <DialogDescription>
-            Cette action permet de bannir un utilisateur pendant une durée
-            déterminée.
+            L&apos;utilisateur ne pourra plus se connecter pendant la durée
+            choisie.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">
@@ -94,16 +94,14 @@ export function BanEditForm({ user }: { user: User }) {
             <Label htmlFor="motif">Motif</Label>
             <Select onValueChange={setMotif} value={motif}>
               <SelectTrigger className="w-full max-w-48">
-                <SelectValue placeholder="Quelle motif?" />
+                <SelectValue placeholder="Quel motif ?" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Violation des conditions</SelectLabel>
-                  <SelectItem value="Harassment">
-                    Harcèlement
-                  </SelectItem>
+                  <SelectLabel>Motif du bannissement</SelectLabel>
+                  <SelectItem value="Harassment">Harcèlement</SelectItem>
                   <SelectItem value="Fraud">
-                    Fraudes et atteintes à la sécurité
+                    Fraude et atteinte à la sécurité
                   </SelectItem>
                   <SelectItem value="damage">
                     Dommages causés à d&apos;autres utilisateurs
@@ -115,23 +113,28 @@ export function BanEditForm({ user }: { user: User }) {
                 </SelectGroup>
                 </SelectContent>
             </Select>
-            {motif ==="other" && <Input placeholder="Quel motif?" value={motifCustom} onChange={(e) => setMotifCustom(e.target.value)}/>}
+            {motif === "other" && (
+              <Input
+                placeholder="Précisez le motif"
+                value={motifCustom}
+                onChange={(e) => setMotifCustom(e.target.value)}
+              />
+            )}
           </div>
           <div className="grid flex-1 gap-2">
             <Label htmlFor="time">Durée</Label>
             <Select onValueChange={setDuration} value={duration}>
               <SelectTrigger className="w-full max-w-48">
-                <SelectValue placeholder="Combien de durée?" />
+                <SelectValue placeholder="Quelle durée ?" />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Violation des conditions</SelectLabel>
-                  <SelectItem value="oneday">1jour</SelectItem>
-                  <SelectItem value="oneweek">1semaine</SelectItem>
-                  <SelectItem value="onemonth">1mois</SelectItem>
-                  <SelectItem value="oneyear">1an</SelectItem>
+                  <SelectLabel>Durée du bannissement</SelectLabel>
+                  <SelectItem value="oneday">1 jour</SelectItem>
+                  <SelectItem value="oneweek">1 semaine</SelectItem>
+                  <SelectItem value="onemonth">1 mois</SelectItem>
+                  <SelectItem value="oneyear">1 an</SelectItem>
                   <SelectItem value="other">Autre</SelectItem>
-
                 </SelectGroup>
               </SelectContent>
             </Select>

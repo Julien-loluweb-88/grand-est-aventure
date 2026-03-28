@@ -1,11 +1,11 @@
 "use client"
 
 import { toast } from "sonner";
-import { statusAdventure} from "./adventure.action";
+import { statusAdventure } from "../_lib/adventure.action";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import {
   Dialog,
   DialogContent,
@@ -16,15 +16,15 @@ import {
 } from "@/components/ui/dialog";
 
 export function StatusAdventure({ adventure }: { adventure: { id: string } }) {
-const router = useRouter();
-const caps = useAdminCapabilities();
+  const router = useRouter();
+  const caps = useAdminCapabilities();
 
   const handleStatus = async (status: boolean) => {
-    try{
+    try {
       await statusAdventure(adventure.id, status);
-      toast.success("Statut mis à jour")
+      toast.success("Statut mis à jour.")
       router.push("/admin-game/dashboard/aventures");
-    } catch(error) {
+    } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erreur lors de la mise à jour");
     }
   };
@@ -42,7 +42,7 @@ const caps = useAdminCapabilities();
     );
   }
 
-  return(
+  return (
     <Dialog>
       <DialogTrigger asChild>
         <Button type="button" size="sm">
@@ -59,17 +59,17 @@ const caps = useAdminCapabilities();
             Cette action permet de mettre en pause cette aventure.
           </DialogDescription>
         </DialogHeader>
-          <Button
+        <Button
           variant="destructive"
           onClick={() => handleStatus(false)}>
-            Pause
-          </Button>
-    <Button
-    onClick={() => handleStatus(true)}>
-      Active
-      </Button>
+          Pause
+        </Button>
+        <Button
+          onClick={() => handleStatus(true)}>
+          Active
+        </Button>
       </DialogContent>
     </Dialog>
-    
+
   )
 }

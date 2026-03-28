@@ -103,7 +103,7 @@ export function RemoveUserForm({ user }: { user: User }) {
               className="bg-red-500 text-white p-2"
               disabled={confirmText !== expectedConfirm || isPending || !expectedConfirm}
             >
-              {isPending ? "Suppression..." : "Supprimer"}
+              {isPending ? "Suppression…" : "Supprimer"}
             </Button>
 
             <DialogClose asChild>

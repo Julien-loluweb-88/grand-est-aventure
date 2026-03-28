@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getUser } from "@/lib/auth/auth-user";
-import { Prisma } from "../../../../../../../generated/prisma/browser";
+import { Prisma } from "../../../../../../../../generated/prisma/browser";
 import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
 import { roleHasAdventurePermission } from "@/lib/permissions";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
@@ -35,7 +35,7 @@ export async function createTrasure(
     where: { id: form.adventureId },
   });
   if (!adventure) {
-    return { success: false, error: "Aventure non trouvée." };
+    return { success: false, error: "Aventure introuvable." };
   }
 
 try {

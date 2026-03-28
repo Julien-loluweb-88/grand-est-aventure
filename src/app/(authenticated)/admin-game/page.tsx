@@ -77,7 +77,9 @@ export default function AdminGamePage() {
 
   return (
     <div className="flex min-h-svh w-full flex-col items-center p-6 md:p-10">
-      <h1 className="mb-8 text-2xl font-semibold tracking-tight">Admin Game</h1>
+      <h1 className="mb-8 text-2xl font-semibold tracking-tight">
+        Espace d&apos;administration
+      </h1>
       <div className="w-full max-w-[400px]">
         <Tabs defaultValue="signin">
           <TabsList className="grid w-full grid-cols-2">

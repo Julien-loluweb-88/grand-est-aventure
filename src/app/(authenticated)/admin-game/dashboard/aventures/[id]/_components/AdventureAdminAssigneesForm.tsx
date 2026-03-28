@@ -5,8 +5,8 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
-import { setAdventureAdminScopes } from "./adventure-admin-scope.action";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
+import { setAdventureAdminScopes } from "../_lib/adventure-admin-scope.action";
 
 type AdminItem = {
   id: string;

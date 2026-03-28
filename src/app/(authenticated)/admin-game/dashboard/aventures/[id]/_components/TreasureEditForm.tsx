@@ -20,7 +20,7 @@ import {
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { GuardedButton } from "@/components/admin/GuardedButton";
-import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
+import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import {
   Field,
   FieldDescription,
@@ -43,11 +43,11 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
-import { updateTreasure } from "./treasure.action";
+import { updateTreasure } from "../_lib/treasure.action";
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
 import { adventureDescriptionToTiptapJSON } from "@/lib/adventure-description-tiptap";
 import { adventureDescriptionEditZod } from "@/lib/adventure-description-schema";
-import type { TreasureEditPayload } from "./treasure-edit-payload";
+import type { TreasureEditPayload } from "../_lib/treasure-edit-payload";
 
 const formSchema = z.object({
   name: z
@@ -196,7 +196,7 @@ export function TreasureEditForm({
 
   const onInvalid: SubmitErrorHandler<z.input<typeof formSchema>> = useCallback(
     () => {
-      toast.error("Vérifie les champs du formulaire.");
+      toast.error("Vérifiez les champs du formulaire.");
     },
     []
   );
@@ -258,7 +258,7 @@ export function TreasureEditForm({
                         id={field.name}
                         aria-invalid={fieldState.invalid}
                         autoComplete="off"
-                        placeholder="Toto"
+                        placeholder="Ex. : nom du trésor"
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -330,9 +330,8 @@ export function TreasureEditForm({
                             shouldValidate: true,
                           });
                         }}
-                        helperText={`Repères : D départ, énigmes ; itinéraire bleu. Déplacez le trésor (grand marqueur).${
-                          routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
-                        }`}
+                        helperText={`Repères : D départ, énigmes ; itinéraire bleu. Déplacez le trésor (grand marqueur).${routePreviewLoading ? " Recalcul de l'itinéraire…" : ""
+                          }`}
                         contextMarkers={mapReferenceMarkers}
                         routePolyline={displayRoutePolyline}
                       />

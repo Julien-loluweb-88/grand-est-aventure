@@ -16,7 +16,7 @@ export const adventureDescriptionCreateZod = tiptapDoc.superRefine((doc, ctx) =>
   if (len < 20) {
     ctx.addIssue({
       code: "custom",
-      message: "La description doit contenir au moins 20 caractères",
+      message: "La description doit contenir au moins 20 caractères.",
     });
   }
   if (len > 50000) {
@@ -50,13 +50,13 @@ export const enigmaAnswerMessageCreateZod = tiptapDoc.superRefine((doc, ctx) => 
   if (len < 3) {
     ctx.addIssue({
       code: "custom",
-      message: "Le message doit être au moins 3 caractères",
+      message: "Le message doit contenir au moins 3 caractères.",
     });
   }
   if (len > 250) {
     ctx.addIssue({
       code: "custom",
-      message: "Le message ne doit pas dépasser 250 caractères",
+      message: "Le message ne doit pas dépasser 250 caractères.",
     });
   }
 });
@@ -72,7 +72,7 @@ export const enigmaAnswerMessageEditZod = tiptapDoc.superRefine((doc, ctx) => {
   if (len > 250) {
     ctx.addIssue({
       code: "custom",
-      message: "Le message ne doit pas dépasser 250 caractères",
+      message: "Le message ne doit pas dépasser 250 caractères.",
     });
   }
 });

@@ -103,7 +103,7 @@ export function CreateAdventureForm({
   return (
     <form
       onSubmit={form.handleSubmit(onSubmit, () => {
-        toast.error("Vérifie les champs du formulaire.");
+        toast.error("Vérifiez les champs du formulaire.");
       })}
     >
       <FieldGroup>

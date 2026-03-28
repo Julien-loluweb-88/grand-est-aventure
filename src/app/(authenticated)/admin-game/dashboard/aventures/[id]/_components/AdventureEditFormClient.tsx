@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { AdventureEditFormPayload } from "./adventure-edit-payload";
+import type { AdventureEditFormPayload } from "../_lib/adventure-edit-payload";
 
 const AdventureEditForm = dynamic(
   () => import("./AdventureEditForm").then((m) => m.AdventureEditForm),

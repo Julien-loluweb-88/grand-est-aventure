@@ -43,7 +43,7 @@ export function UnBanEditForm({ user }: { user: User }) {
         size="sm"
         className="border-green-600 text-green-700 hover:bg-green-50"
         allowed={false}
-        denyReason="Vous ne pouvez pas débannir des utilisateurs."
+        denyReason="Vous ne pouvez pas débannir d&apos;utilisateurs."
       >
         Débannir l&apos;utilisateur
       </GuardedButton>
@@ -59,11 +59,9 @@ export function UnBanEditForm({ user }: { user: User }) {
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            Débannir {label} ?
-          </DialogTitle>
+          <DialogTitle>Débannir {label} ?</DialogTitle>
           <DialogDescription>
-            Cette action permet de débannir un utilisateur.
+            Cette action lève le bannissement et rétablit l&apos;accès au compte.
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-2">

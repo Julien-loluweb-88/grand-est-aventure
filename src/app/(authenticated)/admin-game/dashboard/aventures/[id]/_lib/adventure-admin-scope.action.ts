@@ -80,5 +80,8 @@ export async function setAdventureAdminScopes(
   revalidatePath("/admin-game/dashboard/aventures");
   revalidatePath("/admin-game/dashboard/journal-admin");
 
-  return { success: true as const, message: "Admins assignés mis à jour." };
+  return {
+    success: true as const,
+    message: "Affectation des administrateurs enregistrée.",
+  };
 }

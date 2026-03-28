@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { getAdventureById } from "./adventure-queries";
-import { getAdventureAdminScopeEditorData } from "./adventure-admin-scope-queries";
-import { AdventureAdminAssigneesForm } from "./AdventureAdminAssigneesForm";
+import { getAdventureById } from "./_lib/adventure-queries";
+import { getAdventureAdminScopeEditorData } from "./_lib/adventure-admin-scope-queries";
+import { AdventureAdminAssigneesForm } from "./_components/AdventureAdminAssigneesForm";
 import { getUser } from "@/lib/auth/auth-user";
 import {
   Card,
@@ -10,19 +10,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RemoveAdventureForm } from "./RemoveAdventure";
-import { AdventureEditFormClient } from "./AdventureEditFormClient";
-import { StatusAdventure } from "./StatusAdventure";
-import { CreateEnigmaForm } from "./EnigmaCreateForm";
-import { ListEnigmaTable } from "./ListeEnigma";
-import { EnigmaOrderEditor } from "./EnigmaOrderEditor";
-import { listEnigmaForAdmin, listEnigmaOrderForAdmin } from "./enigma-queries";
-import { CreateTreasureForm } from "./TreasureCreateForm";
-import { TreasureCard } from "./TreasureCard";
-import type { AdventureEditFormPayload } from "./adventure-edit-payload";
-import type { TreasureEditPayload } from "./treasure-edit-payload";
+import { RemoveAdventureForm } from "./_components/RemoveAdventure";
+import { AdventureEditFormClient } from "./_components/AdventureEditFormClient";
+import { StatusAdventure } from "./_components/StatusAdventure";
+import { CreateEnigmaForm } from "./_components/EnigmaCreateForm";
+import { ListEnigmaTable } from "./_components/ListeEnigma";
+import { EnigmaOrderEditor } from "./_components/EnigmaOrderEditor";
+import { listEnigmaForAdmin, listEnigmaOrderForAdmin } from "./_lib/enigma-queries";
+import { CreateTreasureForm } from "./_components/TreasureCreateForm";
+import { TreasureCard } from "./_components/TreasureCard";
+import type { AdventureEditFormPayload } from "./_lib/adventure-edit-payload";
+import type { TreasureEditPayload } from "./_lib/treasure-edit-payload";
 import { getAdventureRoutePolylineForMap } from "@/lib/adventure-route-distance";
-import { buildMapReferenceMarkers } from "./map-reference-markers";
+import { buildMapReferenceMarkers } from "./_lib/map-reference-markers";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
 
 /** Props client : JSON pur (évite références / objets non sérialisables côté RSC). */
@@ -97,7 +97,9 @@ export default async function AdventurePage({
   if (!adventure) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-muted-foreground">Aventure introuvable ou acces refuse.</p>
+        <p className="text-muted-foreground">
+          Aventure introuvable ou accès refusé.
+        </p>
       </div>
     );
   }
@@ -181,7 +183,7 @@ export default async function AdventurePage({
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-start">
         {/* Colonne principale : contenu éditable (superadmin comme admin client) */}
         <div className="flex min-w-0 flex-col gap-6">
-          <Card className="h-fit">
+          <Card className="h-fit overflow-visible">
             <CardHeader>
               <CardTitle>Informations générales</CardTitle>
               <CardDescription>

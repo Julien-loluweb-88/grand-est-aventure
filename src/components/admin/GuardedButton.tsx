@@ -10,7 +10,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export const DEFAULT_DENY_MESSAGE =
-  "Vous n'avez pas les droits suffisants pour cette action.";
+  "Vous n’avez pas les droits suffisants pour cette action.";
 
 type ButtonProps = React.ComponentProps<typeof Button>;
 

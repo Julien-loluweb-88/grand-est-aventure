@@ -1,7 +1,7 @@
 import React from "react";
 import { CreateAdventureForm } from "./AdventureCreateForm";
 import { Card, CardTitle } from "@/components/ui/card";
-import { listAdminUsersForNewAdventureScope } from "../[id]/adventure-admin-scope-queries";
+import { listAdminUsersForNewAdventureScope } from "../[id]/_lib/adventure-admin-scope-queries";
 
 export default async function Page() {
   const assignableAdmins = await listAdminUsersForNewAdventureScope();
