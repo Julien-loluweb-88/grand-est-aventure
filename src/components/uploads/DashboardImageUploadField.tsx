@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { uploadDashboardImage } from "@/app/(authenticated)/admin-game/dashboard/_lib/upload-dashboard-image.action";
+import { uploadDashboardImage } from "@/lib/actions/upload-dashboard-image";
 import type { DashboardImageScope } from "@/lib/uploads/dashboard-image-scope";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";

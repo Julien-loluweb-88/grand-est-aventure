@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller, useWatch } from "react-hook-form";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import * as z from "zod";
 import { MapPin, Route } from "lucide-react";
 import { GuardedButton } from "@/components/admin/GuardedButton";
@@ -34,6 +35,14 @@ import type { AdventureEditFormPayload } from "../_lib/adventure-edit-payload";
 import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoints";
 import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview";
 import { AdventureMediaFields } from "@/components/adventure/AdventureMediaFields";
+import type { CitySelectOption } from "@/lib/city-types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const AdventureReadOnlyMap = dynamic(
   () => import("@/components/location/LocationPickerMap"),
@@ -54,10 +63,7 @@ const formSchema = z.object({
     .min(2, "Le nom doit contenir au moins 2 caractères")
     .max(30, "Le nom ne doit pas dépasser 30 caractères"),
   description: adventureDescriptionEditZod,
-  city: z
-    .string()
-    .min(2, "Le nom de la ville doit contenir au moins 2 caractères")
-    .max(50, "Le nom de la ville ne doit pas dépasser 50 caractères"),
+  cityId: z.string().min(1, "Choisissez une ville dans la liste."),
   latitude: z
     .coerce.number()
     .min(-90, "Latitude invalide")
@@ -81,8 +87,10 @@ function formatCoord(n: number) {
 
 export function AdventureEditForm({
   adventure,
+  cities,
 }: {
   adventure: AdventureEditFormPayload;
+  cities: CitySelectOption[];
 }) {
   const router = useRouter();
   const caps = useAdminCapabilities();
@@ -91,7 +99,7 @@ export function AdventureEditForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: adventure.name,
-      city: adventure.city,
+      cityId: adventure.cityId,
       latitude: adventure.latitude,
       longitude: adventure.longitude,
       description: adventureDescriptionToTiptapJSON(adventure.description),
@@ -113,7 +121,7 @@ export function AdventureEditForm({
       const a = adventureRef.current;
       form.reset({
         name: a.name,
-        city: a.city,
+        cityId: a.cityId,
         latitude: a.latitude,
         longitude: a.longitude,
         description: adventureDescriptionToTiptapJSON(a.description),
@@ -209,7 +217,7 @@ export function AdventureEditForm({
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
                 Ville
               </p>
-              <p className="font-medium text-foreground">{adventure.city}</p>
+              <p className="font-medium text-foreground">{adventure.cityName}</p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
@@ -311,19 +319,45 @@ export function AdventureEditForm({
                         )}
                       />
                       <Controller
-                        name="city"
+                        name="cityId"
                         control={form.control}
                         render={({ field, fieldState }) => (
                           <Field data-invalid={fieldState.invalid}>
                             <FieldLabel htmlFor={field.name}>Ville</FieldLabel>
-                            <Input
-                              className="max-w-md"
-                              {...field}
-                              id={field.name}
-                              aria-invalid={fieldState.invalid}
-                              autoComplete="off"
-                              placeholder="Paris"
-                            />
+                            <p className="mb-1 text-xs text-muted-foreground">
+                              <Link
+                                href="/admin-game/dashboard/villes"
+                                className="text-foreground underline underline-offset-2 hover:text-primary"
+                              >
+                                Gérer les villes
+                              </Link>
+                            </p>
+                            <Select
+                              value={field.value || undefined}
+                              onValueChange={field.onChange}
+                              disabled={cities.length === 0}
+                            >
+                              <SelectTrigger
+                                id={field.name}
+                                className="w-full max-w-md"
+                                aria-invalid={fieldState.invalid}
+                              >
+                                <SelectValue
+                                  placeholder={
+                                    cities.length === 0
+                                      ? "Aucune ville"
+                                      : "Choisir une ville"
+                                  }
+                                />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {cities.map((c) => (
+                                  <SelectItem key={c.id} value={c.id}>
+                                    {c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             {fieldState.invalid && (
                               <FieldError errors={[fieldState.error]} />
                             )}

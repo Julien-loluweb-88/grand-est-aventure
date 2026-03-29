@@ -13,6 +13,7 @@ export async function getAdventureById(id: string) {
   return prisma.adventure.findUnique({
     where: { id },
     include: {
+      city: true,
       treasure: true,
       enigmas: {
         orderBy: { number: "asc" },

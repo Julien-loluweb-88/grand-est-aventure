@@ -56,6 +56,26 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Référentiel villes (CRUD côté action = `adventure.update`, liste = `adventure.read`)
+  if (pathname.startsWith("/admin-game/dashboard/villes")) {
+    if (pathname.startsWith("/admin-game/dashboard/villes/create")) {
+      if (!roleHasRoutePermission(role, "adventure", "update")) {
+        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+      }
+      return NextResponse.next();
+    }
+    if (/^\/admin-game\/dashboard\/villes\/[^/]+$/.test(pathname)) {
+      if (!roleHasRoutePermission(role, "adventure", "update")) {
+        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+      }
+      return NextResponse.next();
+    }
+    if (!roleHasRoutePermission(role, "adventure", "read")) {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
+
   // Superadmin: adventure creation requests inbox
   if (pathname.startsWith("/admin-game/dashboard/demandes-aventures")) {
     if (role !== "superadmin") {

@@ -50,7 +50,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { uploadDashboardImage } from "@/app/(authenticated)/admin-game/dashboard/_lib/upload-dashboard-image.action";
+import { uploadDashboardImage } from "@/lib/actions/upload-dashboard-image";
 import { toast } from "sonner";
 import type { AdventureDescriptionEditorProps } from "./adventure-description-editor.types";
 import { AdventureImage } from "./adventure-image-extension";

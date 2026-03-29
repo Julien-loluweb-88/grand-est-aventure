@@ -1,127 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import {
-  canCreateAdventure,
-  getAdminActorForAuthorization,
-} from "@/lib/adventure-authorization";
+import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import { getManagedAdventureIds, isSuperadmin } from "@/lib/admin-access";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
-import type { Prisma } from "../../../../../../generated/prisma/browser";
-import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
-import { migrateAdventureDraftEditorUploads } from "@/lib/uploads/migrate-adventure-draft-editor-uploads";
-
-export type CreateAdventureInput = {
-  name: string;
-  description: Prisma.InputJsonValue;
-  city: string;
-  status?: boolean;
-  latitude: number;
-  longitude: number;
-  coverImageUrl?: string | null;
-  badgeImageUrl?: string | null;
-  /** Réservé au superadmin : ids utilisateurs `role === "admin"`. */
-  assignedAdminIds?: string[];
-  /** UUID client : images TipTap (`drafts/{id}/editor/`) migrées vers l’aventure créée. */
-  descriptionDraftId?: string | null;
-};
-
-export async function createAdventure(
-  form: CreateAdventureInput
-): Promise<{ success: true; id: string } | { success: false; error: string }> {
-  const actor = await getAdminActorForAuthorization();
-  if (!actor) {
-    return { success: false, error: "Non autorisé." };
-  }
-  if (!(await canCreateAdventure())) {
-    return { success: false, error: "Non autorisé." };
-  }
-
-  try {
-    let scopeUserIdsToRevalidate: string[] = [];
-    const result = await prisma.$transaction(async (tx) => {
-      const adventure = await tx.adventure.create({
-        data: {
-          name: form.name,
-          description: form.description,
-          city: form.city,
-          latitude: form.latitude,
-          longitude: form.longitude,
-          distance: null,
-          creatorId: actor.id,
-          coverImageUrl: form.coverImageUrl?.trim() || null,
-          badgeImageUrl: form.badgeImageUrl?.trim() || null,
-        },
-      });
-
-      if (isSuperadmin(actor.role) && form.assignedAdminIds?.length) {
-        const uniqueIds: string[] = [...new Set(form.assignedAdminIds)];
-        const validCount = await tx.user.count({
-          where: { id: { in: uniqueIds }, role: "admin" },
-        });
-        if (validCount !== uniqueIds.length) {
-          throw new Error(
-            "Un ou plusieurs comptes ne sont pas des administrateurs (rôle « admin »)."
-          );
-        }
-        await tx.adminAdventureAccess.createMany({
-          data: uniqueIds.map((userId) => ({
-            userId,
-            adventureId: adventure.id,
-          })),
-        });
-        await tx.adminAuditLog.create({
-          data: {
-            action: "adventure.admin.scope.updated",
-            actorUserId: actor.id,
-            targetUserId: null,
-            payload: {
-              adventureId: adventure.id,
-              adminUserIds: uniqueIds,
-            },
-          },
-        });
-        scopeUserIdsToRevalidate = uniqueIds;
-      }
-
-      return adventure;
-    });
-
-    await syncAdventureRouteDistance(result.id);
-
-    const draftId = form.descriptionDraftId?.trim();
-    if (draftId) {
-      const nextDescription = await migrateAdventureDraftEditorUploads({
-        draftId,
-        adventureId: result.id,
-        description: result.description as Prisma.InputJsonValue,
-      });
-      if (
-        JSON.stringify(nextDescription) !==
-        JSON.stringify(result.description)
-      ) {
-        await prisma.adventure.update({
-          where: { id: result.id },
-          data: { description: nextDescription },
-        });
-      }
-    }
-
-    for (const uid of scopeUserIdsToRevalidate) {
-      revalidatePath(`/admin-game/dashboard/utilisateurs/${uid}`);
-    }
-    revalidatePath("/admin-game/dashboard/aventures");
-    revalidatePath(`/admin-game/dashboard/aventures/${result.id}`);
-    revalidatePath("/admin-game/dashboard/journal-admin");
-    return { success: true, id: result.id };
-  } catch (e) {
-    return {
-      success: false,
-      error: e instanceof Error ? e.message : "Impossible de créer l’aventure.",
-    };
-  }
-}
 
 export async function listAdventures() {
   const actor = await getAdminActorForAuthorization();
@@ -143,7 +25,10 @@ export async function listAdventures() {
     const where =
       managedAdventureIds !== null ? { id: { in: managedAdventureIds } } : {};
 
-    const adventures = await prisma.adventure.findMany({ where });
+    const adventures = await prisma.adventure.findMany({
+      where,
+      include: { city: { select: { name: true } } },
+    });
 
     return {
       ok: true as const,
@@ -187,7 +72,11 @@ export async function listAdventuresForAdmin(params: {
       ? {
           OR: [
             { name: { contains: q, mode: "insensitive" as const } },
-            { city: { contains: q, mode: "insensitive" as const } },
+            {
+              city: {
+                name: { contains: q, mode: "insensitive" as const },
+              },
+            },
           ],
         }
       : {};
@@ -214,8 +103,8 @@ export async function listAdventuresForAdmin(params: {
         select: {
           id: true,
           name: true,
-          city: true,
           status: true,
+          city: { select: { name: true } },
         },
         orderBy: { name: "asc" },
         skip,
@@ -229,7 +118,7 @@ export async function listAdventuresForAdmin(params: {
       adventure: adventure.map((u) => ({
         id: u.id,
         name: u.name,
-        city: u.city,
+        city: u.city.name,
         status: u.status ?? false,
       })),
       total,

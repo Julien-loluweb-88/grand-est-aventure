@@ -7,7 +7,8 @@ export type AdventureEditFormPayload = {
   id: string
   name: string
   description: unknown
-  city: string
+  cityId: string
+  cityName: string
   latitude: number
   longitude: number
   /** Km (itinéraire OpenRouteService) ou non calculé. */

@@ -92,11 +92,28 @@ model Verification {
   @@map("verification")
 }
 
+model City {
+  id           String      @id @default(cuid())
+  name         String
+  /// Code INSEE à 5 chiffres, optionnel (saisie manuelle).
+  inseeCode    String?     @unique
+  postalCodes  String[]    @default([])
+  latitude     Float?
+  longitude    Float?
+  population   Int?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  adventures   Adventure[]
+
+  @@index([name])
+}
+
 model Adventure {
   id             String           @id @default(cuid())
   name           String
   description    Json
-  city           String
+  cityId         String
+  city           City             @relation(fields: [cityId], references: [id], onDelete: Restrict)
   latitude       Float
   longitude      Float
   distance       Float?
@@ -113,6 +130,8 @@ model Adventure {
   userAdventures UserAdventures[] @relation("AdventureUserAdventures")
   treasure       Treasure?
   adminAccesses  AdminAdventureAccess[]
+
+  @@index([cityId])
 }
 
 model AdminAdventureAccess {

@@ -7,11 +7,14 @@ import {
 } from "@/components/ui/card";
 import { AdventureEditFormClient } from "./AdventureEditFormClient";
 import type { AdventureEditFormPayload } from "../_lib/adventure-edit-payload";
+import type { CitySelectOption } from "@/lib/city-types";
 
 export function AdventureAdminGeneralSection({
   adventurePayload,
+  cities,
 }: {
   adventurePayload: AdventureEditFormPayload;
+  cities: CitySelectOption[];
 }) {
   return (
     <Card className="h-fit overflow-visible">
@@ -23,7 +26,7 @@ export function AdventureAdminGeneralSection({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <AdventureEditFormClient adventure={adventurePayload} />
+        <AdventureEditFormClient adventure={adventurePayload} cities={cities} />
       </CardContent>
     </Card>
   );

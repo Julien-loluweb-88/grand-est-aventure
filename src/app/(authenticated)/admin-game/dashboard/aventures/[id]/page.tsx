@@ -20,6 +20,7 @@ import { AdventureAdminGeneralSection } from "./_components/AdventureAdminGenera
 import { AdventureAdminEnigmasSection } from "./_components/AdventureAdminEnigmasSection";
 import { AdventureAdminTreasureSection } from "./_components/AdventureAdminTreasureSection";
 import { AdventureAdminModerationAside } from "./_components/AdventureAdminModerationAside";
+import { listCitiesForAdventureSelect } from "@/lib/city-admin-queries";
 
 export default async function AdventurePage({
   params,
@@ -74,6 +75,7 @@ export default async function AdventurePage({
     currentUser?.role === "superadmin" ? await getAdventureAdminScopeEditorData(id) : null;
 
   const adventurePayload = adventurePayloadForEditForm(adventure, routePolyline);
+  const cities = await listCitiesForAdventureSelect();
   const treasurePayload = adventure.treasure ? treasurePayloadForCard(adventure.treasure) : null;
 
   return (
@@ -111,7 +113,10 @@ export default async function AdventurePage({
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] lg:items-start">
         <div className="flex min-w-0 flex-col gap-6">
-          <AdventureAdminGeneralSection adventurePayload={adventurePayload} />
+          <AdventureAdminGeneralSection
+            adventurePayload={adventurePayload}
+            cities={cities}
+          />
           <AdventureAdminEnigmasSection
             adventureId={adventure.id}
             nextEnigmaNumber={nextEnigmaNumber}

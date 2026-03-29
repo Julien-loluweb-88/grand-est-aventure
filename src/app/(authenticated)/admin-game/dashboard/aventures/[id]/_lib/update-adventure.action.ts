@@ -2,7 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import type { CreateAdventureInput } from "../../adventure.action";
+import type { AdventureWriteInput } from "@/lib/adventure-write-input";
 import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
@@ -10,7 +10,7 @@ import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 /** Action isolée : évite de regrouper toutes les mutations avec la page RSC. */
 export async function updateAdventure(
   id: string,
-  form: CreateAdventureInput
+  form: AdventureWriteInput
 ): Promise<{ success: true; id: string } | { success: false; error: string }> {
   const gate = await gateAdventureUpdateContent(id);
   if (!gate.ok) {
@@ -23,12 +23,17 @@ export async function updateAdventure(
       select: { coverImageUrl: true, badgeImageUrl: true },
     });
 
+    const cityExists = await prisma.city.count({ where: { id: form.cityId } });
+    if (cityExists === 0) {
+      return { success: false, error: "Ville introuvable." };
+    }
+
     const result = await prisma.adventure.update({
       where: { id },
       data: {
         name: form.name,
         description: form.description,
-        city: form.city,
+        cityId: form.cityId,
         latitude: form.latitude,
         longitude: form.longitude,
         coverImageUrl: form.coverImageUrl?.trim() || null,

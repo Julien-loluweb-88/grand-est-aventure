@@ -30,8 +30,12 @@ export async function getAdminAdventureRights(userId: string) {
 
   const [allAdventures, assignedAccesses] = await Promise.all([
     prisma.adventure.findMany({
-      select: { id: true, name: true, city: true },
-      orderBy: [{ city: "asc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        city: { select: { name: true } },
+      },
+      orderBy: [{ city: { name: "asc" } }, { name: "asc" }],
     }),
     prisma.adminAdventureAccess.findMany({
       where: { userId },
@@ -40,7 +44,11 @@ export async function getAdminAdventureRights(userId: string) {
   ]);
 
   return {
-    adventures: allAdventures,
+    adventures: allAdventures.map((a) => ({
+      id: a.id,
+      name: a.name,
+      city: a.city.name,
+    })),
     assignedAdventureIds: assignedAccesses.map((access) => access.adventureId),
   };
 }

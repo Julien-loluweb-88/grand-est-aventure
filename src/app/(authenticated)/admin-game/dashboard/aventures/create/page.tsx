@@ -2,9 +2,10 @@ import React from "react";
 import { CreateAdventureForm } from "./AdventureCreateForm";
 import { Card, CardTitle } from "@/components/ui/card";
 import { listAdminUsersForNewAdventureScope } from "../[id]/_lib/adventure-admin-scope-queries";
-
+import { listCitiesForAdventureSelect } from "@/lib/city-admin-queries";
 export default async function Page() {
   const assignableAdmins = await listAdminUsersForNewAdventureScope();
+  const cities = await listCitiesForAdventureSelect();
 
   return (
     <>
@@ -14,7 +15,7 @@ export default async function Page() {
             Créer une aventure
           </CardTitle>
 
-          <CreateAdventureForm assignableAdmins={assignableAdmins} />
+          <CreateAdventureForm assignableAdmins={assignableAdmins} cities={cities} />
         </Card>
       </div>
     </>

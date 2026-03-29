@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef } from "react"
 import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useForm, Controller, useWatch } from "react-hook-form"
+import { useForm, Controller, useWatch, type FieldErrors } from "react-hook-form"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -17,12 +17,20 @@ import {
 
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import { createAdventure } from "../adventure.action"
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
 import { EMPTY_TIPTAP_DOCUMENT } from "@/lib/adventure-description-tiptap";
 import { adventureDescriptionCreateZod } from "@/lib/adventure-description-schema";
+import type { CitySelectOption } from "@/lib/city-types";
+import { createAdventure } from "@/lib/actions/create-adventure";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const formSchema = z.object({
   name: z
@@ -30,10 +38,7 @@ const formSchema = z.object({
     .min(2, "Le nom doit contenir au moins 2 caractères")
     .max(30, "Le nom ne doit pas dépasser 30 caractères"),
   description: adventureDescriptionCreateZod,
-  city: z
-    .string()
-    .min(2, "Le nom de la ville doit contenir au moins 2 caractères")
-    .max(50, "Le nom de la ville ne doit pas dépasser 50 caractères"),
+  cityId: z.string().min(1, "Choisissez une ville dans la liste."),
   latitude: z
     .coerce.number()
     .min(-90, "Latitude invalide")
@@ -52,10 +57,46 @@ export type CreateAdventureAssignableAdmin = {
   email: string
 }
 
+type CreateAdventurePayload = Omit<
+  z.infer<typeof formSchema>,
+  "coverImageUrl" | "badgeImageUrl"
+> & {
+  coverImageUrl: string | null
+  badgeImageUrl: string | null
+  descriptionDraftId: string
+  assignedAdminIds?: string[]
+}
+
+type FormValues = z.infer<typeof formSchema>
+
+const FORM_FIELD_ORDER: (keyof FormValues)[] = [
+  "name",
+  "cityId",
+  "latitude",
+  "longitude",
+  "coverImageUrl",
+  "badgeImageUrl",
+  "description",
+]
+
+function scrollToFirstInvalidField(errors: FieldErrors<FormValues>) {
+  for (const key of FORM_FIELD_ORDER) {
+    if (!errors[key]) continue
+    const el = document.getElementById(String(key))
+    el?.scrollIntoView({ behavior: "smooth", block: "center" })
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      el.focus({ preventScroll: true })
+    }
+    break
+  }
+}
+
 export function CreateAdventureForm({
   assignableAdmins = [],
+  cities,
 }: {
-  assignableAdmins?: CreateAdventureAssignableAdmin[]
+  assignableAdmins?: CreateAdventureAssignableAdmin[];
+  cities: CitySelectOption[];
 }) {
   const router = useRouter()
   const caps = useAdminCapabilities()
@@ -81,7 +122,7 @@ export function CreateAdventureForm({
     defaultValues: {
       name: "",
       description: EMPTY_TIPTAP_DOCUMENT,
-      city: "",
+      cityId: "",
       latitude: 48.4072318295932,
       longitude: 6.843844487240165,
       coverImageUrl: "",
@@ -92,12 +133,16 @@ export function CreateAdventureForm({
   const longitudeValue = useWatch({ control: form.control, name: "longitude" })
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
-      const result = await createAdventure({
+      const payload: CreateAdventurePayload = {
         ...data,
+        description: JSON.parse(JSON.stringify(data.description)),
         coverImageUrl: data.coverImageUrl?.trim() || null,
         badgeImageUrl: data.badgeImageUrl?.trim() || null,
         descriptionDraftId: descriptionDraftIdRef.current,
-      })
+        assignedAdminIds:
+          assignedAdminIds.size > 0 ? [...assignedAdminIds] : undefined,
+      }
+      const result = await createAdventure(payload)
       if (!result.success) {
         toast.error(result.error)
         return
@@ -112,8 +157,8 @@ export function CreateAdventureForm({
 
   return (
     <form
-      onSubmit={form.handleSubmit(onSubmit, () => {
-        toast.error("Vérifiez les champs du formulaire.");
+      onSubmit={form.handleSubmit(onSubmit, (errs) => {
+        scrollToFirstInvalidField(errs as FieldErrors<FormValues>)
       })}
     >
       <FieldGroup>
@@ -135,18 +180,40 @@ export function CreateAdventureForm({
           )}
         />
         <Controller
-          name="city"
+          name="cityId"
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Ville</FieldLabel>
-              <Input
-                className="w-100!"
-                {...field}
-                id={field.name}
-                aria-invalid={fieldState.invalid}
-                autoComplete="off"
-                placeholder="À quelle ville?" />
+              <p className="mb-1 text-xs text-muted-foreground">
+                Les villes sont gérées à part.{" "}
+                <Link
+                  href="/admin-game/dashboard/villes"
+                  className="text-foreground underline underline-offset-2 hover:text-primary"
+                >
+                  Gérer les villes
+                </Link>
+              </p>
+              <Select
+                value={field.value || undefined}
+                onValueChange={field.onChange}
+                disabled={cities.length === 0}
+              >
+                <SelectTrigger
+                  id={field.name}
+                  className="w-full max-w-md"
+                  aria-invalid={fieldState.invalid}
+                >
+                  <SelectValue placeholder={cities.length === 0 ? "Aucune ville — créez-en une" : "Choisir une ville"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {cities.map((c) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -180,6 +247,7 @@ export function CreateAdventureForm({
                     placeholder="Latitude"
                   />
                   <Input
+                    id="longitude"
                     name="longitude"
                     aria-invalid={Boolean(form.formState.errors.longitude)}
                     autoComplete="off"

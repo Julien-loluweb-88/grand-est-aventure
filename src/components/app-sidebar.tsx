@@ -103,6 +103,22 @@ function buildNavMain(caps: AdminSessionCapabilities) {
             ? "Vous ne pouvez pas créer une aventure."
             : DEFAULT_DENY_MESSAGE,
         },
+        {
+          title: "Villes",
+          url: "/admin-game/dashboard/villes",
+          disabled: !caps.adventure.read,
+          disabledReason: !caps.adventure.read
+            ? "Vous ne pouvez pas consulter les villes."
+            : undefined,
+        },
+        {
+          title: "Nouvelle ville",
+          url: "/admin-game/dashboard/villes/create",
+          disabled: !caps.adventure.update,
+          disabledReason: !caps.adventure.update
+            ? "Vous ne pouvez pas gérer les villes."
+            : DEFAULT_DENY_MESSAGE,
+        },
       ],
     },
   ]
