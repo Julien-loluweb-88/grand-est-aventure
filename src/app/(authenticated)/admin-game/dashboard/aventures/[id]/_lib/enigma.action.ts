@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { Prisma } from "../../../../../../../../generated/prisma/browser";
 import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
+import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 
 function isNumberUniqueError(error: unknown) {
   return (
@@ -25,6 +26,7 @@ export type EnigmaMutationFields = {
   description: Prisma.InputJsonValue;
   latitude: number;
   longitude: number;
+  imageUrl?: string | null;
   adventureId: string;
 };
 
@@ -66,6 +68,7 @@ export async function createEnigma(
         description: form.description,
         latitude: form.latitude,
         longitude: form.longitude,
+        imageUrl: form.imageUrl?.trim() || null,
         adventureId: form.adventureId,
       },
     });
@@ -158,6 +161,11 @@ export async function updateEnigma(
   }
 
   try {
+    const prev = await prisma.enigma.findUnique({
+      where: { id },
+      select: { imageUrl: true },
+    });
+
     const result = await prisma.enigma.update({
       where: { id },
       data: {
@@ -171,9 +179,16 @@ export async function updateEnigma(
         description: form.description,
         latitude: form.latitude,
         longitude: form.longitude,
+        imageUrl: form.imageUrl?.trim() || null,
         adventureId: form.adventureId,
       },
     });
+
+    const nextImage = form.imageUrl?.trim() || null;
+    if (prev?.imageUrl && prev.imageUrl !== nextImage) {
+      await deleteUploadsFileByUrl(prev.imageUrl);
+    }
+
     await syncAdventureRouteDistance(form.adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
     return {
@@ -205,12 +220,22 @@ export async function deleteEnigma(
   }
 
   try {
+    const prev = await prisma.enigma.findFirst({
+      where: { id, adventureId },
+      select: { imageUrl: true },
+    });
+
     const result = await prisma.enigma.deleteMany({
       where: { id, adventureId },
     });
     if (result.count === 0) {
       return { success: false, error: "Énigme introuvable." };
     }
+
+    if (prev?.imageUrl) {
+      await deleteUploadsFileByUrl(prev.imageUrl);
+    }
+
     await syncAdventureRouteDistance(adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
     return { success: true, message: "Énigme supprimée." };

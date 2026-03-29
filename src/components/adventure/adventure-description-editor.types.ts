@@ -7,4 +7,13 @@ export type AdventureDescriptionEditorProps = {
   disabled?: boolean;
   "aria-invalid"?: boolean;
   className?: string;
+  /**
+   * Téléversement vers `uploads/adventures/{id}/editor/` (édition d’une aventure existante).
+   */
+  richTextImageUploadAdventureId?: string;
+  /**
+   * Téléversement brouillon : `uploads/adventures/drafts/{uuid}/editor/` (formulaire de création).
+   * Les fichiers sont migrés vers l’aventure à la création.
+   */
+  richTextImageUploadDraftId?: string;
 };

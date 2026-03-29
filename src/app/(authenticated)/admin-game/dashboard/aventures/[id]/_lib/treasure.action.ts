@@ -8,6 +8,7 @@ import {
   gateAdventureUpdateContent,
 } from "@/lib/adventure-authorization";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
+import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 
 export type CreateTrasureInput = {
   name: string;
@@ -16,6 +17,7 @@ export type CreateTrasureInput = {
   longitude: number;
   code: string;
   safeCode: string;
+  imageUrl?: string | null;
   adventureId: string;
 };
 
@@ -42,6 +44,7 @@ export async function createTrasure(
         longitude: form.longitude,
         code: form.code,
         safeCode: form.safeCode,
+        imageUrl: form.imageUrl?.trim() || null,
         adventureId: form.adventureId,
       },
     });
@@ -67,7 +70,7 @@ export async function updateTreasure(
 
   const existing = await prisma.treasure.findUnique({
     where: { id: treasureId },
-    select: { id: true, adventureId: true },
+    select: { id: true, adventureId: true, imageUrl: true },
   });
   if (!existing || existing.adventureId !== form.adventureId) {
     return { success: false, error: "Trésor introuvable." };
@@ -83,8 +86,15 @@ export async function updateTreasure(
         longitude: form.longitude,
         code: form.code,
         safeCode: form.safeCode,
+        imageUrl: form.imageUrl?.trim() || null,
       },
     });
+
+    const nextImage = form.imageUrl?.trim() || null;
+    if (existing.imageUrl && existing.imageUrl !== nextImage) {
+      await deleteUploadsFileByUrl(existing.imageUrl);
+    }
+
     await syncAdventureRouteDistance(form.adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${form.adventureId}`);
     return { success: true };
@@ -108,7 +118,7 @@ export async function deleteTreasure(
 
   const existing = await prisma.treasure.findUnique({
     where: { id: treasureId },
-    select: { adventureId: true },
+    select: { adventureId: true, imageUrl: true },
   });
   if (!existing || existing.adventureId !== adventureId) {
     return { success: false, error: "Trésor introuvable." };
@@ -116,6 +126,11 @@ export async function deleteTreasure(
 
   try {
     await prisma.treasure.delete({ where: { id: treasureId } });
+
+    if (existing.imageUrl) {
+      await deleteUploadsFileByUrl(existing.imageUrl);
+    }
+
     await syncAdventureRouteDistance(adventureId);
     revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
     return { success: true, message: "Trésor supprimé." };

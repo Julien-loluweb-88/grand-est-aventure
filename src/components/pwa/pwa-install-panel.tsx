@@ -79,7 +79,7 @@ export function PwaInstallPanel() {
   }
 
   return (
-    <Card className="rounded-none">
+    <Card id="pwa" className="rounded-none">
       <CardHeader>
         <CardTitle>Installer l’application</CardTitle>
         <CardDescription>

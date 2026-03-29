@@ -50,11 +50,19 @@ type Props = {
   onChange: (coords: { latitude: number; longitude: number }) => void
   contextMarkers?: LocationPickerContextMarker[]
   routePolyline?: [number, number][] | null
+  /**
+   * Marqueur du point édité : `departure` = pastille « D » (défaut : épingle Leaflet).
+   */
+  editableMarkerKind?: "default" | "departure"
   /** Aucun clic ni déplacement : consultation uniquement */
   readOnly?: boolean
   className?: string
   /** Classes Tailwind pour le conteneur Leaflet (hauteur, etc.) */
   mapClassName?: string
+}
+
+function coordsNearlyEqual(a: number, b: number) {
+  return Math.abs(a - b) < 1e-5
 }
 
 function ClickHandler({
@@ -158,12 +166,27 @@ export default function LocationPickerMap({
   onChange,
   contextMarkers = [],
   routePolyline = null,
+  editableMarkerKind = "default",
   readOnly = false,
   className,
   mapClassName,
 }: Props) {
+  const mapContextMarkers = useMemo(() => {
+    if (editableMarkerKind !== "departure") return contextMarkers
+    return contextMarkers.filter((m) => {
+      if (m.kind !== "departure") return true
+      return !(
+        coordsNearlyEqual(m.latitude, latitude) &&
+        coordsNearlyEqual(m.longitude, longitude)
+      )
+    })
+  }, [contextMarkers, latitude, longitude, editableMarkerKind])
+
+  const primaryIcon =
+    editableMarkerKind === "departure" ? departureRefIcon : markerIcon
+
   const hasSmartFit =
-    contextMarkers.length > 0 || (routePolyline && routePolyline.length >= 2)
+    mapContextMarkers.length > 0 || (routePolyline && routePolyline.length >= 2)
 
   return (
     <div
@@ -186,7 +209,7 @@ export default function LocationPickerMap({
           <SmartFit
             centerLat={latitude}
             centerLng={longitude}
-            contextMarkers={contextMarkers}
+            contextMarkers={mapContextMarkers}
             routePolyline={routePolyline}
           />
         ) : (
@@ -204,7 +227,7 @@ export default function LocationPickerMap({
             }}
           />
         ) : null}
-        {contextMarkers.map((m) =>
+        {mapContextMarkers.map((m) =>
           m.kind === "departure" ? (
             <Marker
               key="ref-departure"
@@ -241,7 +264,7 @@ export default function LocationPickerMap({
         )}
         <Marker
           position={[latitude, longitude]}
-          icon={markerIcon}
+          icon={primaryIcon}
           draggable={!readOnly}
           eventHandlers={
             readOnly

@@ -1,6 +1,7 @@
 "use client"
-import { authClient } from "@/lib/auth-client";
-import { useRouter } from "next/navigation";
+import Link from "next/link"
+import { authClient } from "@/lib/auth-client"
+import { useRouter } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -9,6 +10,7 @@ import {
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -20,7 +22,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { CaretUpDownIcon, SignOutIcon } from "@phosphor-icons/react"
+import {
+  CaretUpDownIcon,
+  DeviceMobileIcon,
+  EnvelopeSimpleIcon,
+  KeyIcon,
+  SignOutIcon,
+} from "@phosphor-icons/react"
+
+const PARAMETRES_BASE = "/admin-game/dashboard/parametres" as const
 
 function initials(label: string): string {
   const t = label.trim()
@@ -85,20 +95,43 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem 
-            onClick={async () => {
-              await authClient.signOut({
-                fetchOptions: {
-                  onSuccess: () => {
-                  router.push("/admin-game")
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Paramètres
+              </DropdownMenuLabel>
+              <DropdownMenuItem asChild>
+                <Link href={`${PARAMETRES_BASE}#email`}>
+                  <EnvelopeSimpleIcon className="size-4" />
+                  Adresse e-mail
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`${PARAMETRES_BASE}#mot-de-passe`}>
+                  <KeyIcon className="size-4" />
+                  Mot de passe
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`${PARAMETRES_BASE}#pwa`}>
+                  <DeviceMobileIcon className="size-4" />
+                  Application (PWA)
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={async () => {
+                await authClient.signOut({
+                  fetchOptions: {
+                    onSuccess: () => {
+                      router.push("/admin-game")
+                    },
                   },
-                },
-              })
-            }}
-            className="text-red-600 focus:text-red-600"
+                })
+              }}
+              className="text-red-600 focus:text-red-600"
             >
-              <SignOutIcon
-              />
+              <SignOutIcon className="size-4" />
               Déconnexion
             </DropdownMenuItem>
           </DropdownMenuContent>

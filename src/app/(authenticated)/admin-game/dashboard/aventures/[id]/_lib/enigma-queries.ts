@@ -18,6 +18,7 @@ export type EnigmaListItem = {
   description: unknown;
   latitude: number;
   longitude: number;
+  imageUrl: string | null;
   adventureId: string;
 };
 
@@ -69,6 +70,7 @@ export async function listEnigmaForAdmin(params: {
           description: true,
           latitude: true,
           longitude: true,
+          imageUrl: true,
           adventureId: true,
         },
         orderBy: [{ number: "asc" }, { name: "asc" }],
@@ -94,6 +96,7 @@ export async function listEnigmaForAdmin(params: {
         description: u.description,
         latitude: u.latitude,
         longitude: u.longitude,
+        imageUrl: u.imageUrl ?? null,
         adventureId: u.adventureId,
       })),
       total,

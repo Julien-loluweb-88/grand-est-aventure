@@ -1,5 +1,7 @@
 "use server";
 
+import { rm } from "node:fs/promises";
+import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -38,6 +40,14 @@ export async function RemoveAdventure(adventureId: string) {
         id: adventureId,
       },
     });
+
+    const uploadsDir = path.join(process.cwd(), "uploads", "adventures", adventureId);
+    try {
+      await rm(uploadsDir, { recursive: true, force: true });
+    } catch {
+      /* dossier absent ou déjà supprimé */
+    }
+
     revalidatePath("/admin-game/dashboard/aventures");
     return {
       success: true,

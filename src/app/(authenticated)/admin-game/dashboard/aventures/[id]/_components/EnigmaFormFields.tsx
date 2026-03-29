@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
+import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import type { EnigmaCreateFormValues } from "../_lib/enigma-form-schema";
 
 /** Modèle des champs pour `Control` (soumis aux schémas Zod create / edit). */
@@ -38,6 +39,9 @@ type EnigmaFormFieldsProps = {
   displayRoutePolyline: [number, number][] | null;
   mapHelperText: string;
   canEdit: boolean;
+  adventureId: string;
+  /** Absent en création : nom de fichier UUID ; en édition : `enigmas/{id}.*`. */
+  enigmaId?: string;
   /** Bloc « ordre » (création : n° auto ; édition : texte + input caché). */
   orderSlot: ReactNode;
   /** Enveloppe FieldSet + description (formulaire création uniquement). */
@@ -56,6 +60,8 @@ export function EnigmaFormFields({
   displayRoutePolyline,
   mapHelperText,
   canEdit,
+  adventureId,
+  enigmaId,
   orderSlot,
   wrapFirstBlockInFieldSet,
   fieldSetIntro,
@@ -212,9 +218,31 @@ export function EnigmaFormFields({
               onChange={field.onChange}
               disabled={!canEdit}
               aria-invalid={fieldState.invalid}
+              richTextImageUploadAdventureId={adventureId}
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
+        )}
+      />
+
+      <Controller
+        name="imageUrl"
+        control={control}
+        render={({ field }) => (
+          <DashboardImageUploadField
+            scope="enigma"
+            adventureId={adventureId}
+            enigmaId={enigmaId}
+            label="Image de l'énigme"
+            description={
+              enigmaId
+                ? "Racine du projet : uploads/adventures/…/enigmas/{id}.*"
+                : "Création : uploads/…/enigmas/{uuid}.* ; ou coller une URL."
+            }
+            value={field.value ?? ""}
+            onChange={field.onChange}
+            disabled={!canEdit}
+          />
         )}
       />
 
@@ -284,6 +312,7 @@ export function EnigmaFormFields({
                   onChange={field.onChange}
                   disabled={!canEdit}
                   aria-invalid={fieldState.invalid}
+                  richTextImageUploadAdventureId={adventureId}
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>

@@ -33,6 +33,8 @@ type Props = {
   contextMarkers?: LocationPickerContextMarker[]
   /** Tracé routier ORS [lat, lng], ordre départ → énigmes → trésor. */
   routePolyline?: [number, number][] | null
+  /** Point édité = départ : marqueur « D » au lieu de l’épingle Leaflet. */
+  editableMarkerKind?: "default" | "departure"
 }
 
 export function LocationPicker({
@@ -42,6 +44,7 @@ export function LocationPicker({
   helperText = "Cliquez sur la carte ou recherchez une adresse.",
   contextMarkers,
   routePolyline,
+  editableMarkerKind = "default",
 }: Props) {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -216,6 +219,7 @@ export function LocationPicker({
         onChange={onChange}
         contextMarkers={contextMarkers}
         routePolyline={routePolyline}
+        editableMarkerKind={editableMarkerKind}
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

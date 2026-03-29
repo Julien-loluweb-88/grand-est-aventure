@@ -58,6 +58,8 @@ export function adventurePayloadForEditForm(
       distance: adventure.distance,
       mapContextMarkers,
       routePolyline,
+      coverImageUrl: adventure.coverImageUrl ?? null,
+      badgeImageUrl: adventure.badgeImageUrl ?? null,
     })
   ) as AdventureEditFormPayload;
 }
@@ -74,6 +76,7 @@ export function treasurePayloadForCard(
       safeCode: treasure.safeCode,
       latitude: treasure.latitude,
       longitude: treasure.longitude,
+      imageUrl: treasure.imageUrl ?? null,
     })
   ) as TreasureEditPayload;
 }

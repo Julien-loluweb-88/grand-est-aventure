@@ -62,3 +62,15 @@ export async function gateAdventureUpdateContent(
 ): Promise<AdventureGateOk | AdventureGateFail> {
   return gateAdventureAction(adventureId, "update");
 }
+
+/** Téléversements images pour l’éditeur riche avant qu’une aventure existe (création). */
+export async function gateAdventureDraftUpload(): Promise<
+  AdventureGateOk | AdventureGateFail
+> {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) return { ok: false };
+  if (!(await canCreateAdventure())) {
+    return { ok: false };
+  }
+  return { ok: true, actor };
+}

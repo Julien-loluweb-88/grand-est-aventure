@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
+import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import type { TreasureCreateFormValues } from "../_lib/treasure-form-schema";
 
 export type TreasureFormUiModel = TreasureCreateFormValues;
@@ -33,6 +34,7 @@ type TreasureFormFieldsProps = {
   mapHelperText: string;
   canEdit: boolean;
   fieldSetDescription: string;
+  adventureId: string;
 };
 
 export function TreasureFormFields({
@@ -45,6 +47,7 @@ export function TreasureFormFields({
   mapHelperText,
   canEdit,
   fieldSetDescription,
+  adventureId,
 }: TreasureFormFieldsProps) {
   return (
     <FieldGroup className="space-y-4">
@@ -106,10 +109,28 @@ export function TreasureFormFields({
             )}
           />
           <Controller
+            name="imageUrl"
+            control={control}
+            render={({ field }) => (
+              <div className="md:col-span-2">
+                <DashboardImageUploadField
+                  scope="treasure"
+                  adventureId={adventureId}
+                  label="Image du trésor"
+                  description="Racine du projet : uploads/adventures/{id}/treasure.*"
+                  value={field.value ?? ""}
+                  onChange={field.onChange}
+                  disabled={!canEdit}
+                />
+              </div>
+            )}
+          />
+          <Controller
             name="latitude"
             control={control}
             render={({ field, fieldState }) => (
               <Field
+                className="md:col-span-2"
                 data-invalid={fieldState.invalid || Boolean(form.formState.errors.longitude)}
               >
                 <FieldLabel>Position sur la carte</FieldLabel>
@@ -170,6 +191,7 @@ export function TreasureFormFields({
                   onChange={field.onChange}
                   disabled={!canEdit}
                   aria-invalid={fieldState.invalid}
+                  richTextImageUploadAdventureId={adventureId}
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>

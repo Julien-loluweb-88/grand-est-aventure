@@ -49,6 +49,7 @@ export type EnigmaEditRow = {
   description: unknown;
   latitude: number;
   longitude: number;
+  imageUrl: string | null;
   adventureId: string;
 };
 
@@ -84,6 +85,7 @@ export function EditenigmaForm({
       description: adventureDescriptionToTiptapJSON(enigma.description),
       latitude: enigma.latitude,
       longitude: enigma.longitude,
+      imageUrl: enigma.imageUrl ?? "",
       adventureId: params?.id ?? "",
     },
   });
@@ -225,6 +227,8 @@ export function EditenigmaForm({
             displayRoutePolyline={displayRoutePolyline}
             mapHelperText={mapHelperText}
             canEdit={caps.adventure.update}
+            adventureId={params?.id ?? ""}
+            enigmaId={enigma.id}
             orderSlot={
               <>
                 <Field>

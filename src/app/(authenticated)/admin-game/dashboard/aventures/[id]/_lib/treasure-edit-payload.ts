@@ -7,4 +7,5 @@ export type TreasureEditPayload = {
   safeCode: string | null;
   latitude: number;
   longitude: number;
+  imageUrl: string | null;
 };

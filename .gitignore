@@ -43,3 +43,7 @@ next-env.d.ts
 /src/generated/prisma
 
 /generated/prisma
+
+# Fichiers téléversés (dashboard, racine du dépôt)
+/uploads
+!/uploads/.gitkeep

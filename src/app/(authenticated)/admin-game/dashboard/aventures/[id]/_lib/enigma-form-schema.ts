@@ -27,6 +27,7 @@ const enigmaSharedFields = {
     .coerce.number()
     .min(-180, "Longitude invalide")
     .max(180, "Longitude invalide"),
+  imageUrl: z.string().max(2048).optional().default(""),
 };
 
 function enigmaAnswerRefinement(

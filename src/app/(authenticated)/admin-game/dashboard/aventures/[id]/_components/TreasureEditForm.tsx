@@ -70,6 +70,7 @@ export function TreasureEditForm({
       safeCode: treasure.safeCode ?? "AAA",
       latitude: treasure.latitude,
       longitude: treasure.longitude,
+      imageUrl: treasure.imageUrl ?? "",
       adventureId,
     },
   });
@@ -130,11 +131,12 @@ export function TreasureEditForm({
         safeCode: t.safeCode ?? "AAA",
         latitude: t.latitude,
         longitude: t.longitude,
+        imageUrl: t.imageUrl ?? "",
         adventureId,
       });
     }
     wasDialogOpenRef.current = open;
-  }, [open, form, adventureId]);
+  }, [open, form, adventureId, treasure.id]);
 
   const onSubmit = useCallback(
     async (data: TreasureEditFormValues) => {
@@ -146,6 +148,7 @@ export function TreasureEditForm({
         safeCode: plain.safeCode,
         latitude: Number(plain.latitude),
         longitude: Number(plain.longitude),
+        imageUrl: plain.imageUrl?.trim() || null,
         adventureId: plain.adventureId,
       });
       if (!result.success) {
@@ -216,6 +219,7 @@ export function TreasureEditForm({
             mapHelperText={mapHelperText}
             canEdit={canEdit}
             fieldSetDescription="Formulaire de la création de trésors"
+            adventureId={adventureId}
           />
 
           <DialogFooter>

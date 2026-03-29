@@ -23,7 +23,6 @@ import {
   BookOpenIcon,
   EnvelopeSimpleIcon,
   ScrollIcon,
-  GearSixIcon,
 } from "@phosphor-icons/react"
 
 export type DashboardSessionUser = {
@@ -82,26 +81,6 @@ function buildNavMain(caps: AdminSessionCapabilities) {
   return [
     ...utilisateursNav,
     ...demandesAventuresNav,
-    {
-      title: "Paramètres",
-      url: "/admin-game/dashboard/parametres",
-      icon: <GearSixIcon />,
-      isActive: false,
-      items: [
-        {
-          title: "Adresse e-mail",
-          url: "/admin-game/dashboard/parametres#email",
-        },
-        {
-          title: "Mot de passe",
-          url: "/admin-game/dashboard/parametres#mot-de-passe",
-        },
-        {
-          title: "Application (PWA)",
-          url: "/admin-game/dashboard/parametres",
-        },
-      ],
-    },
     {
       title: "Aventures",
       url: "/admin-game/dashboard/aventures",

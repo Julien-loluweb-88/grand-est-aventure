@@ -61,6 +61,7 @@ export function CreateTreasureForm({
       safeCode: "",
       latitude: 48.4072318295932,
       longitude: 6.843844487240165,
+      imageUrl: "",
       adventureId: params?.id ?? "",
     },
   });
@@ -103,6 +104,7 @@ export function CreateTreasureForm({
         safeCode: plain.safeCode,
         latitude: Number(plain.latitude),
         longitude: Number(plain.longitude),
+        imageUrl: plain.imageUrl?.trim() || null,
         adventureId: plain.adventureId,
       });
       if (!result.success) {
@@ -178,6 +180,7 @@ export function CreateTreasureForm({
             mapHelperText={mapHelperText}
             canEdit={canEdit}
             fieldSetDescription="Formulaire de la création de trésors"
+            adventureId={params?.id ?? ""}
           />
 
           <DialogFooter>

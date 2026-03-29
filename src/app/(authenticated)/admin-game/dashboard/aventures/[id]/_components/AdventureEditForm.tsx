@@ -33,6 +33,7 @@ import { adventureDescriptionEditZod } from "@/lib/adventure-description-schema"
 import type { AdventureEditFormPayload } from "../_lib/adventure-edit-payload";
 import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoints";
 import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview";
+import { AdventureMediaFields } from "@/components/adventure/AdventureMediaFields";
 
 const AdventureReadOnlyMap = dynamic(
   () => import("@/components/location/LocationPickerMap"),
@@ -65,6 +66,8 @@ const formSchema = z.object({
     .coerce.number()
     .min(-180, "Longitude invalide")
     .max(180, "Longitude invalide"),
+  coverImageUrl: z.string().max(2048).optional().default(""),
+  badgeImageUrl: z.string().max(2048).optional().default(""),
 });
 
 const FORM_ID = "adventure-edit-form";
@@ -92,10 +95,14 @@ export function AdventureEditForm({
       latitude: adventure.latitude,
       longitude: adventure.longitude,
       description: adventureDescriptionToTiptapJSON(adventure.description),
+      coverImageUrl: adventure.coverImageUrl ?? "",
+      badgeImageUrl: adventure.badgeImageUrl ?? "",
     },
   });
   const latitudeValue = useWatch({ control: form.control, name: "latitude" });
   const longitudeValue = useWatch({ control: form.control, name: "longitude" });
+  const coverImageUrlValue = useWatch({ control: form.control, name: "coverImageUrl" });
+  const badgeImageUrlValue = useWatch({ control: form.control, name: "badgeImageUrl" });
 
   const adventureRef = useRef(adventure);
   adventureRef.current = adventure;
@@ -110,6 +117,8 @@ export function AdventureEditForm({
         latitude: a.latitude,
         longitude: a.longitude,
         description: adventureDescriptionToTiptapJSON(a.description),
+        coverImageUrl: a.coverImageUrl ?? "",
+        badgeImageUrl: a.badgeImageUrl ?? "",
       });
     }
     wasDialogOpenRef.current = open;
@@ -233,6 +242,36 @@ export function AdventureEditForm({
               Aucune description renseignée.
             </p>
           )}
+          {(adventure.coverImageUrl || adventure.badgeImageUrl) ? (
+            <div className="flex flex-wrap gap-3 pt-2">
+              {adventure.coverImageUrl ? (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Présentation
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={adventure.coverImageUrl}
+                    alt=""
+                    className="h-20 w-auto max-w-[8rem] rounded border object-cover"
+                  />
+                </div>
+              ) : null}
+              {adventure.badgeImageUrl ? (
+                <div className="space-y-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Badge
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={adventure.badgeImageUrl}
+                    alt=""
+                    className="h-20 w-auto max-w-[8rem] rounded-full border object-cover"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
         <div className="shrink-0 sm:pt-6">
           {caps.adventure.update ? (
@@ -291,6 +330,18 @@ export function AdventureEditForm({
                           </Field>
                         )}
                       />
+                      <AdventureMediaFields
+                        adventureId={adventure.id}
+                        disabled={!caps.adventure.update}
+                        coverImageUrl={coverImageUrlValue ?? ""}
+                        badgeImageUrl={badgeImageUrlValue ?? ""}
+                        onCoverChange={(v) =>
+                          form.setValue("coverImageUrl", v, { shouldDirty: true })
+                        }
+                        onBadgeChange={(v) =>
+                          form.setValue("badgeImageUrl", v, { shouldDirty: true })
+                        }
+                      />
                       <div className="flex flex-col gap-4">
                         <Field>
                           <FieldLabel>Distance du parcours (itinéraire)</FieldLabel>
@@ -346,12 +397,13 @@ export function AdventureEditForm({
                                     shouldValidate: true,
                                   });
                                 }}
+                                editableMarkerKind="departure"
                                 helperText={
                                   (displayRoutePolyline &&
                                     displayRoutePolyline.length >= 2) ||
                                     (adventure.routePolyline &&
                                       adventure.routePolyline.length >= 2)
-                                    ? `Trait bleu : itinéraire OpenRouteService. Marqueurs : départ (déplaçable), énigmes, trésor (T).${routePreviewLoading
+                                    ? `Trait bleu : itinéraire OpenRouteService. Marqueurs : départ (D, déplaçable), énigmes, trésor (T).${routePreviewLoading
                                       ? " Recalcul en cours…"
                                       : ""
                                     }`
@@ -422,6 +474,7 @@ export function AdventureEditForm({
                               onChange={field.onChange}
                               disabled={!caps.adventure.update}
                               aria-invalid={fieldState.invalid}
+                              richTextImageUploadAdventureId={adventure.id}
                             />
                             {fieldState.invalid && (
                               <FieldError errors={[fieldState.error]} />
@@ -467,7 +520,7 @@ export function AdventureEditForm({
           Parcours sur la carte
         </p>
         <p className="mt-1 max-w-2xl text-xs text-muted-foreground">
-          Départ (marqueur classique), repères des énigmes et du trésor ; ligne bleue si
+          Départ (D), repères des énigmes et du trésor ; ligne bleue si
           l&apos;itinéraire OpenRouteService est disponible. Modification via « Modifier ».
         </p>
         <div className="mt-3">
@@ -478,6 +531,7 @@ export function AdventureEditForm({
             onChange={mapNoop}
             contextMarkers={adventure.mapContextMarkers}
             routePolyline={adventure.routePolyline}
+            editableMarkerKind="departure"
             mapClassName="min-h-[220px] sm:h-72"
           />
         </div>

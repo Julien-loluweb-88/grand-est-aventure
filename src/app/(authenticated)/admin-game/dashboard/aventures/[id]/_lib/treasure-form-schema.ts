@@ -26,6 +26,7 @@ const treasureSharedFields = {
     .min(-180, "Longitude invalide")
     .max(180, "Longitude invalide"),
   adventureId: z.string(),
+  imageUrl: z.string().max(2048).optional().default(""),
 };
 
 export const treasureCreateFormSchema = z.object({

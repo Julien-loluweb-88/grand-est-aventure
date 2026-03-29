@@ -102,7 +102,10 @@ model Adventure {
   distance       Float?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @default(now())
-  badgeUrl       String           @default("pas de badge")
+  /// Image de présentation (liste, fiche aventure).
+  coverImageUrl   String?
+  /// Même visuel pour le badge physique (trésor) et la bibliothèque app joueur.
+  badgeImageUrl   String?
   enigmas        Enigma[]
   status         Boolean?         @default(true)
   creatorId      String
@@ -166,6 +169,7 @@ model Enigma {
   description    Json
   latitude       Float
   longitude      Float
+  imageUrl       String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @default(now())
   adventureId    String
@@ -182,12 +186,14 @@ model Treasure {
   code        String
   safeCode    String?   @default("AAA")
   longitude   Float
+  imageUrl    String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @default(now())
   adventureId String    @unique
   adventure   Adventure @relation(fields: [adventureId], references: [id])
 }
 
+/// Progression joueur. Bibliothèque de badges : lignes avec `success === true` + `adventure.badgeImageUrl`.
 model UserAdventures {
   id          String    @id @default(cuid())
   success     Boolean
@@ -198,6 +204,8 @@ model UserAdventures {
   user        User      @relation(fields: [userId], references: [id])
   adventureId String
   adventure   Adventure @relation("AdventureUserAdventures", fields: [adventureId], references: [id])
+
+  @@index([userId, success])
 }
 
 model ClientNotice {

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import Link from "next/link"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm, Controller, useWatch } from "react-hook-form"
@@ -42,6 +42,8 @@ const formSchema = z.object({
     .coerce.number()
     .min(-180, "Longitude invalide")
     .max(180, "Longitude invalide"),
+  coverImageUrl: z.string().max(2048).optional().default(""),
+  badgeImageUrl: z.string().max(2048).optional().default(""),
 })
 
 export type CreateAdventureAssignableAdmin = {
@@ -57,6 +59,7 @@ export function CreateAdventureForm({
 }) {
   const router = useRouter()
   const caps = useAdminCapabilities()
+  const descriptionDraftIdRef = useRef(crypto.randomUUID())
   const [assignedAdminIds, setAssignedAdminIds] = useState<Set<string>>(
     () => new Set()
   )
@@ -81,13 +84,20 @@ export function CreateAdventureForm({
       city: "",
       latitude: 48.4072318295932,
       longitude: 6.843844487240165,
+      coverImageUrl: "",
+      badgeImageUrl: "",
     },
   })
   const latitudeValue = useWatch({ control: form.control, name: "latitude" })
   const longitudeValue = useWatch({ control: form.control, name: "longitude" })
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
-      const result = await createAdventure(data)
+      const result = await createAdventure({
+        ...data,
+        coverImageUrl: data.coverImageUrl?.trim() || null,
+        badgeImageUrl: data.badgeImageUrl?.trim() || null,
+        descriptionDraftId: descriptionDraftIdRef.current,
+      })
       if (!result.success) {
         toast.error(result.error)
         return
@@ -156,6 +166,7 @@ export function CreateAdventureForm({
                     form.setValue("longitude", longitude, { shouldDirty: true, shouldValidate: true })
                   }}
                   helperText="Cliquez sur la carte pour placer l'aventure."
+                  editableMarkerKind="departure"
                 />
                 <div className="mt-2 grid grid-cols-2 gap-2">
                   <Input
@@ -199,6 +210,44 @@ export function CreateAdventureForm({
           </p>
         </div>
         <Controller
+          name="coverImageUrl"
+          control={form.control}
+          render={({ field }) => (
+            <Field>
+              <FieldLabel htmlFor={field.name}>Image de présentation (optionnel)</FieldLabel>
+              <p className="mb-1 text-xs text-muted-foreground">
+                URL complète ou chemin ; pour téléverser un fichier, ouvrez l’aventure après création.
+              </p>
+              <Input
+                {...field}
+                id={field.name}
+                autoComplete="off"
+                placeholder="https://… ou /uploads/…"
+                className="font-mono text-xs"
+              />
+            </Field>
+          )}
+        />
+        <Controller
+          name="badgeImageUrl"
+          control={form.control}
+          render={({ field }) => (
+            <Field>
+              <FieldLabel htmlFor={field.name}>Image du badge (optionnel)</FieldLabel>
+              <p className="mb-1 text-xs text-muted-foreground">
+                Même visuel appli / trésor physique ; téléversement disponible sur la fiche aventure.
+              </p>
+              <Input
+                {...field}
+                id={field.name}
+                autoComplete="off"
+                placeholder="https://… ou /uploads/…"
+                className="font-mono text-xs"
+              />
+            </Field>
+          )}
+        />
+        <Controller
           name="description"
           control={form.control}
           render={({ field, fieldState }) => (
@@ -210,6 +259,7 @@ export function CreateAdventureForm({
                 onChange={field.onChange}
                 disabled={!caps.adventure.create}
                 aria-invalid={fieldState.invalid}
+                richTextImageUploadDraftId={descriptionDraftIdRef.current}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>

@@ -19,4 +19,6 @@ export type AdventureEditFormPayload = {
    * `null` sans clé API, erreur ORS, ou moins de deux étapes.
    */
   routePolyline: [number, number][] | null
+  coverImageUrl: string | null
+  badgeImageUrl: string | null
 }

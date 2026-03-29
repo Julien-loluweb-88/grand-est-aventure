@@ -65,6 +65,7 @@ export function CreateEnigmaForm({
       description: EMPTY_TIPTAP_DOCUMENT,
       latitude: 48.4072318295932,
       longitude: 6.843844487240165,
+      imageUrl: "",
       adventureId: params?.id ?? "",
     },
   });
@@ -132,6 +133,7 @@ export function CreateEnigmaForm({
         description: plain.description,
         latitude: Number(plain.latitude),
         longitude: Number(plain.longitude),
+        imageUrl: plain.imageUrl?.trim() || null,
         adventureId: plain.adventureId,
         choice: plain.choices.filter((c) => c !== ""),
       });
@@ -196,6 +198,7 @@ export function CreateEnigmaForm({
             displayRoutePolyline={displayRoutePolyline}
             mapHelperText={mapHelperText}
             canEdit={canEdit}
+            adventureId={adventureId}
             orderSlot={
               <Field>
                 <FieldLabel>Numéro d&apos;ordre</FieldLabel>

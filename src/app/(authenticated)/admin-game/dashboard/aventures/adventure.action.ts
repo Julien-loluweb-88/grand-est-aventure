@@ -10,6 +10,7 @@ import { getManagedAdventureIds, isSuperadmin } from "@/lib/admin-access";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import type { Prisma } from "../../../../../../generated/prisma/browser";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
+import { migrateAdventureDraftEditorUploads } from "@/lib/uploads/migrate-adventure-draft-editor-uploads";
 
 export type CreateAdventureInput = {
   name: string;
@@ -18,8 +19,12 @@ export type CreateAdventureInput = {
   status?: boolean;
   latitude: number;
   longitude: number;
+  coverImageUrl?: string | null;
+  badgeImageUrl?: string | null;
   /** Réservé au superadmin : ids utilisateurs `role === "admin"`. */
   assignedAdminIds?: string[];
+  /** UUID client : images TipTap (`drafts/{id}/editor/`) migrées vers l’aventure créée. */
+  descriptionDraftId?: string | null;
 };
 
 export async function createAdventure(
@@ -45,6 +50,8 @@ export async function createAdventure(
           longitude: form.longitude,
           distance: null,
           creatorId: actor.id,
+          coverImageUrl: form.coverImageUrl?.trim() || null,
+          badgeImageUrl: form.badgeImageUrl?.trim() || null,
         },
       });
 
@@ -82,6 +89,24 @@ export async function createAdventure(
     });
 
     await syncAdventureRouteDistance(result.id);
+
+    const draftId = form.descriptionDraftId?.trim();
+    if (draftId) {
+      const nextDescription = await migrateAdventureDraftEditorUploads({
+        draftId,
+        adventureId: result.id,
+        description: result.description as Prisma.InputJsonValue,
+      });
+      if (
+        JSON.stringify(nextDescription) !==
+        JSON.stringify(result.description)
+      ) {
+        await prisma.adventure.update({
+          where: { id: result.id },
+          data: { description: nextDescription },
+        });
+      }
+    }
 
     for (const uid of scopeUserIdsToRevalidate) {
       revalidatePath(`/admin-game/dashboard/utilisateurs/${uid}`);

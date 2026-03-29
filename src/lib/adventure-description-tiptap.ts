@@ -62,6 +62,9 @@ export function tiptapJsonPlainTextLength(node: JSONContent | undefined): number
 /** Texte brut pour aperçu, recherche ou affichage hors éditeur. */
 export function tiptapJsonToPlainText(node: JSONContent | undefined): string {
   if (!node) return "";
+  if (node.type === "image") {
+    return "";
+  }
   if (node.type === "hardBreak") {
     return "\n";
   }
