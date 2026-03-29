@@ -88,6 +88,28 @@ export function EnigmaFormFields({
       />
       {orderSlot}
       <Controller
+        name="imageUrl"
+        control={control}
+        render={({ field }) => (
+          <div className="md:col-span-2">
+            <DashboardImageUploadField
+              scope="enigma"
+              adventureId={adventureId}
+              enigmaId={enigmaId}
+              label="Image de l'énigme"
+              description={
+                enigmaId
+                  ? "Racine du projet : uploads/adventures/…/enigmas/{id}.*"
+                  : "Création : uploads/…/enigmas/{uuid}.* ; ou coller une URL."
+              }
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              disabled={!canEdit}
+            />
+          </div>
+        )}
+      />
+      <Controller
         name="question"
         control={control}
         render={({ field, fieldState }) => (
@@ -222,27 +244,6 @@ export function EnigmaFormFields({
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
-        )}
-      />
-
-      <Controller
-        name="imageUrl"
-        control={control}
-        render={({ field }) => (
-          <DashboardImageUploadField
-            scope="enigma"
-            adventureId={adventureId}
-            enigmaId={enigmaId}
-            label="Image de l'énigme"
-            description={
-              enigmaId
-                ? "Racine du projet : uploads/adventures/…/enigmas/{id}.*"
-                : "Création : uploads/…/enigmas/{uuid}.* ; ou coller une URL."
-            }
-            value={field.value ?? ""}
-            onChange={field.onChange}
-            disabled={!canEdit}
-          />
         )}
       />
 
