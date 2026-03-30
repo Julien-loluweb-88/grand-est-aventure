@@ -74,3 +74,32 @@ export async function gateAdventureDraftUpload(): Promise<
   }
   return { ok: true, actor };
 }
+
+/** Téléversement image publicité avant que la ligne DB existe (UUID brouillon). */
+export async function gateAdvertisementDraftImageUpload(): Promise<
+  AdventureGateOk | AdventureGateFail
+> {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) return { ok: false };
+  if (!(await userHasPermissionServer({ permissions: { adventure: ["update"] } }))) {
+    return { ok: false };
+  }
+  return { ok: true, actor };
+}
+
+/** Téléversement image pour une publicité existante. */
+export async function gateAdvertisementImageUpload(
+  advertisementId: string
+): Promise<AdventureGateOk | AdventureGateFail> {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) return { ok: false };
+  if (!(await userHasPermissionServer({ permissions: { adventure: ["update"] } }))) {
+    return { ok: false };
+  }
+  const row = await prisma.advertisement.findUnique({
+    where: { id: advertisementId },
+    select: { id: true },
+  });
+  if (!row) return { ok: false };
+  return { ok: true, actor };
+}

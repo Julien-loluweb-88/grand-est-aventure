@@ -1,12 +1,14 @@
 import Link from "next/link";
+import { BrandMark } from "@/components/brand-mark";
 
 export default function Home() {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-8 bg-background px-6 py-16 text-foreground">
       <div className="max-w-lg text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Grand Est Aventure
-        </h1>
+        <div className="mb-6 flex justify-center">
+          <BrandMark height={120} />
+        </div>
+        <h1 className="text-3xl font-semibold tracking-tight">Balad&apos;indice</h1>
         <p className="mt-4 text-sm text-muted-foreground">
           Plateforme de gestion des parcours et du contenu. L’accès au tableau de
           bord est réservé aux équipes habilitées.

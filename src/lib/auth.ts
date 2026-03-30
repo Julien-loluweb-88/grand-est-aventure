@@ -125,7 +125,7 @@ export const auth = betterAuth({
     onExistingUserSignUp: async ({ user: u }) => {
       queueTransactionalEmail({
         to: u.email,
-        subject: "Tentative d’inscription sur Grand Est Aventure",
+        subject: "Tentative d’inscription sur Balad'indice",
         text: `Bonjour,\n\nUne tentative d’inscription a été effectuée avec votre adresse e-mail. Si c’était vous, connectez-vous ou utilisez « mot de passe oublié ». Sinon, vous pouvez ignorer ce message.`,
         html: `<p>Bonjour,</p><p>Une tentative d’inscription a été effectuée avec votre adresse e-mail. Si c’était vous, connectez-vous ou utilisez la réinitialisation du mot de passe. Sinon, vous pouvez ignorer ce message.</p>`,
       });
@@ -169,7 +169,7 @@ export const auth = betterAuth({
       adminRoles: ["admin", "superadmin"],
       defaultBanReason: DEFAULT_ADMIN_BAN_REASON,
       bannedUserMessage:
-        "Votre compte a été suspendu sur Grand Est Aventure. Contactez le support si vous pensez qu’il s’agit d’une erreur.",
+        "Votre compte a été suspendu sur Balad'indice. Contactez le support si vous pensez qu’il s’agit d’une erreur.",
       impersonationSessionDuration: 60 * 60 * 24,
     }),
     i18n({

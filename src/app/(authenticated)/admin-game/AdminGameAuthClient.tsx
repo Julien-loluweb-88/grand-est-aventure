@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { toast } from "sonner";
+import { BrandMark } from "@/components/brand-mark";
 import { authClient } from "@/lib/auth-client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -103,6 +104,9 @@ export function AdminGameAuthClient() {
   return (
     <div className="flex min-h-svh w-full flex-col items-center p-6 md:p-10">
       <EmailVerificationQueryToasts />
+      <div className="mb-6 flex justify-center">
+        <BrandMark height={96} />
+      </div>
       <h1 className="mb-8 text-2xl font-semibold tracking-tight">
         Espace d&apos;administration
       </h1>

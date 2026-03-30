@@ -71,7 +71,7 @@ ${params.quantityRequested != null ? `<p>Quantité souhaitée (indicative) : <st
   await transport.sendMail({
     from,
     to: to.join(", "),
-    subject: `[Grand Est Aventure] Demande de réassort badges — ${params.adventureName}`,
+    subject: `[Balad'indice] Demande de réassort badges — ${params.adventureName}`,
     text,
     html,
   });

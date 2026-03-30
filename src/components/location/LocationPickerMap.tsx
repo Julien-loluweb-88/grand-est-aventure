@@ -8,6 +8,7 @@ import markerShadowUrl from "leaflet/dist/images/marker-shadow.png"
 import { useEffect, useMemo, useRef } from "react"
 import { cn } from "@/lib/utils"
 import {
+  Circle,
   MapContainer,
   Marker,
   Polyline,
@@ -54,6 +55,10 @@ type Props = {
    * Marqueur du point édité : `departure` = pastille « D » (défaut : épingle Leaflet).
    */
   editableMarkerKind?: "default" | "departure"
+  /** Si défini > 0, disque autour du point (mètres). */
+  radiusMeters?: number | null
+  /** Texte du popup du marqueur principal (défaut : aventure). */
+  markerPopupLabel?: string
   /** Aucun clic ni déplacement : consultation uniquement */
   readOnly?: boolean
   className?: string
@@ -84,6 +89,46 @@ function ClickHandler({
 function Recenter({ latitude, longitude }: { latitude: number; longitude: number }) {
   const map = useMap()
   map.setView([latitude, longitude])
+  return null
+}
+
+/**
+ * Boîte englobante d’un disque géodésique (rayon en mètres), sans attacher un L.Circle à la carte.
+ * `L.circle(...).getBounds()` hors carte laisse `_map` à undefined et lève layerPointToLatLng.
+ */
+function latLngBoundsForRadiusMeters(
+  lat: number,
+  lng: number,
+  radiusM: number
+): L.LatLngBounds {
+  const latRad = (lat * Math.PI) / 180
+  const latDelta = radiusM / 111_320
+  const cosLat = Math.cos(latRad)
+  const lngDelta = radiusM / (111_320 * Math.max(Math.abs(cosLat), 1e-6))
+  return L.latLngBounds(
+    [lat - latDelta, lng - lngDelta],
+    [lat + latDelta, lng + lngDelta]
+  )
+}
+
+/** Cadre la carte sur le disque (rayon en mètres). */
+function FitCircleBounds({
+  latitude,
+  longitude,
+  radiusMeters,
+}: {
+  latitude: number
+  longitude: number
+  radiusMeters: number
+}) {
+  const map = useMap()
+  useEffect(() => {
+    if (!Number.isFinite(radiusMeters) || radiusMeters <= 0) return
+    const b = latLngBoundsForRadiusMeters(latitude, longitude, radiusMeters)
+    if (b.isValid()) {
+      map.fitBounds(b, { padding: [28, 28], maxZoom: 14 })
+    }
+  }, [map, latitude, longitude, radiusMeters])
   return null
 }
 
@@ -167,6 +212,8 @@ export default function LocationPickerMap({
   contextMarkers = [],
   routePolyline = null,
   editableMarkerKind = "default",
+  radiusMeters = null,
+  markerPopupLabel = "Point de départ de l'aventure",
   readOnly = false,
   className,
   mapClassName,
@@ -187,6 +234,11 @@ export default function LocationPickerMap({
 
   const hasSmartFit =
     mapContextMarkers.length > 0 || (routePolyline && routePolyline.length >= 2)
+
+  const showCircle =
+    radiusMeters != null &&
+    Number.isFinite(radiusMeters) &&
+    radiusMeters > 0
 
   return (
     <div
@@ -211,6 +263,12 @@ export default function LocationPickerMap({
             centerLng={longitude}
             contextMarkers={mapContextMarkers}
             routePolyline={routePolyline}
+          />
+        ) : showCircle ? (
+          <FitCircleBounds
+            latitude={latitude}
+            longitude={longitude}
+            radiusMeters={radiusMeters!}
           />
         ) : (
           <Recenter latitude={latitude} longitude={longitude} />
@@ -262,6 +320,18 @@ export default function LocationPickerMap({
             </Marker>
           )
         )}
+        {showCircle ? (
+          <Circle
+            center={[latitude, longitude]}
+            radius={radiusMeters!}
+            pathOptions={{
+              color: "#7c3aed",
+              weight: 2,
+              fillColor: "#a78bfa",
+              fillOpacity: 0.12,
+            }}
+          />
+        ) : null}
         <Marker
           position={[latitude, longitude]}
           icon={primaryIcon}
@@ -282,7 +352,7 @@ export default function LocationPickerMap({
           }
         >
           <Popup>
-            <span className="text-sm">Point de départ de l&apos;aventure</span>
+            <span className="text-sm">{markerPopupLabel}</span>
           </Popup>
         </Marker>
         {readOnly ? null : <ClickHandler onChange={onChange} />}

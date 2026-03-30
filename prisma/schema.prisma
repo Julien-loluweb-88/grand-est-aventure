@@ -33,6 +33,8 @@ model User {
   sessions                  Session[]
   accounts                  Account[]
   userAdventures            UserAdventures[]
+  /// Étapes d’énigme / trésor validées côté serveur (anti-triche avant fin d’aventure).
+  adventureStepValidations  UserAdventureStepValidation[]
   adventures                Adventure[]                @relation("CreatedAdventures")
   /// Avis laissés sur les aventures.
   adventureReviews          AdventureReview[]
@@ -136,6 +138,7 @@ model Adventure {
   creatorId        String
   creator          User                   @relation("CreatedAdventures", fields: [creatorId], references: [id])
   userAdventures   UserAdventures[]       @relation("AdventureUserAdventures")
+  userAdventureStepValidations UserAdventureStepValidation[]
   treasure         Treasure?
   adminAccesses    AdminAdventureAccess[]
   adventureReviews AdventureReview[]
@@ -435,6 +438,20 @@ model Treasure {
   updatedAt   DateTime  @default(now())
   adventureId String    @unique
   adventure   Adventure @relation(fields: [adventureId], references: [id])
+}
+
+/// Validation serveur d’une étape de parcours (`enigma:1`, …, ou `treasure`). Requis pour accepter `success: true` sur `/api/game/finish`.
+model UserAdventureStepValidation {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventureId  String
+  adventure    Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  stepKey      String
+  validatedAt  DateTime  @default(now())
+
+  @@unique([userId, adventureId, stepKey])
+  @@index([userId, adventureId])
 }
 
 /// Progression joueur. Badges virtuels : `UserBadge` lié au `BadgeDefinition` de l’aventure ; stock physique : `AdventureBadgeInstance`.

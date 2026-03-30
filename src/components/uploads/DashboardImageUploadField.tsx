@@ -10,7 +10,12 @@ import { toast } from "sonner";
 
 type Props = {
   scope: DashboardImageScope;
-  adventureId: string;
+  /** Requis pour les scopes liés à une aventure (sauf `advertisement` / `advertisement-draft`). */
+  adventureId?: string;
+  /** Scopes `advertisement` : id de la fiche publicité. */
+  advertisementId?: string;
+  /** Scope `advertisement-draft` : UUID brouillon (création). */
+  advertisementDraftId?: string;
   /** Édition d’énigme : fige le nom de fichier sous `enigmas/{id}.*`. Création : laisser vide (UUID). */
   enigmaId?: string;
   label: string;
@@ -22,7 +27,9 @@ type Props = {
 
 export function DashboardImageUploadField({
   scope,
-  adventureId,
+  adventureId = "",
+  advertisementId,
+  advertisementDraftId,
   enigmaId,
   label,
   description,
@@ -37,13 +44,33 @@ export function DashboardImageUploadField({
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file || disabled) return;
+    if (scope === "advertisement-draft") {
+      if (!advertisementDraftId?.trim()) {
+        toast.error("Identifiant de brouillon publicité manquant.");
+        return;
+      }
+    } else if (scope === "advertisement") {
+      if (!advertisementId?.trim()) {
+        toast.error("Identifiant de publicité manquant.");
+        return;
+      }
+    } else if (!adventureId.trim()) {
+      toast.error("Identifiant d’aventure manquant.");
+      return;
+    }
     setUploading(true);
     try {
       const body = new FormData();
       body.set("file", file);
       body.set("scope", scope);
-      body.set("adventureId", adventureId);
-      if (enigmaId) body.set("enigmaId", enigmaId);
+      if (scope === "advertisement-draft") {
+        body.set("advertisementDraftId", advertisementDraftId!.trim());
+      } else if (scope === "advertisement") {
+        body.set("advertisementId", advertisementId!.trim());
+      } else {
+        body.set("adventureId", adventureId);
+        if (enigmaId) body.set("enigmaId", enigmaId);
+      }
       const res = await uploadDashboardImage(body);
       if (!res.ok) {
         toast.error(res.error);

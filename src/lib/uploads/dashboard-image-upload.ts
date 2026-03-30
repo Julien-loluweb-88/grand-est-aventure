@@ -7,6 +7,8 @@ import path from "node:path";
 import {
   gateAdventureDraftUpload,
   gateAdventureUpdateContent,
+  gateAdvertisementDraftImageUpload,
+  gateAdvertisementImageUpload,
 } from "@/lib/adventure-authorization";
 import { prisma } from "@/lib/prisma";
 import type { DashboardImageScope } from "@/lib/uploads/dashboard-image-scope";
@@ -42,6 +44,10 @@ export async function saveDashboardImage(params: {
   adventureId?: string;
   /** Pour `adventure-editor-draft` uniquement (UUID v4). */
   draftId?: string;
+  /** Pour `advertisement` (fiche existante). */
+  advertisementId?: string;
+  /** Pour `advertisement-draft` (UUID v4). */
+  advertisementDraftId?: string;
   scope: DashboardImageScope;
   enigmaId?: string | null;
   fileBuffer: Buffer;
@@ -64,6 +70,48 @@ export async function saveDashboardImage(params: {
     const fileStem = randomUUID();
     const relative = path
       .join("adventures", "drafts", draftId, "editor", `${fileStem}${ext}`)
+      .replace(/\\/g, "/");
+    const uploadsRoot = path.join(process.cwd(), "uploads");
+    const absoluteDir = path.join(uploadsRoot, path.dirname(relative));
+    const absoluteFile = path.join(uploadsRoot, relative);
+    await mkdir(absoluteDir, { recursive: true });
+    await writeFile(absoluteFile, params.fileBuffer);
+    return { ok: true, publicUrl: publicUrlForRelative(relative) };
+  }
+
+  if (params.scope === "advertisement-draft") {
+    const gate = await gateAdvertisementDraftImageUpload();
+    if (!gate.ok) {
+      return { ok: false, error: "Non autorisé." };
+    }
+    const draftId = params.advertisementDraftId?.trim() ?? "";
+    if (!draftId || !UUID_RE.test(draftId)) {
+      return { ok: false, error: "Identifiant de brouillon publicité invalide." };
+    }
+    const fileStem = randomUUID();
+    const relative = path
+      .join("advertisements", "drafts", draftId, `${fileStem}${ext}`)
+      .replace(/\\/g, "/");
+    const uploadsRoot = path.join(process.cwd(), "uploads");
+    const absoluteDir = path.join(uploadsRoot, path.dirname(relative));
+    const absoluteFile = path.join(uploadsRoot, relative);
+    await mkdir(absoluteDir, { recursive: true });
+    await writeFile(absoluteFile, params.fileBuffer);
+    return { ok: true, publicUrl: publicUrlForRelative(relative) };
+  }
+
+  if (params.scope === "advertisement") {
+    const adId = params.advertisementId?.trim() ?? "";
+    if (!adId) {
+      return { ok: false, error: "Identifiant de publicité manquant." };
+    }
+    const gate = await gateAdvertisementImageUpload(adId);
+    if (!gate.ok) {
+      return { ok: false, error: "Non autorisé." };
+    }
+    const fileStem = randomUUID();
+    const relative = path
+      .join("advertisements", adId, `${fileStem}${ext}`)
       .replace(/\\/g, "/");
     const uploadsRoot = path.join(process.cwd(), "uploads");
     const absoluteDir = path.join(uploadsRoot, path.dirname(relative));

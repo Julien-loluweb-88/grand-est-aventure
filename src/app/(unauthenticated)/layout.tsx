@@ -17,11 +17,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Grand Est Aventure",
-    template: "%s — Grand Est Aventure",
+    default: "Balad'indice",
+    template: "%s — Balad'indice",
   },
   description:
-    "Grand Est Aventure — connexion et informations pour le grand public.",
+    "Balad'indice — quêtes et balades en famille, connexion et informations.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

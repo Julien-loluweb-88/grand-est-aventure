@@ -76,6 +76,26 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Publicités (liste / stats = adventure.read, CRUD = adventure.update)
+  if (pathname.startsWith("/admin-game/dashboard/publicites")) {
+    if (pathname.startsWith("/admin-game/dashboard/publicites/create")) {
+      if (!roleHasRoutePermission(role, "adventure", "update")) {
+        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+      }
+      return NextResponse.next();
+    }
+    if (/^\/admin-game\/dashboard\/publicites\/[^/]+$/.test(pathname)) {
+      if (!roleHasRoutePermission(role, "adventure", "update")) {
+        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+      }
+      return NextResponse.next();
+    }
+    if (!roleHasRoutePermission(role, "adventure", "read")) {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
+
   // Superadmin : boîte de réception des demandes admin (tous types)
   if (pathname.startsWith("/admin-game/dashboard/demandes")) {
     if (role !== "superadmin") {
@@ -106,6 +126,13 @@ export default async function proxy(request: NextRequest) {
     pathname === dashboardRoot || pathname === `${dashboardRoot}/`;
   const isAccesRefuse = pathname.startsWith(`${dashboardRoot}/acces-refuse`);
   const isParametres = pathname.startsWith(`${dashboardRoot}/parametres`);
+  const isApiDocs = pathname.startsWith(`${dashboardRoot}/docs`);
+  if (isApiDocs) {
+    if (!roleHasRoutePermission(role, "adventure", "read")) {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
   if (isDashboardHome || isAccesRefuse || isParametres) {
     return NextResponse.next();
   }

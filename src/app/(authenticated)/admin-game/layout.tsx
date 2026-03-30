@@ -22,14 +22,18 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Grand Est Aventure — Administration",
-    template: "%s — Grand Est Aventure",
+    default: "Balad'indice — Administration",
+    template: "%s — Balad'indice",
   },
   description:
-    "Administration Grand Est Aventure : aventures, utilisateurs et paramètres.",
+    "Administration Balad'indice : parcours, contenu et équipe.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
   appleWebApp: {
     capable: true,
-    title: "GE Aventure",
+    title: "Balad'indice",
     statusBarStyle: "default",
   },
 };

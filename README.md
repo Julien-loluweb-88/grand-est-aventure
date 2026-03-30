@@ -1,40 +1,122 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Balad'indice
 
-## Getting Started
+**Balad'indice** est une application **Next.js** pour les quêtes et balades (familles, ville et nature) : back-office admin, **API HTTP** pour le jeu (web ou mobile), authentification **Better Auth**. Base **PostgreSQL** avec **Prisma**. Logo : `public/logo.png`.
 
-First, run the development server:
+## Prérequis
+
+- Node.js (version compatible avec Next 16 / React 19)
+- PostgreSQL
+- npm (ou gestionnaire équivalent)
+
+## Installation
+
+```bash
+git clone <url-du-depot>
+cd <dossier-du-projet>
+npm install
+```
+
+### Variables d’environnement
+
+Créez un fichier `.env` à la racine (ne le versionnez pas). Exemple minimal :
+
+```env
+# Base de données
+DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/NOM_BASE?schema=public"
+
+# Better Auth — secret fort (≥ 32 caractères), URL de l’app
+BETTER_AUTH_SECRET="votre-secret-long-et-aleatoire"
+BETTER_AUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
+
+# E-mails transactionnels (ex. reset mot de passe)
+NODEMAILER_HOST=smtp.example.com
+NODEMAILER_PORT=465
+NODEMAILER_USER=
+NODEMAILER_PASS=
+
+# Optionnel : routage / cartes (clé selon votre fournisseur)
+OPENROUTESERVICE_API_KEY=
+
+# Optionnel : OAuth (renseigner seulement les providers utilisés)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+FACEBOOK_CLIENT_ID=
+FACEBOOK_CLIENT_SECRET=
+NEXT_PUBLIC_FACEBOOK_CLIENT_ID=
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+NEXT_PUBLIC_DISCORD_CLIENT_ID=
+
+# Optionnel : masquer la doc OpenAPI en production
+# API_DOCS_ENABLED=false
+```
+
+### Base de données et client Prisma
+
+```bash
+npm run generate
+```
+
+Ce script exécute `prisma generate` et `prisma db push`. En équipe, préférez souvent les **migrations** versionnées (`prisma migrate`) selon votre processus.
+
+## Scripts npm
+
+| Commande | Rôle |
+|----------|------|
+| `npm run dev` | Serveur de développement Next.js |
+| `npm run build` | Build de production |
+| `npm run start` | Lance le build en production |
+| `npm run lint` | ESLint |
+| `npm run generate` | Prisma generate + db push |
+
+## Utilisation
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Site public** : [http://localhost:3000](http://localhost:3000) (accueil, lien connexion)
+- **Administration** : [http://localhost:3000/admin-game](http://localhost:3000/admin-game) (après authentification compte autorisé)
 
-## Documentation
+Les fichiers uploadés côté contenu sont stockés sous le dossier **`uploads/`** à la racine du dépôt ; ils sont servis publiquement via la réécriture Next (`/uploads/...` → API dédiée).
 
-- **[Better Auth + app Expo](docs/expo-better-auth.md)** — connexion mobile au même backend `/api/auth`, variables d’environnement, exemples localhost et production.
+## Architecture (aperçu)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Élément | Emplacement |
+|---------|-------------|
+| Pages & layouts App Router | `src/app/` |
+| Routes API | `src/app/api/` |
+| Logique métier, auth, jeu, badges | `src/lib/` |
+| Schéma & migrations Prisma | `prisma/` |
+| Client Prisma généré | `generated/prisma/` |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### API jeu et services (routes notables)
 
-## Learn More
+- Progression et validation : `/api/game/progress`, `validate-enigma`, `validate-treasure`, `finish`
+- Avis fin de parcours : `/api/game/AdventureReview`
+- Publicités : `/api/advertisements`, `/api/advertisements/events`
+- Badges joueur : `/api/user/badges`
+- Authentification : `/api/auth/*` (Better Auth)
 
-To learn more about Next.js, take a look at the following resources:
+### Documentation OpenAPI
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Une spec **OpenAPI 3.1** est maintenue dans `src/lib/openapi/grand-est-openapi-document.ts`. Le JSON est exposé sur **`GET /api/openapi`** (réservé aux sessions avec accès dashboard). L’interface **Swagger UI** (lecture seule, sans exécution des requêtes) est disponible sous **`/admin-game/dashboard/docs/api`** après connexion admin.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Documentation complémentaire
 
-## Deploy on Vercel
+- **[Better Auth + app Expo](docs/expo-better-auth.md)** — même backend `/api/auth`, variables d’environnement et scénarios local / production.
+- **[ROADMAP-RESTE-A-FAIRE.md](ROADMAP-RESTE-A-FAIRE.md)** — backlog indicatif (schéma BDD, APIs, écarts produit).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stack principale
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js 16, React 19, TypeScript, Tailwind CSS 4, Prisma 7, PostgreSQL, Better Auth, Radix / shadcn, TipTap, Leaflet (cartes), Zod.
+
+## Déploiement
+
+Build classique : `npm run build` puis `npm run start`. Configurez les variables d’environnement sur votre hébergeur (`DATABASE_URL`, `BETTER_AUTH_*`, URL publique, SMTP, clés OAuth si besoin). Vérifiez que le dossier `uploads/` est persistant ou remplacez le stockage par un service distant selon votre infra.
+
+---
+
+*Projet privé — Balad'indice.*

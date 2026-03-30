@@ -18,12 +18,13 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import {
-  RowsIcon,
   TerminalIcon,
   BookOpenIcon,
   EnvelopeSimpleIcon,
   ScrollIcon,
+  BracketsCurlyIcon,
 } from "@phosphor-icons/react"
+import { BrandMark } from "@/components/brand-mark"
 
 export type DashboardSessionUser = {
   name: string | null
@@ -78,9 +79,27 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       ]
     : []
 
+  const apiDocsNav = caps.adventure.read
+    ? [
+        {
+          title: "Documentation API",
+          url: "/admin-game/dashboard/docs/api",
+          icon: <BracketsCurlyIcon />,
+          isActive: false,
+          items: [
+            {
+              title: "OpenAPI (lecture seule)",
+              url: "/admin-game/dashboard/docs/api",
+            },
+          ],
+        },
+      ]
+    : []
+
   return [
     ...utilisateursNav,
     ...demandesNav,
+    ...apiDocsNav,
     {
       title: "Aventures",
       url: "/admin-game/dashboard/aventures",
@@ -119,6 +138,22 @@ function buildNavMain(caps: AdminSessionCapabilities) {
             ? "Vous ne pouvez pas gérer les villes."
             : DEFAULT_DENY_MESSAGE,
         },
+        {
+          title: "Publicités",
+          url: "/admin-game/dashboard/publicites",
+          disabled: !caps.adventure.read,
+          disabledReason: !caps.adventure.read
+            ? "Vous ne pouvez pas consulter les publicités."
+            : undefined,
+        },
+        {
+          title: "Nouvelle publicité",
+          url: "/admin-game/dashboard/publicites/create",
+          disabled: !caps.adventure.update,
+          disabledReason: !caps.adventure.update
+            ? "Vous ne pouvez pas gérer les publicités."
+            : DEFAULT_DENY_MESSAGE,
+        },
       ],
     },
   ]
@@ -140,11 +175,11 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/admin-game/dashboard" title="Retour au tableau de bord">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <RowsIcon />
+                <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-sidebar-primary">
+                  <BrandMark height={40} className="max-h-10" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Grand Est Aventure</span>
+                  <span className="truncate font-semibold">Balad&apos;indice</span>
                   <span className="truncate text-xs text-muted-foreground">Administration</span>
                 </div>
               </Link>

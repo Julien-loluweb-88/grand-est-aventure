@@ -57,7 +57,7 @@ ${params.message ? `<p><strong>Message :</strong></p><pre style="white-space:pre
   await transport.sendMail({
     from,
     to: to.join(", "),
-    subject: "[Grand Est Aventure] Nouvelle demande de création d’aventure",
+    subject: "[Balad'indice] Nouvelle demande de création d’aventure",
     text,
     html,
   });

@@ -5,4 +5,8 @@ export type DashboardImageScope =
   /** Brouillon (création d’aventure) : `uploads/adventures/drafts/{draftId}/editor/…` */
   | "adventure-editor-draft"
   | "enigma"
-  | "treasure";
+  | "treasure"
+  /** Image publicité (fiche existante) : `uploads/advertisements/{advertisementId}/…` */
+  | "advertisement"
+  /** Brouillon (création publicité) : `uploads/advertisements/drafts/{draftId}/…` */
+  | "advertisement-draft";

@@ -33,6 +33,7 @@ import {
 import { DiscordSignInButton } from "@/components/discord-sign-in-button"
 import { FacebookSignInButton } from "@/components/facebook-sign-in-button"
 import { GoogleSignInButton } from "@/components/google-sign-in-button"
+import { BrandMark } from "@/components/brand-mark"
 
 function safeCallbackUrl(raw: string | null): string {
   if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
@@ -87,6 +88,9 @@ export function LoginForm() {
 
   return (
     <>
+      <div className="mb-6 flex justify-center">
+        <BrandMark height={80} />
+      </div>
       <EmailVerificationQueryToasts />
       {pendingVerificationEmail ? (
         <EmailVerificationPrompt

@@ -35,6 +35,12 @@ type Props = {
   routePolyline?: [number, number][] | null
   /** Point édité = départ : marqueur « D » au lieu de l’épingle Leaflet. */
   editableMarkerKind?: "default" | "departure"
+  /** Disque autour du point (mètres), optionnel. */
+  radiusMeters?: number | null
+  /** Texte du popup du marqueur principal. */
+  markerPopupLabel?: string
+  /** Classes du conteneur carte (ex. hauteur). */
+  mapClassName?: string
 }
 
 export function LocationPicker({
@@ -45,6 +51,9 @@ export function LocationPicker({
   contextMarkers,
   routePolyline,
   editableMarkerKind = "default",
+  radiusMeters = null,
+  markerPopupLabel,
+  mapClassName,
 }: Props) {
   const [query, setQuery] = useState("")
   const [loading, setLoading] = useState(false)
@@ -220,6 +229,9 @@ export function LocationPicker({
         contextMarkers={contextMarkers}
         routePolyline={routePolyline}
         editableMarkerKind={editableMarkerKind}
+        radiusMeters={radiusMeters}
+        markerPopupLabel={markerPopupLabel}
+        mapClassName={mapClassName}
       />
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>

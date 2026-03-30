@@ -3,6 +3,7 @@ import {
   AdventureBadgeInstanceStatus,
   BadgeDefinitionKind,
 } from "../../../generated/prisma/client";
+import { assertCanFinishWithSuccess } from "@/lib/game/server-adventure-progress";
 
 type Tx = Prisma.TransactionClient;
 
@@ -74,6 +75,10 @@ export async function processGameFinish(
   const existing = await tx.userAdventures.findFirst({
     where: { adventureId, userId },
   });
+
+  if (success && !existing?.success) {
+    await assertCanFinishWithSuccess(tx, userId, adventureId);
+  }
 
   if (success) {
     const adventure = await tx.adventure.findUnique({
