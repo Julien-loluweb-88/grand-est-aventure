@@ -9,6 +9,7 @@ import { StatusAdventure } from "./StatusAdventure";
 import { RemoveAdventureForm } from "./RemoveAdventure";
 import { AdventureAdminAssigneesForm } from "./AdventureAdminAssigneesForm";
 import type { AdventureAdminScopeEditorResult } from "../_lib/adventure-admin-scope-queries";
+import { UserAdventures } from "./UserAdventures";
 
 export function AdventureAdminModerationAside({
   adventureId,
@@ -29,6 +30,15 @@ export function AdventureAdminModerationAside({
         <CardContent className="mx-auto flex w-full max-w-xs flex-col gap-3">
           <StatusAdventure adventure={{ id: adventureId }} />
           <RemoveAdventureForm adventure={{ id: adventureId, name: adventureName }} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Des utilisateur sur cette aventure</CardTitle>
+        </CardHeader>
+        <CardContent className="mx-auto flex w-full max-w-xs flex-col gap-3">
+        <UserAdventures adventure={{ id: adventureId }}/>
         </CardContent>
       </Card>
 

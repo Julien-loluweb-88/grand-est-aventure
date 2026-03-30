@@ -25,6 +25,12 @@ export async function getAdventureById(id: string) {
           longitude: true,
         },
       },
+      userAdventures: {
+         where: { success: true },
+         include: {
+          user: true,
+         }
+      }
     },
   });
 }
