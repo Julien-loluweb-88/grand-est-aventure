@@ -19,6 +19,7 @@ import {
   TableRow,
   TableFooter,
 } from "@/components/ui/table"
+import { Timestamp } from "next/dist/server/lib/cache-handlers/types"
 
 const PAGE_SIZE = 5
 
@@ -27,6 +28,7 @@ const PAGE_SIZE = 5
         adventureId: string
         giftNumber: number
         success: boolean
+        updatedAt: string
         user:{
           id: string
           name: string
@@ -42,7 +44,7 @@ export function UserAdventuresComponent({userAdventures}: {userAdventures: UserA
       <DialogTrigger asChild>
         <Button variant="outline">Voir des utilisateurs</Button>
       </DialogTrigger>
-      <DialogContent showCloseButton={false}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Liste des utilisateures</DialogTitle>
           <DialogDescription>
@@ -54,6 +56,7 @@ export function UserAdventuresComponent({userAdventures}: {userAdventures: UserA
         <TableRow>
           <TableHead className="w-[100px]">Nom</TableHead>
           <TableHead>Badges</TableHead>
+          <TableHead>Date de réussi</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -61,6 +64,7 @@ export function UserAdventuresComponent({userAdventures}: {userAdventures: UserA
           <TableRow key={userAdventure.id}>
             <TableCell className="text-left">{userAdventure.user.name}</TableCell>
             <TableCell>{userAdventure.giftNumber}</TableCell>
+            <TableCell>{new Date(userAdventure.updatedAt).toLocaleDateString()}</TableCell>
           </TableRow>
  ))}
       </TableBody>

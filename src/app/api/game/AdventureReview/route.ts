@@ -2,22 +2,21 @@ import { NextResponse, NextRequest } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { processGameFinish } from "@/lib/badges/award-on-finish";
-
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({
     headers: await headers(),
   });
   
   const body = await request.json();
-  const { adventureId, userId, success, giftNumber } = body as {
+  const { adventureId, userId, rating, content, consentCommunicationNetworks} = body as {
     adventureId?: string;
     userId?: string;
-    success?: boolean;
-    giftNumber?: number;
+    rating?: number;
+    content?: string;
+    consentCommunicationNetworks?: boolean;
   };
 
-  if (!adventureId || !userId || typeof success !== "boolean") {
+  if (!adventureId || !userId || typeof content !== "string") {
     return NextResponse.json(
       { error: "Paramètres invalides (adventureId, userId, success requis)." },
       { status: 400 }
@@ -29,19 +28,18 @@ export async function POST(request: NextRequest) {
   }
 
   const result = await prisma.$transaction((tx) =>
-    processGameFinish(tx, {
-      adventureId,
-      userId,
-      success,
-      clientGiftNumber:
-        typeof giftNumber === "number" && !Number.isNaN(giftNumber)
-          ? giftNumber
-          : undefined,
-    })
-  );
+      processAdventureReview(tx, {
+        adventureId,
+        userId,
+        rating,
+        content,
+        consentCommunicationNetworks
+      })
+    );
+
 
   return NextResponse.json({
     message: "Aventure terminée avec succès",
-    awardedUserBadgeIds: result.awardedUserBadgeIds,
+    awardedUserBadgeIds: "result.awardedUserBadgeIds",
   });
 }
