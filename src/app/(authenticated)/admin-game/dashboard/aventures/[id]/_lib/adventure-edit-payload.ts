@@ -22,4 +22,5 @@ export type AdventureEditFormPayload = {
   routePolyline: [number, number][] | null
   coverImageUrl: string | null
   badgeImageUrl: string | null
+  physicalBadgeStockCount: number
 }

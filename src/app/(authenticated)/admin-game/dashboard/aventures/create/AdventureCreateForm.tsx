@@ -49,6 +49,8 @@ const formSchema = z.object({
     .max(180, "Longitude invalide"),
   coverImageUrl: z.string().max(2048).optional().default(""),
   badgeImageUrl: z.string().max(2048).optional().default(""),
+  /** Exemplaires physiques numérotés dans le trésor (0 = pas de stock suivi). */
+  physicalBadgeStockCount: z.coerce.number().int().min(0).max(100_000).default(0),
 })
 
 export type CreateAdventureAssignableAdmin = {
@@ -63,6 +65,7 @@ type CreateAdventurePayload = Omit<
 > & {
   coverImageUrl: string | null
   badgeImageUrl: string | null
+  physicalBadgeStockCount: number
   descriptionDraftId: string
   assignedAdminIds?: string[]
 }
@@ -76,6 +79,7 @@ const FORM_FIELD_ORDER: (keyof FormValues)[] = [
   "longitude",
   "coverImageUrl",
   "badgeImageUrl",
+  "physicalBadgeStockCount",
   "description",
 ]
 
@@ -127,6 +131,7 @@ export function CreateAdventureForm({
       longitude: 6.843844487240165,
       coverImageUrl: "",
       badgeImageUrl: "",
+      physicalBadgeStockCount: 0,
     },
   })
   const latitudeValue = useWatch({ control: form.control, name: "latitude" })
@@ -138,6 +143,7 @@ export function CreateAdventureForm({
         description: JSON.parse(JSON.stringify(data.description)),
         coverImageUrl: data.coverImageUrl?.trim() || null,
         badgeImageUrl: data.badgeImageUrl?.trim() || null,
+        physicalBadgeStockCount: data.physicalBadgeStockCount,
         descriptionDraftId: descriptionDraftIdRef.current,
         assignedAdminIds:
           assignedAdminIds.size > 0 ? [...assignedAdminIds] : undefined,
@@ -303,7 +309,8 @@ export function CreateAdventureForm({
             <Field>
               <FieldLabel htmlFor={field.name}>Image du badge (optionnel)</FieldLabel>
               <p className="mb-1 text-xs text-muted-foreground">
-                Même visuel appli / trésor physique ; téléversement disponible sur la fiche aventure.
+                Visuel du badge virtuel (collection appli) ; même fichier que le trésor physique si
+                vous le souhaitez — téléversement sur la fiche après création.
               </p>
               <Input
                 {...field}
@@ -312,6 +319,33 @@ export function CreateAdventureForm({
                 placeholder="https://… ou /uploads/…"
                 className="font-mono text-xs"
               />
+            </Field>
+          )}
+        />
+        <Controller
+          name="physicalBadgeStockCount"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Stock de badges physiques</FieldLabel>
+              <p className="mb-1 text-xs text-muted-foreground">
+                Nombre d’exemplaires numérotés dans le trésor (0 = aucun suivi de stock).
+              </p>
+              <Input
+                {...field}
+                id={field.name}
+                type="number"
+                min={0}
+                step={1}
+                value={field.value === undefined || field.value === null ? "" : String(field.value)}
+                onChange={(e) => {
+                  const v = e.target.value === "" ? 0 : Number(e.target.value);
+                  field.onChange(Number.isNaN(v) ? 0 : v);
+                }}
+                className="max-w-xs"
+                autoComplete="off"
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />

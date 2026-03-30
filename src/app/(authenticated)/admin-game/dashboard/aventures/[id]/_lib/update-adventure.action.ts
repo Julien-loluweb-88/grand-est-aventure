@@ -6,6 +6,8 @@ import type { AdventureWriteInput } from "@/lib/adventure-write-input";
 import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
+import { syncPhysicalBadgeInstances } from "@/lib/badges/sync-physical-instances";
+import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
 
 /** Action isolée : évite de regrouper toutes les mutations avec la page RSC. */
 export async function updateAdventure(
@@ -20,7 +22,11 @@ export async function updateAdventure(
   try {
     const prev = await prisma.adventure.findUnique({
       where: { id },
-      select: { coverImageUrl: true, badgeImageUrl: true },
+      select: {
+        coverImageUrl: true,
+        physicalBadgeStockCount: true,
+        virtualBadge: { select: { id: true, imageUrl: true } },
+      },
     });
 
     const cityExists = await prisma.city.count({ where: { id: form.cityId } });
@@ -28,17 +34,47 @@ export async function updateAdventure(
       return { success: false, error: "Ville introuvable." };
     }
 
-    const result = await prisma.adventure.update({
-      where: { id },
-      data: {
-        name: form.name,
-        description: form.description,
-        cityId: form.cityId,
-        latitude: form.latitude,
-        longitude: form.longitude,
-        coverImageUrl: form.coverImageUrl?.trim() || null,
-        badgeImageUrl: form.badgeImageUrl?.trim() || null,
-      },
+    const stock = Math.max(0, Math.floor(form.physicalBadgeStockCount ?? 0));
+    const result = await prisma.$transaction(async (tx) => {
+      const adv = await tx.adventure.update({
+        where: { id },
+        data: {
+          name: form.name,
+          description: form.description,
+          cityId: form.cityId,
+          latitude: form.latitude,
+          longitude: form.longitude,
+          coverImageUrl: form.coverImageUrl?.trim() || null,
+          physicalBadgeStockCount: stock,
+        },
+      });
+
+      const bd = await tx.badgeDefinition.findUnique({
+        where: { adventureId: id },
+      });
+      if (bd) {
+        await tx.badgeDefinition.update({
+          where: { id: bd.id },
+          data: {
+            title: form.name,
+            imageUrl: form.badgeImageUrl?.trim() || null,
+          },
+        });
+      } else {
+        await tx.badgeDefinition.create({
+          data: {
+            slug: `adventure-${id}`,
+            title: form.name,
+            imageUrl: form.badgeImageUrl?.trim() || null,
+            kind: BadgeDefinitionKind.ADVENTURE_COMPLETE,
+            adventureId: id,
+          },
+        });
+      }
+
+      await syncPhysicalBadgeInstances(tx, id, stock);
+
+      return adv;
     });
 
     const nextCover = form.coverImageUrl?.trim() || null;
@@ -46,8 +82,9 @@ export async function updateAdventure(
     if (prev?.coverImageUrl && prev.coverImageUrl !== nextCover) {
       await deleteUploadsFileByUrl(prev.coverImageUrl);
     }
-    if (prev?.badgeImageUrl && prev.badgeImageUrl !== nextBadge) {
-      await deleteUploadsFileByUrl(prev.badgeImageUrl);
+    const prevBadgeUrl = prev?.virtualBadge?.imageUrl ?? null;
+    if (prevBadgeUrl && prevBadgeUrl !== nextBadge) {
+      await deleteUploadsFileByUrl(prevBadgeUrl);
     }
 
     await syncAdventureRouteDistance(id);

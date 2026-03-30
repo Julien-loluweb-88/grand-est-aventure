@@ -11,6 +11,12 @@ import type { Prisma } from "../../../generated/prisma/browser";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 import { migrateAdventureDraftEditorUploads } from "@/lib/uploads/migrate-adventure-draft-editor-uploads";
 import type { AdventureWriteInput } from "@/lib/adventure-write-input";
+import {
+  AdventureBadgeInstanceStatus,
+  AdventureBadgeStockEventKind,
+  BadgeDefinitionKind,
+} from "@/lib/badges/prisma-enums";
+import { syncPhysicalBadgeInstances } from "@/lib/badges/sync-physical-instances";
 
 export async function createAdventure(
   form: AdventureWriteInput
@@ -31,6 +37,7 @@ export async function createAdventure(
   try {
     let scopeUserIdsToRevalidate: string[] = [];
     const result = await prisma.$transaction(async (tx) => {
+      const stock = Math.max(0, Math.floor(form.physicalBadgeStockCount ?? 0));
       const adventure = await tx.adventure.create({
         data: {
           name: form.name,
@@ -41,9 +48,40 @@ export async function createAdventure(
           distance: null,
           creatorId: actor.id,
           coverImageUrl: form.coverImageUrl?.trim() || null,
-          badgeImageUrl: form.badgeImageUrl?.trim() || null,
+          physicalBadgeStockCount: stock,
         },
       });
+
+      await tx.badgeDefinition.create({
+        data: {
+          slug: `adventure-${adventure.id}`,
+          title: form.name,
+          imageUrl: form.badgeImageUrl?.trim() || null,
+          kind: BadgeDefinitionKind.ADVENTURE_COMPLETE,
+          adventureId: adventure.id,
+        },
+      });
+
+      await syncPhysicalBadgeInstances(tx, adventure.id, stock);
+
+      if (stock > 0) {
+        const availableAfter = await tx.adventureBadgeInstance.count({
+          where: {
+            adventureId: adventure.id,
+            status: AdventureBadgeInstanceStatus.AVAILABLE,
+          },
+        });
+        await tx.adventureBadgeStockEvent.create({
+          data: {
+            adventureId: adventure.id,
+            kind: AdventureBadgeStockEventKind.INITIAL_SETUP,
+            availableDelta: stock,
+            availableAfter,
+            note: "Mise en stock initiale lors de la création de l’aventure.",
+            createdByUserId: actor.id,
+          },
+        });
+      }
 
       if (isSuperadmin(actor.role) && form.assignedAdminIds?.length) {
         const uniqueIds: string[] = [...new Set(form.assignedAdminIds)];

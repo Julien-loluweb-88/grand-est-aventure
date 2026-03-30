@@ -8,6 +8,15 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  async redirects() {
+    return [
+      {
+        source: "/admin-game/dashboard/demandes-aventures",
+        destination: "/admin-game/dashboard/demandes",
+        permanent: true,
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: "50mb",

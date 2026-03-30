@@ -74,6 +74,7 @@ const formSchema = z.object({
     .max(180, "Longitude invalide"),
   coverImageUrl: z.string().max(2048).optional().default(""),
   badgeImageUrl: z.string().max(2048).optional().default(""),
+  physicalBadgeStockCount: z.coerce.number().int().min(0).max(100_000).default(0),
 });
 
 const FORM_ID = "adventure-edit-form";
@@ -105,6 +106,7 @@ export function AdventureEditForm({
       description: adventureDescriptionToTiptapJSON(adventure.description),
       coverImageUrl: adventure.coverImageUrl ?? "",
       badgeImageUrl: adventure.badgeImageUrl ?? "",
+      physicalBadgeStockCount: adventure.physicalBadgeStockCount ?? 0,
     },
   });
   const latitudeValue = useWatch({ control: form.control, name: "latitude" });
@@ -127,6 +129,7 @@ export function AdventureEditForm({
         description: adventureDescriptionToTiptapJSON(a.description),
         coverImageUrl: a.coverImageUrl ?? "",
         badgeImageUrl: a.badgeImageUrl ?? "",
+        physicalBadgeStockCount: a.physicalBadgeStockCount ?? 0,
       });
     }
     wasDialogOpenRef.current = open;
@@ -375,6 +378,43 @@ export function AdventureEditForm({
                         onBadgeChange={(v) =>
                           form.setValue("badgeImageUrl", v, { shouldDirty: true })
                         }
+                      />
+                      <Controller
+                        name="physicalBadgeStockCount"
+                        control={form.control}
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel htmlFor={field.name}>
+                              Stock de badges physiques
+                            </FieldLabel>
+                            <p className="mb-1 text-xs text-muted-foreground">
+                              Exemplaires numérotés dans le trésor (0 = pas de suivi). Réduire
+                              n’est possible qu’en retirant des exemplaires encore disponibles.
+                            </p>
+                            <Input
+                              {...field}
+                              id={field.name}
+                              type="number"
+                              min={0}
+                              step={1}
+                              value={
+                                field.value === undefined || field.value === null
+                                  ? ""
+                                  : String(field.value)
+                              }
+                              onChange={(e) => {
+                                const v =
+                                  e.target.value === "" ? 0 : Number(e.target.value);
+                                field.onChange(Number.isNaN(v) ? 0 : v);
+                              }}
+                              className="max-w-xs"
+                              autoComplete="off"
+                            />
+                            {fieldState.invalid && (
+                              <FieldError errors={[fieldState.error]} />
+                            )}
+                          </Field>
+                        )}
                       />
                       <div className="flex flex-col gap-4">
                         <Field>
