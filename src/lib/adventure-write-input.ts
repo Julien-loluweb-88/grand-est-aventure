@@ -9,7 +9,10 @@ export type AdventureWriteInput = {
   latitude: number;
   longitude: number;
   coverImageUrl?: string | null;
+  /** Visuel du badge virtuel (stocké sur `BadgeDefinition`). */
   badgeImageUrl?: string | null;
+  /** Nombre d’exemplaires physiques numérotés (0 = pas de suivi de stock côté trésor). */
+  physicalBadgeStockCount?: number;
   /** Réservé au superadmin : ids utilisateurs `role === "admin"`. */
   assignedAdminIds?: string[];
   /** UUID client : images TipTap (`drafts/{id}/editor/`) migrées vers l’aventure créée. */
