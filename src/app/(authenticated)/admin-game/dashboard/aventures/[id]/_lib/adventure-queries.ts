@@ -36,7 +36,12 @@ export async function getAdventureById(id: string) {
       userAdventures: {
          where: { success: true },
          include: {
-          user: true,
+          user: {
+            select : {
+              id: true,
+              name : true
+            } 
+          }
          }
       }
     },

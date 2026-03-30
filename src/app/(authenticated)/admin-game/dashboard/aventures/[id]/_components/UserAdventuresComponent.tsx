@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -21,18 +20,22 @@ import {
   TableFooter,
 } from "@/components/ui/table"
 
-export function UserAdventures(){
+const PAGE_SIZE = 5
 
-    const PAGE_SIZE = 5
-
-    type UserAdventure = {
+  type UserAdventure = {
         id: string
         adventureId: string
         giftNumber: number
         success: boolean
+        user:{
+          id: string
+          name: string
+        }
     }
 
-    
+
+export function UserAdventuresComponent({userAdventures}: {userAdventures: UserAdventure[]}){
+    console.log("userAdventure123", userAdventures)
 
     return(
         <Dialog>
@@ -50,17 +53,16 @@ export function UserAdventures(){
     <TableHeader>
         <TableRow>
           <TableHead className="w-[100px]">Nom</TableHead>
-          <TableHead>Badge</TableHead>
+          <TableHead>Badges</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
-          <TableRow key="">
-            <TableCell className="font-medium"></TableCell>
-            <TableCell></TableCell>
-            <TableCell></TableCell>
-            <TableCell className="text-right"></TableCell>
+        {userAdventures.map((userAdventure)=> (
+          <TableRow key={userAdventure.id}>
+            <TableCell className="text-left">{userAdventure.user.name}</TableCell>
+            <TableCell>{userAdventure.giftNumber}</TableCell>
           </TableRow>
- 
+ ))}
       </TableBody>
       <TableFooter>
        

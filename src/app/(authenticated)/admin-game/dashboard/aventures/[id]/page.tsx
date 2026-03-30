@@ -181,6 +181,7 @@ export default async function AdventurePage({
           adventureId={id}
           adventureName={adventure.name}
           adminScopeSection={adminScopeSection}
+          userAdventures={adventure?.userAdventures ?? []}
         />
       </div>
     </div>
