@@ -39,8 +39,13 @@ model User {
   adminAdventureAccesses    AdminAdventureAccess[]
   adminAuditLogsAsActor     AdminAuditLog[]            @relation("AdminAuditActor")
   adminAuditLogsAsTarget    AdminAuditLog[]            @relation("AdminAuditTarget")
-  adventureCreationRequests AdventureCreationRequest[]
+  adminRequestsCreated      AdminRequest[]                 @relation("AdminRequestRequester")
+  adminRequestsHandled      AdminRequest[]                 @relation("AdminRequestHandler")
+  adminRequestTypesCreated  AdminRequestType[]             @relation("AdminRequestTypeCreator")
   advertisementEvents       AdvertisementEvent[]
+  userBadges                UserBadge[]
+  claimedAdventureBadgeInstances AdventureBadgeInstance[] @relation("BadgeClaimant")
+  adventureBadgeStockEventsCreated AdventureBadgeStockEvent[]
 
   @@map("user")
 }
@@ -124,8 +129,8 @@ model Adventure {
   updatedAt        DateTime               @default(now())
   /// Image de présentation (liste, fiche aventure).
   coverImageUrl    String?
-  /// Même visuel pour le badge physique (trésor) et la bibliothèque app joueur.
-  badgeImageUrl    String?
+  /// Nombre d’exemplaires physiques numérotés (stock dans `AdventureBadgeInstance`). 0 = pas de suivi stock.
+  physicalBadgeStockCount Int @default(0)
   enigmas          Enigma[]
   status           Boolean?               @default(true)
   creatorId        String
@@ -134,8 +139,161 @@ model Adventure {
   treasure         Treasure?
   adminAccesses    AdminAdventureAccess[]
   adventureReviews AdventureReview[]
+  /// Badge virtuel « complétion » (1 par aventure) — visuel dans `BadgeDefinition.imageUrl`.
+  virtualBadge     BadgeDefinition?
+  adventureBadgeInstances AdventureBadgeInstance[]
+  badgeStockEvents AdventureBadgeStockEvent[]
+  adminRequests       AdminRequest[]
 
   @@index([cityId])
+}
+
+enum AdminRequestStatus {
+  PENDING
+  CLOSED
+}
+
+/// Type de demande admin configurable par les superadmin.
+/// La `key` est un identifiant technique stable (slug unique) utilisé en code et dans les payloads.
+model AdminRequestType {
+  id              String         @id @default(cuid())
+  /// Identifiant technique immuable (ex. "adventure_creation", "badge_restock").
+  key             String         @unique
+  /// Libellé métier affiché en interface.
+  label           String
+  /// Description courte d'aide à la saisie.
+  description     String?
+  /// Active/désactive la création de nouvelles demandes de ce type.
+  isActive        Boolean        @default(true)
+  /// Configuration libre (champs requis, hints UI, etc.).
+  config          Json?
+  createdByUserId String?
+  createdBy       User?          @relation("AdminRequestTypeCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  requests        AdminRequest[]
+
+  @@index([isActive])
+}
+
+/// Demande admin générique (création aventure, réassort badges, etc.).
+model AdminRequest {
+  id              String             @id @default(cuid())
+  requestTypeId   String
+  requestType     AdminRequestType   @relation(fields: [requestTypeId], references: [id], onDelete: Restrict)
+  status          AdminRequestStatus @default(PENDING)
+  requesterId     String
+  requester       User               @relation("AdminRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  /// Aventure concernée si la demande est contextuelle (nullable pour demandes globales).
+  adventureId     String?
+  adventure       Adventure?         @relation(fields: [adventureId], references: [id], onDelete: SetNull)
+  message         String?
+  /// Données spécifiques au type (ex: quantityRequested pour badge_restock).
+  payload         Json?
+  closedAt        DateTime?
+  closedByUserId  String?
+  closedBy        User?              @relation("AdminRequestHandler", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([requestTypeId, status, createdAt])
+  @@index([requesterId, status, createdAt])
+  @@index([adventureId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+enum AdventureBadgeStockEventKind {
+  /// Première mise en stock (création / config).
+  INITIAL_SETUP
+  /// Réapprovisionnement : ajout d’exemplaires disponibles.
+  RESTOCK
+  /// Incident : vol, rupture, trésor vide — perte du stock encore disponible.
+  LOSS_INCIDENT
+}
+
+/// Journal opérationnel du stock physique (réassort, incidents) — motif dans `note`.
+model AdventureBadgeStockEvent {
+  id              String                      @id @default(cuid())
+  adventureId     String
+  adventure       Adventure                   @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  kind            AdventureBadgeStockEventKind
+  /// Variation du nombre d’exemplaires **disponibles** (+ réappro, − perte).
+  availableDelta  Int
+  /// Nombre d’exemplaires encore disponibles après l’opération.
+  availableAfter  Int
+  /// Contexte : pourquoi (réassort, vol signalé, rupture, etc.).
+  note            String
+  createdByUserId String?
+  createdBy       User?                       @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime                    @default(now())
+
+  @@index([adventureId, createdAt])
+}
+
+enum BadgeDefinitionKind {
+  /// Badge débloqué en terminant une aventure avec succès.
+  ADVENTURE_COMPLETE
+  /// Nombre minimum d’aventures **distinctes** réussies.
+  MILESTONE_ADVENTURES
+  /// Kilomètres cumulés (parcours `Adventure.distance` des aventures réussies).
+  MILESTONE_KM
+}
+
+enum AdventureBadgeInstanceStatus {
+  AVAILABLE
+  CLAIMED
+  MISSING
+  STOLEN
+}
+
+/// Catalogue de badges (virtuel par aventure, paliers globaux, etc.).
+model BadgeDefinition {
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  title       String
+  imageUrl    String?
+  kind        BadgeDefinitionKind
+  /// Aventure liée (un seul badge virtuel par aventure).
+  adventureId String?             @unique
+  adventure   Adventure?          @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  /// Seuils pour les badges globaux, ex. `{ "minCompletedAdventures": 10 }`, `{ "minKmTotal": 50 }`.
+  criteria    Json?
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  userBadges  UserBadge[]
+
+  @@index([kind])
+}
+
+/// Badge obtenu par un utilisateur (collection app).
+model UserBadge {
+  id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeDefinitionId String
+  badgeDefinition   BadgeDefinition @relation(fields: [badgeDefinitionId], references: [id], onDelete: Cascade)
+  earnedAt          DateTime        @default(now())
+
+  @@unique([userId, badgeDefinitionId])
+  @@index([userId])
+  @@index([badgeDefinitionId])
+}
+
+/// Exemplaire physique numéroté dans le trésor (stock).
+model AdventureBadgeInstance {
+  id              String   @id @default(cuid())
+  adventureId     String
+  adventure       Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  giftNumber      Int
+  status          AdventureBadgeInstanceStatus @default(AVAILABLE)
+  claimedByUserId String?
+  claimedAt       DateTime?
+  claimant        User?    @relation("BadgeClaimant", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([adventureId, giftNumber])
+  @@index([adventureId, status])
+  @@index([claimedByUserId])
 }
 
 enum AdvertiserKind {
@@ -242,18 +400,6 @@ model AdminAuditLog {
   @@index([action])
 }
 
-model AdventureCreationRequest {
-  id          String   @id @default(cuid())
-  message     String?
-  status      String   @default("pending")
-  requesterId String
-  requester   User     @relation(fields: [requesterId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([requesterId])
-  @@index([status])
-}
 
 model Enigma {
   id             String    @id @default(cuid())
@@ -291,7 +437,7 @@ model Treasure {
   adventure   Adventure @relation(fields: [adventureId], references: [id])
 }
 
-/// Progression joueur. Bibliothèque de badges : lignes avec `success === true` + `adventure.badgeImageUrl`.
+/// Progression joueur. Badges virtuels : `UserBadge` lié au `BadgeDefinition` de l’aventure ; stock physique : `AdventureBadgeInstance`.
 model UserAdventures {
   id          String           @id @default(cuid())
   success     Boolean

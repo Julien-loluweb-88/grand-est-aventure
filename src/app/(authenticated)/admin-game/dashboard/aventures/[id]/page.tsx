@@ -19,8 +19,17 @@ import {
 import { AdventureAdminGeneralSection } from "./_components/AdventureAdminGeneralSection";
 import { AdventureAdminEnigmasSection } from "./_components/AdventureAdminEnigmasSection";
 import { AdventureAdminTreasureSection } from "./_components/AdventureAdminTreasureSection";
+import { AdventureAdminBadgeStockSection } from "./_components/AdventureAdminBadgeStockSection";
+import { AdventureAdminBadgeRestockRequestForm } from "./_components/AdventureAdminBadgeRestockRequestForm";
+import { AdventureAdminPendingBadgeRestockList } from "./_components/AdventureAdminPendingBadgeRestockList";
 import { AdventureAdminModerationAside } from "./_components/AdventureAdminModerationAside";
 import { listCitiesForAdventureSelect } from "@/lib/city-admin-queries";
+import { getBadgeStockOverview } from "./_lib/badge-stock-queries";
+import { isSuperadmin } from "@/lib/admin-access";
+import {
+  getMyBadgeRestockRequestsForAdventure,
+  getPendingBadgeRestockRequestsForAdventure,
+} from "./_lib/badge-restock-request-queries";
 
 export default async function AdventurePage({
   params,
@@ -71,12 +80,23 @@ export default async function AdventurePage({
   const enigmaOrderInitial = cloneJsonForClient(enigmaOrderRows);
 
   const currentUser = await getUser();
+  const userIsSuperadmin = isSuperadmin(currentUser?.role);
   const adminScopeSection =
     currentUser?.role === "superadmin" ? await getAdventureAdminScopeEditorData(id) : null;
 
   const adventurePayload = adventurePayloadForEditForm(adventure, routePolyline);
   const cities = await listCitiesForAdventureSelect();
   const treasurePayload = adventure.treasure ? treasurePayloadForCard(adventure.treasure) : null;
+  const badgeStockOverview = await getBadgeStockOverview(id);
+
+  const pendingBadgeRestock =
+    userIsSuperadmin && currentUser
+      ? (await getPendingBadgeRestockRequestsForAdventure(id)) ?? []
+      : [];
+  const myBadgeRestockRequests =
+    !userIsSuperadmin && currentUser
+      ? await getMyBadgeRestockRequestsForAdventure(id, currentUser.id)
+      : null;
 
   return (
     <div className="space-y-8 p-4 md:p-6">
@@ -137,6 +157,24 @@ export default async function AdventurePage({
             mapReferenceMarkers={mapReferenceMarkersNoTreasure}
             routePolyline={routePolyline}
           />
+          {pendingBadgeRestock.length > 0 ? (
+            <AdventureAdminPendingBadgeRestockList
+              adventureId={adventure.id}
+              initialPending={pendingBadgeRestock}
+            />
+          ) : null}
+          {badgeStockOverview ? (
+            <AdventureAdminBadgeStockSection
+              adventureId={adventure.id}
+              overview={badgeStockOverview}
+            />
+          ) : null}
+          {myBadgeRestockRequests !== null ? (
+            <AdventureAdminBadgeRestockRequestForm
+              adventureId={adventure.id}
+              initialMyRequests={myBadgeRestockRequests}
+            />
+          ) : null}
         </div>
 
         <AdventureAdminModerationAside

@@ -76,8 +76,8 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Superadmin: adventure creation requests inbox
-  if (pathname.startsWith("/admin-game/dashboard/demandes-aventures")) {
+  // Superadmin : boîte de réception des demandes admin (tous types)
+  if (pathname.startsWith("/admin-game/dashboard/demandes")) {
     if (role !== "superadmin") {
       return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
     }

@@ -49,17 +49,17 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       ]
     : []
 
-  const demandesAventuresNav = caps.canAssignRolesAndScopes
+  const demandesNav = caps.canAssignRolesAndScopes
     ? [
         {
-          title: "Demandes d'aventures",
-          url: "/admin-game/dashboard/demandes-aventures",
+          title: "Demandes",
+          url: "/admin-game/dashboard/demandes",
           icon: <EnvelopeSimpleIcon />,
           isActive: false,
           items: [
             {
-              title: "Liste des demandes",
-              url: "/admin-game/dashboard/demandes-aventures",
+              title: "Toutes les demandes",
+              url: "/admin-game/dashboard/demandes",
             },
           ],
         },
@@ -80,7 +80,7 @@ function buildNavMain(caps: AdminSessionCapabilities) {
 
   return [
     ...utilisateursNav,
-    ...demandesAventuresNav,
+    ...demandesNav,
     {
       title: "Aventures",
       url: "/admin-game/dashboard/aventures",

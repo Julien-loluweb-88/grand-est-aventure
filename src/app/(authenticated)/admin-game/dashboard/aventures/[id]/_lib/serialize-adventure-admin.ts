@@ -60,7 +60,8 @@ export function adventurePayloadForEditForm(
       mapContextMarkers,
       routePolyline,
       coverImageUrl: adventure.coverImageUrl ?? null,
-      badgeImageUrl: adventure.badgeImageUrl ?? null,
+      badgeImageUrl: adventure.virtualBadge?.imageUrl ?? null,
+      physicalBadgeStockCount: adventure.physicalBadgeStockCount ?? 0,
     })
   ) as AdventureEditFormPayload;
 }

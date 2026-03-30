@@ -41,8 +41,8 @@ function breadcrumbsForPath(pathname: string | null): Crumb[] {
     return crumbs
   }
 
-  if (tail.startsWith("demandes-aventures")) {
-    crumbs.push({ label: "Demandes d'aventures", href: null })
+  if (tail.startsWith("demandes")) {
+    crumbs.push({ label: "Demandes", href: null })
     return crumbs
   }
 

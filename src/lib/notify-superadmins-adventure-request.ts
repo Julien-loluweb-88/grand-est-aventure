@@ -29,8 +29,8 @@ export async function notifySuperadminsNewAdventureRequest(params: {
 
   const origin = getPublicAppOrigin();
   const listUrl = origin
-    ? `${origin}/admin-game/dashboard/demandes-aventures`
-    : "/admin-game/dashboard/demandes-aventures";
+    ? `${origin}/admin-game/dashboard/demandes`
+    : "/admin-game/dashboard/demandes";
 
   const who = params.requesterName
     ? `${params.requesterName} (${params.requesterEmail})`
