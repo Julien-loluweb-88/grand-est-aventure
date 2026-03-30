@@ -14,33 +14,33 @@ datasource db {
 }
 
 model User {
-  id             String           @id
-  email          String           @unique
-  name           String?
-  address        String?
-  postalCode     String?
-  city           String?
-  country        String?
-  phone          String?
-  emailVerified  Boolean          @default(false)
-  image          String?
-  role           String?          @default("user")
-  banned         Boolean?         @default(false)
-  banReason      String?
-  banExpires     DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  sessions       Session[]
-  accounts       Account[]
-  userAdventures UserAdventures[]
-  adventures     Adventure[]      @relation("CreatedAdventures")
+  id                        String                     @id
+  email                     String                     @unique
+  name                      String?
+  address                   String?
+  postalCode                String?
+  city                      String?
+  country                   String?
+  phone                     String?
+  emailVerified             Boolean                    @default(false)
+  image                     String?
+  role                      String?                    @default("user")
+  banned                    Boolean?                   @default(false)
+  banReason                 String?
+  banExpires                DateTime?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  sessions                  Session[]
+  accounts                  Account[]
+  userAdventures            UserAdventures[]
+  adventures                Adventure[]                @relation("CreatedAdventures")
   /// Avis laissés sur les aventures.
-  adventureReviews AdventureReview[]
-  adminAdventureAccesses AdminAdventureAccess[]
-  adminAuditLogsAsActor AdminAuditLog[] @relation("AdminAuditActor")
-  adminAuditLogsAsTarget AdminAuditLog[] @relation("AdminAuditTarget")
+  adventureReviews          AdventureReview[]
+  adminAdventureAccesses    AdminAdventureAccess[]
+  adminAuditLogsAsActor     AdminAuditLog[]            @relation("AdminAuditActor")
+  adminAuditLogsAsTarget    AdminAuditLog[]            @relation("AdminAuditTarget")
   adventureCreationRequests AdventureCreationRequest[]
-  advertisementEvents      AdvertisementEvent[]
+  advertisementEvents       AdvertisementEvent[]
 
   @@map("user")
 }
@@ -95,16 +95,16 @@ model Verification {
 }
 
 model City {
-  id           String      @id @default(cuid())
-  name         String
+  id                   String          @id @default(cuid())
+  name                 String
   /// Code INSEE à 5 chiffres, optionnel (saisie manuelle).
-  inseeCode    String?     @unique
-  postalCodes  String[]    @default([])
-  latitude     Float?
-  longitude    Float?
-  population   Int?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  inseeCode            String?         @unique
+  postalCodes          String[]        @default([])
+  latitude             Float?
+  longitude            Float?
+  population           Int?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
   adventures           Adventure[]
   advertisementTargets Advertisement[] @relation("AdvertisementTargetCities")
 
@@ -112,26 +112,26 @@ model City {
 }
 
 model Adventure {
-  id             String           @id @default(cuid())
-  name           String
-  description    Json
-  cityId         String
-  city           City             @relation(fields: [cityId], references: [id], onDelete: Restrict)
-  latitude       Float
-  longitude      Float
-  distance       Float?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @default(now())
+  id               String                 @id @default(cuid())
+  name             String
+  description      Json
+  cityId           String
+  city             City                   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  latitude         Float
+  longitude        Float
+  distance         Float?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @default(now())
   /// Image de présentation (liste, fiche aventure).
-  coverImageUrl   String?
+  coverImageUrl    String?
   /// Même visuel pour le badge physique (trésor) et la bibliothèque app joueur.
-  badgeImageUrl   String?
-  enigmas        Enigma[]
-  status         Boolean?         @default(true)
-  creatorId      String
-  creator        User             @relation("CreatedAdventures", fields: [creatorId], references: [id])
-  userAdventures UserAdventures[] @relation("AdventureUserAdventures")
-  treasure       Treasure?
+  badgeImageUrl    String?
+  enigmas          Enigma[]
+  status           Boolean?               @default(true)
+  creatorId        String
+  creator          User                   @relation("CreatedAdventures", fields: [creatorId], references: [id])
+  userAdventures   UserAdventures[]       @relation("AdventureUserAdventures")
+  treasure         Treasure?
   adminAccesses    AdminAdventureAccess[]
   adventureReviews AdventureReview[]
 
@@ -168,30 +168,30 @@ enum AdventureReviewModerationStatus {
 /// — `targetCities` non vide : éligible seulement si le joueur est rattaché à l’une de ces villes (GPS, commune, etc.).
 /// — `targetCenterLatitude` + `targetCenterLongitude` + `targetRadiusMeters` : zone circulaire optionnelle (mètres).
 model Advertisement {
-  id                    String    @id @default(cuid())
+  id                    String               @id @default(cuid())
   /// Libellé interne pour l’admin.
   name                  String
   /// Type d’annonceur (commerce, association, mairie, autre).
-  advertiserKind       AdvertiserKind
+  advertiserKind        AdvertiserKind
   /// Nom du partenaire tel qu’affiché (enseigne, asso, etc.).
-  advertiserName       String
+  advertiserName        String
   title                 String?
   body                  String?
   imageUrl              String?
   targetUrl             String?
   /// Zone d’affichage dans l’appli (ex. : home, library).
-  placement             String    @default("home")
-  active                Boolean   @default(true)
+  placement             String               @default("home")
+  active                Boolean              @default(true)
   startsAt              DateTime?
   endsAt                DateTime?
-  sortOrder             Int       @default(0)
+  sortOrder             Int                  @default(0)
   targetCenterLatitude  Float?
   targetCenterLongitude Float?
   targetRadiusMeters    Int?
-  targetCities          City[]    @relation("AdvertisementTargetCities")
+  targetCities          City[]               @relation("AdvertisementTargetCities")
   events                AdvertisementEvent[]
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   @@index([placement, active])
   @@index([startsAt, endsAt])
@@ -199,14 +199,14 @@ model Advertisement {
 
 /// Événement analytique pub (impression affichée, clic). Agrégations par jour / utilisateur via requêtes sur `createdAt` et `userId`.
 model AdvertisementEvent {
-  id                String                 @id @default(cuid())
-  advertisementId   String
-  advertisement     Advertisement          @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
-  type              AdvertisementEventType
+  id              String                 @id @default(cuid())
+  advertisementId String
+  advertisement   Advertisement          @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  type            AdvertisementEventType
   /// Joueur connecté ; null si visiteur anonyme.
-  userId            String?
-  user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt         DateTime               @default(now())
+  userId          String?
+  user            User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt       DateTime               @default(now())
 
   @@index([advertisementId, type, createdAt])
   @@index([advertisementId, createdAt])
@@ -293,15 +293,15 @@ model Treasure {
 
 /// Progression joueur. Bibliothèque de badges : lignes avec `success === true` + `adventure.badgeImageUrl`.
 model UserAdventures {
-  id          String    @id @default(cuid())
+  id          String           @id @default(cuid())
   success     Boolean
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now())
+  giftNumber  Int              @default(0)
   userId      String
-  giftNumber  Int       @default(0)
-  user        User      @relation(fields: [userId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
   adventureId String
-  adventure   Adventure @relation("AdventureUserAdventures", fields: [adventureId], references: [id])
+  adventure   Adventure        @relation("AdventureUserAdventures", fields: [adventureId], references: [id])
   /// Avis / signalement associé à cette partie (écran de fin), si rempli.
   review      AdventureReview?
 
@@ -312,29 +312,29 @@ model UserAdventures {
 /// Côté appli : proposer après succès (ou écran final) les cases « plus de badge », « trésor absent / volé » + texte optionnel.
 /// Case à part : autorisation RGPD/explicit consent pour réutiliser avis / photo sur les réseaux ou supports de com’.
 model AdventureReview {
-  id          String    @id @default(cuid())
+  id                           String                          @id @default(cuid())
   /// Note de 1 à 5 (valider côté appli) ; null si pas d’étoiles (ex. signalement seul).
-  rating      Int?
+  rating                       Int?
   /// Commentaire libre (avis, détail du signalement) — peut être vide si seuls les booléens sont cochés.
-  content     String?
-  image       String?
+  content                      String?
+  image                        String?
   /// Workflow modération (brouillon → attente → validé / refusé).
-  moderationStatus      AdventureReviewModerationStatus @default(PENDING)
+  moderationStatus             AdventureReviewModerationStatus @default(PENDING)
   /// Le joueur autorise l’usage de ces contenus (texte, image, prénom ou pseudo affiché) pour communication publique (réseaux sociaux, site, newsletter, etc.).
-  consentCommunicationNetworks Boolean @default(false)
+  consentCommunicationNetworks Boolean                         @default(false)
   /// Plus de badge physique disponible (rupture, vol du point de retrait, etc.).
-  reportsMissingBadge   Boolean @default(false)
+  reportsMissingBadge          Boolean                         @default(false)
   /// Trésor absent, vandalisé ou volé sur le lieu prévu.
-  reportsStolenTreasure   Boolean @default(false)
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  adventureId String
-  adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  reportsStolenTreasure        Boolean                         @default(false)
+  userId                       String
+  user                         User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventureId                  String
+  adventure                    Adventure                       @relation(fields: [adventureId], references: [id], onDelete: Cascade)
   /// Partie terminée concernée (pour relier au bon passage) — optionnel.
-  userAdventureId String?        @unique
-  userAdventure   UserAdventures? @relation(fields: [userAdventureId], references: [id], onDelete: SetNull)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  userAdventureId              String?                         @unique
+  userAdventure                UserAdventures?                 @relation(fields: [userAdventureId], references: [id], onDelete: SetNull)
+  createdAt                    DateTime                        @default(now())
+  updatedAt                    DateTime                        @updatedAt
 
   @@unique([userId, adventureId])
   @@index([adventureId])
