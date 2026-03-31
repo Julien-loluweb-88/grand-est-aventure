@@ -54,6 +54,8 @@ export async function POST(request: NextRequest) {
   const b = body as Record<string, unknown>;
   const adventureId = typeof b.adventureId === "string" ? b.adventureId.trim() : "";
   const userId = typeof b.userId === "string" ? b.userId.trim() : "";
+  const image = typeof b.image === "string" ? b.image : null;
+
 
   if (!adventureId || !userId) {
     return NextResponse.json(
@@ -78,6 +80,7 @@ export async function POST(request: NextRequest) {
         userId,
         rating: b.rating,
         content,
+        image,
         consentCommunicationNetworks: parseBoolean(b.consentCommunicationNetworks),
         reportsMissingBadge: parseBoolean(b.reportsMissingBadge),
         reportsStolenTreasure: parseBoolean(b.reportsStolenTreasure),

@@ -68,11 +68,7 @@ export function UserAdventuresComponent({userAdventures}: {userAdventures: UserA
           </TableRow>
  ))}
       </TableBody>
-      <TableFooter>
-       
-      </TableFooter>
-    </Table>
-        
+    </Table>   
       </DialogContent>
     </Dialog>
     )

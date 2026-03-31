@@ -60,3 +60,10 @@ export async function RemoveAdventure(adventureId: string) {
     };
   }
 }
+
+export async function changeReviewStatus(adventureReviewId: string, status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED") {
+  return prisma.adventureReview.update({
+    where: { id: adventureReviewId },
+    data: { moderationStatus: status },
+  });
+}

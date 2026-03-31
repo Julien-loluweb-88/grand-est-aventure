@@ -23,6 +23,7 @@ export type ProcessAdventureReviewInput = {
   /** Nombre 1–5, chaîne numérique, ou omis / null pour « pas de note ». */
   rating?: unknown;
   content: string;
+  image?: string | null;
   consentCommunicationNetworks: boolean;
   reportsMissingBadge: boolean;
   reportsStolenTreasure: boolean;
@@ -111,6 +112,7 @@ export async function processAdventureReview(
       reportsMissingBadge,
       reportsStolenTreasure,
       userAdventureId: userAdventure?.id,
+      image: input.image ?? null,
     },
     update: {
       rating: normalizedRating,
@@ -119,6 +121,7 @@ export async function processAdventureReview(
       reportsMissingBadge,
       reportsStolenTreasure,
       ...(userAdventure?.id ? { userAdventureId: userAdventure.id } : {}),
+      ...(input.image !== undefined ? { image: input.image } : {}), 
     },
     select: { id: true },
   });

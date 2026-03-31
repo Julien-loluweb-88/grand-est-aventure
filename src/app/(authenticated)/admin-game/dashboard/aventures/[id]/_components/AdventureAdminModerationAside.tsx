@@ -27,6 +27,7 @@ export function AdventureAdminModerationAside({
 }
 ) {
 console.log("adventureReview", adventureReviews)
+
   return (
     <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4">
       <Card>
