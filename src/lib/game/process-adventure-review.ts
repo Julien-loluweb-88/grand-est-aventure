@@ -79,12 +79,17 @@ export async function processAdventureReview(
   const reportsMissingBadge = input.reportsMissingBadge;
   const reportsStolenTreasure = input.reportsStolenTreasure;
 
+  const imageTrimmed =
+    input.image != null && typeof input.image === "string" ? input.image.trim() : "";
+  const hasImage = imageTrimmed.length > 0;
+
   const hasPayload =
     normalizedRating != null ||
     (contentNorm != null && contentNorm.length > 0) ||
     reportsMissingBadge ||
     reportsStolenTreasure ||
-    consent;
+    consent ||
+    hasImage;
 
   if (!hasPayload) {
     throw new ReviewValidationError("EMPTY_REVIEW");
@@ -112,7 +117,7 @@ export async function processAdventureReview(
       reportsMissingBadge,
       reportsStolenTreasure,
       userAdventureId: userAdventure?.id,
-      image: input.image ?? null,
+      image: imageTrimmed.length > 0 ? imageTrimmed : null,
     },
     update: {
       rating: normalizedRating,
@@ -121,7 +126,9 @@ export async function processAdventureReview(
       reportsMissingBadge,
       reportsStolenTreasure,
       ...(userAdventure?.id ? { userAdventureId: userAdventure.id } : {}),
-      ...(input.image !== undefined ? { image: input.image } : {}), 
+      ...(input.image !== undefined
+        ? { image: imageTrimmed.length > 0 ? imageTrimmed : null }
+        : {}),
     },
     select: { id: true },
   });

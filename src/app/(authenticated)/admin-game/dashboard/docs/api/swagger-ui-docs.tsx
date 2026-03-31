@@ -1,6 +1,10 @@
 "use client";
 
 import Script from "next/script";
+import {
+  swaggerOperationsSorter,
+  swaggerTagsSorter,
+} from "./swagger-openapi-order";
 
 const SWAGGER_UI_VERSION = "5.11.0";
 const BUNDLE = `https://unpkg.com/swagger-ui-dist@${SWAGGER_UI_VERSION}/swagger-ui-bundle.js`;
@@ -12,8 +16,8 @@ declare global {
 }
 
 /**
- * Swagger UI en lecture seule (pas d’exécution). Le fetch de /api/openapi envoie les cookies
- * de session : même contrôle d’accès que cette page (dashboard admin).
+ * Swagger UI avec « Try it out » : les requêtes partent depuis le navigateur (même origine),
+ * avec cookies de session admin. Accès réservé au dashboard comme pour `/api/openapi`.
  */
 export function SwaggerUiDocs() {
   return (
@@ -32,11 +36,17 @@ export function SwaggerUiDocs() {
           window.SwaggerUIBundle({
             dom_id: "#swagger-ui-root",
             url: "/api/openapi",
-            tryItOutEnabled: false,
-            supportedSubmitMethods: [],
+            tryItOutEnabled: true,
+            supportedSubmitMethods: ["get", "post", "put", "patch", "delete", "options"],
             docExpansion: "list",
             filter: true,
-            persistAuthorization: false,
+            persistAuthorization: true,
+            tagsSorter: swaggerTagsSorter,
+            operationsSorter: swaggerOperationsSorter,
+            requestInterceptor: (req: Record<string, unknown>) => ({
+              ...req,
+              credentials: "same-origin",
+            }),
           });
         }}
       />

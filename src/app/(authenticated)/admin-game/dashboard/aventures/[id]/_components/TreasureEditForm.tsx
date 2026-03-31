@@ -66,8 +66,10 @@ export function TreasureEditForm({
     defaultValues: {
       name: treasure.name,
       description: adventureDescriptionToTiptapJSON(treasure.description),
-      code: treasure.code,
-      safeCode: treasure.safeCode ?? "AAA",
+      mapRevealCode: treasure.mapRevealCode,
+      mapRevealCodeAlt: treasure.mapRevealCodeAlt ?? "",
+      chestCode: treasure.chestCode,
+      chestCodeAlt: treasure.chestCodeAlt ?? "",
       latitude: treasure.latitude,
       longitude: treasure.longitude,
       imageUrl: treasure.imageUrl ?? "",
@@ -127,8 +129,10 @@ export function TreasureEditForm({
       form.reset({
         name: t.name,
         description: adventureDescriptionToTiptapJSON(t.description),
-        code: t.code,
-        safeCode: t.safeCode ?? "AAA",
+        mapRevealCode: t.mapRevealCode,
+        mapRevealCodeAlt: t.mapRevealCodeAlt ?? "",
+        chestCode: t.chestCode,
+        chestCodeAlt: t.chestCodeAlt ?? "",
         latitude: t.latitude,
         longitude: t.longitude,
         imageUrl: t.imageUrl ?? "",
@@ -144,8 +148,10 @@ export function TreasureEditForm({
       const result = await updateTreasure(treasure.id, {
         name: plain.name,
         description: plain.description,
-        code: plain.code,
-        safeCode: plain.safeCode,
+        mapRevealCode: plain.mapRevealCode,
+        mapRevealCodeAlt: plain.mapRevealCodeAlt?.trim() || null,
+        chestCode: plain.chestCode,
+        chestCodeAlt: plain.chestCodeAlt?.trim() || null,
         latitude: Number(plain.latitude),
         longitude: Number(plain.longitude),
         imageUrl: plain.imageUrl?.trim() || null,
@@ -218,7 +224,7 @@ export function TreasureEditForm({
             displayRoutePolyline={displayRoutePolyline}
             mapHelperText={mapHelperText}
             canEdit={canEdit}
-            fieldSetDescription="Formulaire de la création de trésors"
+            fieldSetDescription="Trésor : position, texte, et codes de validation finale (combinaison attendue + variante optionnelle)."
             adventureId={adventureId}
           />
 

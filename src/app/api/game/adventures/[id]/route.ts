@@ -1,0 +1,85 @@
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+/**
+ * Détail "safe" d'une aventure pour app mobile.
+ * Expose énigmes + trésor sans divulguer les réponses/codes.
+ */
+export async function GET(_request: NextRequest, context: Ctx) {
+  const { id } = await context.params;
+  const adventureId = id.trim();
+  if (!adventureId) {
+    return NextResponse.json({ error: "id requis." }, { status: 400 });
+  }
+
+  const adventure = await prisma.adventure.findFirst({
+    where: { id: adventureId, status: true },
+    select: {
+      id: true,
+      name: true,
+      description: true,
+      latitude: true,
+      longitude: true,
+      distance: true,
+      coverImageUrl: true,
+      physicalBadgeStockCount: true,
+      updatedAt: true,
+      city: {
+        select: {
+          id: true,
+          name: true,
+          postalCodes: true,
+          latitude: true,
+          longitude: true,
+        },
+      },
+      enigmas: {
+        orderBy: { number: "asc" },
+        select: {
+          id: true,
+          number: true,
+          name: true,
+          question: true,
+          description: true,
+          answerMessage: true,
+          latitude: true,
+          longitude: true,
+          imageUrl: true,
+          uniqueResponse: true,
+          choice: true,
+        },
+      },
+      treasure: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          latitude: true,
+          longitude: true,
+          imageUrl: true,
+        },
+      },
+    },
+  });
+
+  if (!adventure) {
+    return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    id: adventure.id,
+    name: adventure.name,
+    description: adventure.description,
+    city: adventure.city,
+    coverImageUrl: adventure.coverImageUrl,
+    latitude: adventure.latitude,
+    longitude: adventure.longitude,
+    distanceKm: adventure.distance,
+    physicalBadgeStockCount: adventure.physicalBadgeStockCount,
+    enigmas: adventure.enigmas,
+    treasure: adventure.treasure,
+    updatedAt: adventure.updatedAt.toISOString(),
+  });
+}

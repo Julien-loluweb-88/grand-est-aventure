@@ -430,8 +430,13 @@ model Treasure {
   name        String
   description Json
   latitude    Float
-  code        String
-  safeCode    String?   @default("AAA")
+  /// Combinaison / fin d’énigmes : ce que le joueur saisit pour **révéler le trésor sur la carte** (étape `treasure:map`).
+  mapRevealCode     String
+  /// Variante tolérée pour la même saisie (orthographe, etc.). Jamais exposé aux clients publics.
+  mapRevealCodeAlt  String?
+  /// Code **dans le trésor physique** (coffre, étiquette…), validé **après** la révélation sur la carte (étape `treasure`).
+  chestCode         String
+  chestCodeAlt      String?
   longitude   Float
   imageUrl    String?
   createdAt   DateTime  @default(now())
@@ -440,7 +445,7 @@ model Treasure {
   adventure   Adventure @relation(fields: [adventureId], references: [id])
 }
 
-/// Validation serveur d’une étape de parcours (`enigma:1`, …, ou `treasure`). Requis pour accepter `success: true` sur `/api/game/finish`.
+/// Validation serveur d’une étape de parcours (`enigma:1`, …, `treasure:map`, `treasure`). Requis avant finalisation sur `POST /api/game/validate-treasure` (code coffre).
 model UserAdventureStepValidation {
   id           String    @id @default(cuid())
   userId       String

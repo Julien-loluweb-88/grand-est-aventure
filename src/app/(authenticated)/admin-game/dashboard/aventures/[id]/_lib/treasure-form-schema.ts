@@ -4,19 +4,27 @@ import {
   adventureDescriptionEditZod,
 } from "@/lib/adventure-description-schema";
 
+const optionalAlt = z
+  .string()
+  .max(30, "30 caractères maximum")
+  .optional()
+  .default("");
+
 const treasureSharedFields = {
   name: z
     .string()
     .min(2, "Le nom doit contenir au moins 2 caractères")
     .max(30, "Le nom ne doit pas dépasser 30 caractères"),
-  code: z
+  mapRevealCode: z
     .string()
-    .min(2, "Le code doit contenir au moins 2 caractères")
-    .max(30, "Le code doit être maximum 30 caractères"),
-  safeCode: z
+    .min(2, "Le code de révélation carte doit contenir au moins 2 caractères")
+    .max(30, "Le code de révélation carte ne doit pas dépasser 30 caractères"),
+  mapRevealCodeAlt: optionalAlt,
+  chestCode: z
     .string()
-    .min(2, "Le code de sécurité doit contenir au moins 2 caractères")
-    .max(30, "Le code de sécurité ne doit pas dépasser 30 caractères"),
+    .min(2, "Le code coffre doit contenir au moins 2 caractères")
+    .max(30, "Le code coffre ne doit pas dépasser 30 caractères"),
+  chestCodeAlt: optionalAlt,
   latitude: z
     .coerce.number()
     .min(-90, "Latitude invalide")

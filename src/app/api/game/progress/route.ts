@@ -4,7 +4,11 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
-import { enigmaStepKey, TREASURE_STEP_KEY } from "@/lib/game/adventure-step-keys";
+import {
+  enigmaStepKey,
+  TREASURE_MAP_STEP_KEY,
+  TREASURE_STEP_KEY,
+} from "@/lib/game/adventure-step-keys";
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 120;
@@ -78,8 +82,18 @@ export async function GET(request: NextRequest) {
       missingForFinish.push(key);
     }
   }
-  if (hasTreasure && !validatedStepKeys.includes(TREASURE_STEP_KEY)) {
-    missingForFinish.push(TREASURE_STEP_KEY);
+  if (hasTreasure) {
+    const legacyTreasureOnly =
+      validatedStepKeys.includes(TREASURE_STEP_KEY) &&
+      !validatedStepKeys.includes(TREASURE_MAP_STEP_KEY);
+    if (!legacyTreasureOnly) {
+      if (!validatedStepKeys.includes(TREASURE_MAP_STEP_KEY)) {
+        missingForFinish.push(TREASURE_MAP_STEP_KEY);
+      }
+      if (!validatedStepKeys.includes(TREASURE_STEP_KEY)) {
+        missingForFinish.push(TREASURE_STEP_KEY);
+      }
+    }
   }
 
   const serverReadyForSuccessFinish =

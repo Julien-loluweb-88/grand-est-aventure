@@ -19,10 +19,11 @@ export default function DashboardApiDocsPage() {
         <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">Documentation API</h1>
         <p className="text-muted-foreground max-w-3xl text-sm leading-relaxed md:text-base">
           Spécification <strong>OpenAPI 3.1</strong>, visible uniquement après connexion avec un
-          accès au dashboard (même garde-fou que le menu d&apos;administration). Les endpoints
-          modifiant des données se comportent comme pour tout client HTTP ; cette page{" "}
-          <strong>n&apos;active pas « Try it out »</strong> pour limiter les envois accidentels
-          pendant la lecture.
+          accès au dashboard (même garde-fou que le menu d&apos;administration). Vous pouvez
+          exécuter les requêtes depuis <strong>« Try it out »</strong> : les appels partent depuis
+          votre navigateur (même origine) avec les <strong>cookies de session</strong> — comme le
+          front. Sur un environnement partagé ou en production, restez prudent sur les routes qui
+          modifient des données.
         </p>
         <ul className="text-muted-foreground list-inside list-disc space-y-1 text-sm">
           <li>

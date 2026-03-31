@@ -57,8 +57,10 @@ export function CreateTreasureForm({
     defaultValues: {
       name: "",
       description: EMPTY_TIPTAP_DOCUMENT,
-      code: "",
-      safeCode: "",
+      mapRevealCode: "",
+      mapRevealCodeAlt: "",
+      chestCode: "",
+      chestCodeAlt: "",
       latitude: 48.4072318295932,
       longitude: 6.843844487240165,
       imageUrl: "",
@@ -100,8 +102,10 @@ export function CreateTreasureForm({
       const result = await createTrasure({
         name: plain.name,
         description: plain.description,
-        code: plain.code,
-        safeCode: plain.safeCode,
+        mapRevealCode: plain.mapRevealCode,
+        mapRevealCodeAlt: plain.mapRevealCodeAlt?.trim() || null,
+        chestCode: plain.chestCode,
+        chestCodeAlt: plain.chestCodeAlt?.trim() || null,
         latitude: Number(plain.latitude),
         longitude: Number(plain.longitude),
         imageUrl: plain.imageUrl?.trim() || null,
@@ -179,7 +183,7 @@ export function CreateTreasureForm({
             displayRoutePolyline={displayRoutePolyline}
             mapHelperText={mapHelperText}
             canEdit={canEdit}
-            fieldSetDescription="Formulaire de la création de trésors"
+            fieldSetDescription="Trésor : position, texte, et codes de validation finale (combinaison attendue + variante optionnelle)."
             adventureId={params?.id ?? ""}
           />
 

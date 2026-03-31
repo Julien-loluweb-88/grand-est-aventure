@@ -9,7 +9,7 @@ Document généré à partir du schéma Prisma (`prisma/schema.prisma`), des rou
 | Zone | État |
 |------|------|
 | **Next.js** | Site public minimal (`/`), login, espace **admin** (`/admin-game`, dashboard). |
-| **API HTTP** | Jeu (progression, validation, finish, avis), publicités, badges joueur, auth Better Auth, uploads, OpenAPI protégé. |
+| **API HTTP** | Jeu (progression, validation, trésor, avis), publicités, badges joueur, auth Better Auth, uploads, OpenAPI protégé. |
 | **Client joueur** | Aucune appli mobile / front « parcours » dans ce dépôt ; les APIs supposent un consommateur externe (ex. Expo). |
 
 ---
@@ -51,7 +51,7 @@ Les tables `Adventure`, `City`, etc. existent, mais il **manque** typiquement (s
 | **Catalogue & fiche aventure (joueur)** | Pas de `GET /api/...` dédié dans ce dépôt pour équivalent « store » / carte. |
 | **Avis** | Pas de `GET` (modération admin ou public), pas d’upload `image`, pas de transition de `moderationStatus`. |
 | **Villes** | Référentiel géré en admin ; pas d’API publique **liste villes** si le client en a besoin (ex. autocomplete). |
-| **Tests** | Aucun fichier `*.test.ts` repéré ; pas de tests contractuels sur les routes critiques (finish, validations). |
+| **Tests** | Aucun fichier `*.test.ts` repéré ; pas de tests contractuels sur les routes critiques (validations, trésor). |
 
 Les routes **existantes** sont résumées dans la spec OpenAPI :  
 `src/lib/openapi/grand-est-openapi-document.ts` + UI `/admin-game/dashboard/docs/api`.
@@ -78,7 +78,7 @@ Les routes **existantes** sont résumées dans la spec OpenAPI :
 
 ## 6. Client joueur (hors ou avec ce repo)
 
-- Brancher l’app mobile (ou futur front) sur les endpoints existants : **auth**, **progress**, **validate-***, **finish**, **badges**, **publicités**, **avis**.
+- Brancher l’app mobile (ou futur front) sur les endpoints existants : **auth**, **progress**, **validate-***, **validate-treasure**, **badges**, **publicités**, **avis**.
 - Implémenter côté client les écrans manquants (avis + image + consentement déjà partiellement côté API texte).
 - Si le client est dans un **autre dépôt**, dupliquer ou partager types / contrats (OpenAPI, codegen).
 

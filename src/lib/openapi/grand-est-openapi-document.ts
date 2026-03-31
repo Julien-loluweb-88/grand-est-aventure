@@ -1,11 +1,11 @@
 /**
  * Spécification OpenAPI 3.1 de toutes les routes HTTP exposées par l’app Next.js.
  * À maintenir quand vous ajoutez ou modifiez un handler sous src/app/api/ (fichiers route.ts).
+ * L’ordre d’affichage Swagger UI suit `swagger-openapi-order.ts` (tags + chemins).
  *
  * Sécurité doc : page /admin-game/dashboard/docs/api (+ JSON /api/openapi) réservées
- * aux sessions avec accès dashboard ; Swagger UI avec « Try it out » désactivé
- * pour éviter toute exécution accidentelle vers la prod. Le JSON /api/openapi exige
- * la même session admin que le dashboard.
+ * aux sessions avec accès dashboard. Swagger UI active « Try it out » (requêtes même origine,
+ * cookies de session). Le JSON /api/openapi exige la même session admin que le dashboard.
  */
 
 export const OPENAPI_DOCUMENT_VERSION = "1.0.0";
@@ -46,12 +46,12 @@ export function buildGrandEstOpenApiDocument() {
     },
     servers: [{ url: "/", description: "Même origine que l’application" }],
     tags: [
-      { name: "Jeu", description: "Progression aventure, validation énigmes / trésor, fin de parcours, avis." },
+      { name: "Authentification", description: "Handler Better Auth (login, OAuth, session, etc.)." },
+      { name: "Jeu", description: "Découverte (catalogue, villes), progression, validation, fin de parcours, avis." },
       { name: "Publicités", description: "Liste des encarts et événements analytics (impressions / clics)." },
       { name: "Utilisateur", description: "Données liées au compte connecté." },
       { name: "Admin", description: "Contexte rôle pour le tableau de bord (proxy d’administration)." },
       { name: "Fichiers", description: "Fichiers publics du dossier `uploads/`." },
-      { name: "Authentification", description: "Handler Better Auth (login, OAuth, session, etc.)." },
     ],
     components: {
       securitySchemes: {
@@ -107,8 +107,22 @@ export function buildGrandEstOpenApiDocument() {
           required: ["ok", "stepKey"],
           properties: {
             ok: { type: "boolean", const: true },
-            stepKey: { type: "string", example: "treasure" },
+            stepKey: {
+              type: "string",
+              description: "`treasure:map` après révélation sur la carte, puis `treasure` après le code coffre.",
+              example: "treasure:map",
+            },
             alreadyValidated: { type: "boolean" },
+            awardedUserBadgeIds: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "Présent après **code coffre** (ou rattrapage legacy) : ids `UserBadge` attribués.",
+            },
+            message: {
+              type: "string",
+              description: "Présent quand l’aventure est finalisée sur cette requête.",
+            },
           },
         },
         ProgressPayload: {
@@ -151,14 +165,6 @@ export function buildGrandEstOpenApiDocument() {
             serverReadyForSuccessFinish: { type: "boolean" },
           },
         },
-        FinishOk: {
-          type: "object",
-          required: ["message", "awardedUserBadgeIds"],
-          properties: {
-            message: { type: "string", example: "Aventure terminée avec succès" },
-            awardedUserBadgeIds: { type: "array", items: { type: "string" } },
-          },
-        },
         AdventureReviewOk: {
           type: "object",
           required: ["ok", "id", "message"],
@@ -166,6 +172,42 @@ export function buildGrandEstOpenApiDocument() {
             ok: { type: "boolean", const: true },
             id: { type: "string" },
             message: { type: "string" },
+          },
+        },
+        AdventureReviewPublicItem: {
+          type: "object",
+          required: ["id", "createdAt"],
+          properties: {
+            id: { type: "string" },
+            rating: { type: ["integer", "null"], minimum: 1, maximum: 5 },
+            content: { type: ["string", "null"] },
+            imageUrl: { type: ["string", "null"] },
+            createdAt: { type: "string", format: "date-time" },
+            authorDisplayName: { type: ["string", "null"], description: "Prénom ou premier mot du nom affiché." },
+          },
+        },
+        AdventureReviewPublicListResponse: {
+          type: "object",
+          required: ["total", "limit", "offset", "reviews"],
+          properties: {
+            total: { type: "integer" },
+            limit: { type: "integer" },
+            offset: { type: "integer" },
+            reviews: { type: "array", items: { $ref: "#/components/schemas/AdventureReviewPublicItem" } },
+          },
+        },
+        AdventureReviewPublicDetail: {
+          type: "object",
+          required: ["id", "adventureId", "adventureName", "createdAt"],
+          properties: {
+            id: { type: "string" },
+            adventureId: { type: "string" },
+            adventureName: { type: "string" },
+            rating: { type: ["integer", "null"] },
+            content: { type: ["string", "null"] },
+            imageUrl: { type: ["string", "null"] },
+            createdAt: { type: "string", format: "date-time" },
+            authorDisplayName: { type: ["string", "null"] },
           },
         },
         AdvertisementListResponse: {
@@ -214,12 +256,218 @@ export function buildGrandEstOpenApiDocument() {
       },
     },
     paths: {
+      "/api/auth/{path}": {
+        get: {
+          tags: ["Authentification"],
+          summary: "Better Auth (GET)",
+          description:
+            "Catch-all Better Auth : OAuth callbacks, vérifications, etc. " +
+            "Le détail des chemins dépend de la librairie **better-auth** ; référez-vous à [la doc Better Auth](https://www.better-auth.com/docs).",
+          parameters: [{ name: "path", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": { description: "Selon l’opération auth." },
+            "302": { description: "Redirection OAuth / flow." },
+            "400": { description: "Requête invalide." },
+            "401": { description: "Non autorisé." },
+          },
+        },
+        post: {
+          tags: ["Authentification"],
+          summary: "Better Auth (POST)",
+          description: "Connexion, inscription, déconnexion, etc. — voir doc Better Auth.",
+          parameters: [{ name: "path", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            content: {
+              "application/json": { schema: { type: "object", additionalProperties: true } },
+              "application/x-www-form-urlencoded": { schema: { type: "object", additionalProperties: true } },
+            },
+          },
+          responses: {
+            "200": { description: "Succès (JSON ou cookie de session)." },
+            "400": { description: "Données invalides." },
+            "401": { description: "Échec d’authentification." },
+          },
+        },
+      },
+      "/api/game/adventures": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Catalogue mobile des aventures actives",
+          description:
+            "Liste publique \"safe\" pour app mobile (sans réponses d’énigmes ni codes trésor). " +
+            "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination.",
+          parameters: [
+            { name: "cityId", in: "query", required: false, schema: { type: "string" } },
+            { name: "q", in: "query", required: false, schema: { type: "string" } },
+            { name: "latitude", in: "query", required: false, schema: { type: "number" } },
+            { name: "longitude", in: "query", required: false, schema: { type: "number" } },
+            {
+              name: "radiusKm",
+              in: "query",
+              required: false,
+              schema: { type: "number", minimum: 0.001 },
+              description: "Nécessite latitude + longitude.",
+            },
+            {
+              name: "limit",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, maximum: 100, default: 20 },
+            },
+            {
+              name: "offset",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 0, default: 0 },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Liste paginée des aventures actives.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["total", "limit", "offset", "adventures"],
+                    properties: {
+                      total: { type: "integer" },
+                      limit: { type: "integer" },
+                      offset: { type: "integer" },
+                      adventures: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          required: ["id", "name", "enigmaCount", "hasTreasure", "updatedAt"],
+                          properties: {
+                            id: { type: "string" },
+                            name: { type: "string" },
+                            coverImageUrl: { type: ["string", "null"] },
+                            city: {
+                              type: "object",
+                              required: ["id", "name", "postalCodes"],
+                              properties: {
+                                id: { type: "string" },
+                                name: { type: "string" },
+                                postalCodes: { type: "array", items: { type: "string" } },
+                              },
+                            },
+                            latitude: { type: "number" },
+                            longitude: { type: "number" },
+                            distanceKm: { type: ["number", "null"] },
+                            distanceFromUserKm: { type: ["number", "null"] },
+                            enigmaCount: { type: "integer" },
+                            hasTreasure: { type: "boolean" },
+                            updatedAt: { type: "string", format: "date-time" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Paramètres géoloc invalides." },
+          },
+        },
+      },
+      "/api/game/adventures/{id}": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Détail mobile \"safe\" d’une aventure",
+          description:
+            "Détail public d’une aventure active, incluant énigmes et trésor " +
+            "sans exposer les champs sensibles : réponses d’énigmes (`answer`), ni les codes trésor " +
+            "(`mapRevealCode`, `chestCode`, variantes — validés uniquement via POST `/api/game/validate-treasure`).",
+          parameters: [
+            { name: "id", in: "path", required: true, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": {
+              description: "Détail aventure.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["id", "name", "city", "enigmas", "updatedAt"],
+                    properties: {
+                      id: { type: "string" },
+                      name: { type: "string" },
+                      description: { description: "JSON riche stocké en base." },
+                      city: { type: "object", additionalProperties: true },
+                      coverImageUrl: { type: ["string", "null"] },
+                      latitude: { type: "number" },
+                      longitude: { type: "number" },
+                      distanceKm: { type: ["number", "null"] },
+                      physicalBadgeStockCount: { type: "integer" },
+                      enigmas: { type: "array", items: { type: "object", additionalProperties: true } },
+                      treasure: { type: ["object", "null"], additionalProperties: true },
+                      updatedAt: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "id manquant ou invalide." },
+            "404": { description: "Aventure introuvable ou inactive." },
+          },
+        },
+      },
+      "/api/game/cities": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Référentiel villes pour app mobile",
+          description:
+            "Liste de villes pour filtres/autocomplete. " +
+            "`activeOnly=true` (défaut) limite aux villes ayant au moins une aventure active.",
+          parameters: [
+            { name: "q", in: "query", required: false, schema: { type: "string" } },
+            {
+              name: "activeOnly",
+              in: "query",
+              required: false,
+              schema: { type: "boolean", default: true },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Liste des villes.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["cities"],
+                    properties: {
+                      cities: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          required: ["id", "name", "postalCodes", "activeAdventureCount"],
+                          properties: {
+                            id: { type: "string" },
+                            name: { type: "string" },
+                            inseeCode: { type: ["string", "null"] },
+                            postalCodes: { type: "array", items: { type: "string" } },
+                            latitude: { type: ["number", "null"] },
+                            longitude: { type: ["number", "null"] },
+                            population: { type: ["integer", "null"] },
+                            activeAdventureCount: { type: "integer" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
       "/api/game/progress": {
         get: {
           tags: ["Jeu"],
           summary: "État serveur de progression",
           description:
-            "Retourne les étapes validées, les métadonnées d’aventure utilisateur et ce qui manque pour un finish en succès. " +
+            "Retourne les étapes validées, les métadonnées d’aventure utilisateur et ce qui manque pour une terminaison en succès. " +
             "Aucun secret de jeu (codes, réponses) n’est exposé.\n\n" +
             `**Rate limit** : ~120 requêtes / minute / clé. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
@@ -297,10 +545,17 @@ export function buildGrandEstOpenApiDocument() {
       "/api/game/validate-treasure": {
         post: {
           tags: ["Jeu"],
-          summary: "Valider le code trésor",
+          summary: "Valider le trésor (carte puis coffre)",
           description:
-            "Exige que toutes les énigmes soient validées au préalable. Compare le code normalisé avec `code` et éventuellement `safeCode` côté trésor.\n\n" +
-            "**Corps** : `adventureId`, `userId`, `code` (≤ 120 car.).\n\n" +
+            "**Prérequis** : toutes les énigmes doivent être validées (`validate-enigma`).\n\n" +
+            "**Deux étapes** (même route, soumissions successives) :\n" +
+            "1. **Révélation sur la carte** : le joueur envoie le code de **fin d’énigme** (`Treasure.mapRevealCode`, variante `mapRevealCodeAlt`). Réponse `stepKey` : `treasure:map`.\n" +
+            "2. **Code dans le coffre** : ensuite le code **physique** (`Treasure.chestCode`, variante `chestCodeAlt`). Réponse `stepKey` : `treasure`.\n\n" +
+            "**Corps** : `adventureId`, `userId`, `code` (≤ 120 car.), optionnellement `phase` : `\"map\"` | `\"chest\"`, et **`giftNumber`** (entier ≥ 0) au moment du **code coffre** : nombre indiqué par le joueur.\n\n" +
+            "À l’étape coffre, la route exécute **`processGameFinish`** (succès, `giftNumber`, badges virtuels, instance badge physique si stock).\n\n" +
+            "Si `phase` est omis, le serveur en déduit une : carte d’abord, puis coffre.\n\n" +
+            "**Anciennes parties** (seule clé `treasure`) : une reprise envoie `giftNumber` si la ligne `UserAdventures` n’était pas encore en succès.\n\n" +
+            "Chaque aventure prévue avec **trésor** : la finalisation (badges, `UserAdventures`) se fait **uniquement** à l’étape coffre de cette route.\n\n" +
             `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           requestBody: {
@@ -313,7 +568,24 @@ export function buildGrandEstOpenApiDocument() {
                   properties: {
                     adventureId: { type: "string" },
                     userId: { type: "string" },
-                    code: { type: "string", maxLength: 120 },
+                    phase: {
+                      type: "string",
+                      enum: ["map", "chest"],
+                      description:
+                        "Optionnel : force l’étape. Sinon déduction automatique (carte si pas encore `treasure:map`, sinon coffre).",
+                    },
+                    code: {
+                      type: "string",
+                      maxLength: 120,
+                      description:
+                        "Saisie joueur comparée aux codes trésor attendus pour l’étape (carte ou coffre), avec normalisation.",
+                    },
+                    giftNumber: {
+                      type: "integer",
+                      minimum: 0,
+                      description:
+                        "À fournir avec le **code coffre** (ou legacy) : nombre de badge(s) / cadeau côté joueur (voir logique stock physique dans `processGameFinish`).",
+                    },
                   },
                 },
               },
@@ -321,7 +593,8 @@ export function buildGrandEstOpenApiDocument() {
           },
           responses: {
             "200": {
-              description: "Trésor validé.",
+              description:
+                "Carte : `treasure:map` seulement. Coffre : `treasure` + finalisation (`awardedUserBadgeIds`, `message` si première fois).",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ValidateTreasureOk" } } },
             },
             "400": {
@@ -338,64 +611,21 @@ export function buildGrandEstOpenApiDocument() {
           },
         },
       },
-      "/api/game/finish": {
-        post: {
-          tags: ["Jeu"],
-          summary: "Terminer une aventure (badges, état userAdventure)",
-          description:
-            "Transaction serveur via `processGameFinish`. Exige que la progression serveur soit complète avant un `success: true` " +
-            "(sinon erreur avec code métier).\n\n" +
-            "**Corps** : `adventureId`, `userId`, `success` (booléen), `giftNumber` (optionnel, nombre).\n\n" +
-            `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
-          security: [{ sessionCookie: [] }],
-          requestBody: {
-            required: true,
-            content: {
-              "application/json": {
-                schema: {
-                  type: "object",
-                  required: ["adventureId", "userId", "success"],
-                  properties: {
-                    adventureId: { type: "string" },
-                    userId: { type: "string" },
-                    success: { type: "boolean" },
-                    giftNumber: { type: "number", description: "Optionnel — cadeau côté client si applicable." },
-                  },
-                },
-              },
-            },
-          },
-          responses: {
-            "200": {
-              description: "Traitement terminé.",
-              content: { "application/json": { schema: { $ref: "#/components/schemas/FinishOk" } } },
-            },
-            "400": {
-              description: "Paramètres invalides ou progression incomplète (`GameFinishProgressError`).",
-              content: {
-                "application/json": {
-                  schema: {
-                    oneOf: [{ $ref: "#/components/schemas/ErrorMessage" }, { $ref: "#/components/schemas/GameFinishErrorProgress" }],
-                  },
-                },
-              },
-            },
-            "401": { description: "Session / `userId`." },
-            "404": { description: "Aventure introuvable." },
-            "429": { description: "Trop de requêtes." },
-          },
-        },
-      },
-      "/api/game/AdventureReview": {
+      "/api/game/adventure-review": {
         post: {
           tags: ["Jeu"],
           summary: "Avis et signalements fin de parcours",
           description:
             "Crée ou met à jour un avis (unicité logique utilisateur × aventure). " +
-            "**Champs** : `adventureId`, `userId`, `rating` (1–5, chaîne ou nombre, optionnel), `content` (string), " +
-            "`consentCommunicationNetworks`, `reportsMissingBadge`, `reportsStolenTreasure` (booléens JSON stricts : `true` seulement compte comme vrai).\n\n" +
-            `**Rate limit** : ~20 req/min. ${RATE_LIMIT_NOTE}`,
-          security: [{ sessionCookie: [] }],
+            "URL réelle du handler App Router : dossier `adventure-review` (kebab-case).\n\n" +
+            "**JSON** (`application/json`) : `adventureId`, `userId`, `rating` (1–5, optionnel), `content`, `image` (URL optionnelle), " +
+            "`consentCommunicationNetworks`, `reportsMissingBadge`, `reportsStolenTreasure` (booléens stricts : `true` seulement compte comme vrai).\n\n" +
+            "**Multipart** (`multipart/form-data`) : mêmes champs en champs texte + fichier **`photo`** (ou **`image`**) pour envoyer **photo + avis en une requête** ; " +
+            "JPEG, PNG ou WebP, max 5 Mo ; l’URL publique est renvoyée côté serveur (`/uploads/reviews/...`). " +
+            "Optionnel : **`imageUrl`** si l’image est déjà hébergée ailleurs.\n\n" +
+            "Les avis **affichés publiquement** via `GET /api/game/adventure-reviews` le sont uniquement lorsque `moderationStatus` est `APPROVED` (côté base / modération).\n\n" +
+            `**Rate limit** : selon déploiement. ${RATE_LIMIT_NOTE}`,
+          security: [],
           requestBody: {
             required: true,
             content: {
@@ -408,11 +638,39 @@ export function buildGrandEstOpenApiDocument() {
                     userId: { type: "string" },
                     rating: { description: "1–5 ou omis / null pour pas de note." },
                     content: { type: "string", maxLength: 10000 },
+                    image: { type: ["string", "null"], description: "Optionnel — URL ou identifiant selon implémentation." },
                     consentCommunicationNetworks: { type: "boolean" },
                     reportsMissingBadge: { type: "boolean" },
                     reportsStolenTreasure: { type: "boolean" },
                   },
                   additionalProperties: true,
+                },
+              },
+              "multipart/form-data": {
+                schema: {
+                  type: "object",
+                  required: ["adventureId", "userId"],
+                  properties: {
+                    adventureId: { type: "string" },
+                    userId: { type: "string" },
+                    rating: { type: "string", description: "1–5 ou vide pour pas de note." },
+                    content: { type: "string", maxLength: 10000 },
+                    photo: {
+                      type: "string",
+                      format: "binary",
+                      description: "Photo d’avis (alias accepté : champ `image`).",
+                    },
+                    imageUrl: {
+                      type: "string",
+                      description: "Si l’image n’est pas envoyée en fichier mais déjà en URL.",
+                    },
+                    consentCommunicationNetworks: {
+                      type: "string",
+                      description: "Vrai si `true`, `1`, `on`, `yes` (insensible à la casse).",
+                    },
+                    reportsMissingBadge: { type: "string" },
+                    reportsStolenTreasure: { type: "string" },
+                  },
                 },
               },
             },
@@ -426,8 +684,65 @@ export function buildGrandEstOpenApiDocument() {
               description: "Validation avis (note, contenu trop long, avis vide).",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
             },
-            "401": { description: "Session / `userId`." },
             "404": { description: "Aventure introuvable." },
+            "429": { description: "Trop de requêtes." },
+          },
+        },
+      },
+      "/api/game/adventure-reviews": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Liste des avis publics (modérés)",
+          description:
+            "Retourne uniquement les avis avec **moderationStatus = APPROVED** pour une aventure active. " +
+            "Pas d’identifiant utilisateur brut : `authorDisplayName` est dérivé du prénom / premier mot du nom.",
+          parameters: [
+            {
+              name: "adventureId",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+            },
+            {
+              name: "limit",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+            },
+            {
+              name: "offset",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 0, default: 0 },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Liste paginée.",
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/AdventureReviewPublicListResponse" } },
+              },
+            },
+            "400": { description: "`adventureId` manquant." },
+            "404": { description: "Aventure introuvable ou inactive." },
+            "429": { description: "Trop de requêtes." },
+          },
+        },
+      },
+      "/api/game/adventure-reviews/{id}": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Détail d’un avis public",
+          description: "Uniquement si l’avis est **APPROVED** et l’aventure encore active.",
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: {
+            "200": {
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/AdventureReviewPublicDetail" } },
+              },
+              description: "Avis publié.",
+            },
+            "404": { description: "Avis introuvable, non approuvé ou aventure inactive." },
             "429": { description: "Trop de requêtes." },
           },
         },
@@ -577,39 +892,6 @@ export function buildGrandEstOpenApiDocument() {
             "200": { description: "Contenu fichier.", content: { "application/octet-stream": { schema: { type: "string", format: "binary" } } } },
             "400": { description: "Segments invalides." },
             "404": { description: "Fichier absent." },
-          },
-        },
-      },
-      "/api/auth/{path}": {
-        get: {
-          tags: ["Authentification"],
-          summary: "Better Auth (GET)",
-          description:
-            "Catch-all Better Auth : OAuth callbacks, vérifications, etc. " +
-            "Le détail des chemins dépend de la librairie **better-auth** ; référez-vous à [la doc Better Auth](https://www.better-auth.com/docs).",
-          parameters: [{ name: "path", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": { description: "Selon l’opération auth." },
-            "302": { description: "Redirection OAuth / flow." },
-            "400": { description: "Requête invalide." },
-            "401": { description: "Non autorisé." },
-          },
-        },
-        post: {
-          tags: ["Authentification"],
-          summary: "Better Auth (POST)",
-          description: "Connexion, inscription, déconnexion, etc. — voir doc Better Auth.",
-          parameters: [{ name: "path", in: "path", required: true, schema: { type: "string" } }],
-          requestBody: {
-            content: {
-              "application/json": { schema: { type: "object", additionalProperties: true } },
-              "application/x-www-form-urlencoded": { schema: { type: "object", additionalProperties: true } },
-            },
-          },
-          responses: {
-            "200": { description: "Succès (JSON ou cookie de session)." },
-            "400": { description: "Données invalides." },
-            "401": { description: "Échec d’authentification." },
           },
         },
       },

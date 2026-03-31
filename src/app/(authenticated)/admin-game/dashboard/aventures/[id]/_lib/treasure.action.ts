@@ -15,8 +15,10 @@ export type CreateTrasureInput = {
   description: Prisma.InputJsonValue;
   latitude: number;
   longitude: number;
-  code: string;
-  safeCode: string;
+  mapRevealCode: string;
+  mapRevealCodeAlt: string | null;
+  chestCode: string;
+  chestCodeAlt: string | null;
   imageUrl?: string | null;
   adventureId: string;
 };
@@ -42,8 +44,10 @@ export async function createTrasure(
         description: form.description,
         latitude: form.latitude,
         longitude: form.longitude,
-        code: form.code,
-        safeCode: form.safeCode,
+        mapRevealCode: form.mapRevealCode,
+        mapRevealCodeAlt: form.mapRevealCodeAlt,
+        chestCode: form.chestCode,
+        chestCodeAlt: form.chestCodeAlt,
         imageUrl: form.imageUrl?.trim() || null,
         adventureId: form.adventureId,
       },
@@ -84,8 +88,10 @@ export async function updateTreasure(
         description: form.description,
         latitude: form.latitude,
         longitude: form.longitude,
-        code: form.code,
-        safeCode: form.safeCode,
+        mapRevealCode: form.mapRevealCode,
+        mapRevealCodeAlt: form.mapRevealCodeAlt,
+        chestCode: form.chestCode,
+        chestCodeAlt: form.chestCodeAlt,
         imageUrl: form.imageUrl?.trim() || null,
       },
     });

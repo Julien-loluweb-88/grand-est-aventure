@@ -66,6 +66,7 @@ export async function processGameFinish(
     userId: string;
     success: boolean;
     /** Utilisé seulement s’il n’y a pas de stock physique géré. */
+    /** Saisi au code coffre (`validate-treasure`, corps `giftNumber`). */
     clientGiftNumber?: number;
   }
 ): Promise<{ awardedUserBadgeIds: string[] }> {
