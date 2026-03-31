@@ -10,22 +10,23 @@ import { RemoveAdventureForm } from "./RemoveAdventure";
 import { AdventureAdminAssigneesForm } from "./AdventureAdminAssigneesForm";
 import type { AdventureAdminScopeEditorResult } from "../_lib/adventure-admin-scope-queries";
 import { UserAdventuresComponent } from "./UserAdventuresComponent";
-
-
+import { ListAdventureReview } from "./ListAdventureReview";
 
 export function AdventureAdminModerationAside({
   adventureId,
   adventureName,
   adminScopeSection,
-  userAdventures
+  userAdventures,
+  adventureReviews
 }: {
   adventureId: string;
   adventureName: string;
   adminScopeSection: AdventureAdminScopeEditorResult | null;
   userAdventures : [] | null
+  adventureReviews: [] | null
 }
 ) {
-
+console.log("adventureReview", adventureReviews)
   return (
     <aside className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4">
       <Card>
@@ -44,9 +45,21 @@ export function AdventureAdminModerationAside({
           <CardTitle>Liste des utilisateurs sur cette aventure</CardTitle>
         </CardHeader>
         <CardContent className="mx-auto flex w-full max-w-xs flex-col gap-3">
-        <UserAdventuresComponent   userAdventures={userAdventures ?? []}/>
+        <UserAdventuresComponent userAdventures={userAdventures ?? []}/>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Des avis d&apos;utilisateurs sur cette aventure</CardTitle>
+        </CardHeader>
+        <CardContent className="mx-auto flex w-full max-w-xs flex-col gap-3">
+        <ListAdventureReview adventureReviews={adventureReviews ?? []} /> 
+        </CardContent>
+      </Card>
+
+
+
 
       {adminScopeSection?.ok ? (
         <Card>

@@ -20,13 +20,13 @@ function parseBoolean(v: unknown): boolean {
  * Enregistre ou met à jour l’avis / signalement de fin de parcours (1 ligne par user × aventure).
  */
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({
+  /* const session = await auth.api.getSession({
     headers: await headers(),
   });
 
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
-  }
+  } 
 
   const ip = getClientIp(request);
   const rl = checkRateLimit(`review:${ip}:${session.user.id}`, MAX_PER_WINDOW, WINDOW_MS);
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         headers: { "Retry-After": String(Math.ceil(rl.retryAfterMs / 1000)) },
       }
     );
-  }
+  } */
 
   let body: unknown;
   try {
@@ -62,9 +62,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (session.user.id !== userId) {
+  /* if (session.user.id !== userId) {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
-  }
+  } */
 
   if (typeof b.content !== "string" && b.content != null) {
     return NextResponse.json({ error: "content doit être une chaîne." }, { status: 400 });

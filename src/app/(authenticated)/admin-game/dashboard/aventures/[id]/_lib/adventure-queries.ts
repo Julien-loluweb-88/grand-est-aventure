@@ -43,6 +43,21 @@ export async function getAdventureById(id: string) {
             } 
           }
          }
+      },
+      adventureReviews: {
+        where: { adventureId: id, },
+        orderBy: {
+        createdAt: "desc",
+      },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+            }
+          }
+        }
+
       }
     },
   });
