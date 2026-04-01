@@ -4,7 +4,7 @@ import { LoginForm } from "@/components/login-form"
 
 export default function Page() {
   return (
-    <div className="flex min-h-svh w-full flex-col items-center justify-center p-6 md:p-10">
+    <div className="flex w-full flex-1 flex-col items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
         <Suspense fallback={<div className="text-muted-foreground text-sm">Chargement…</div>}>
           <LoginForm />

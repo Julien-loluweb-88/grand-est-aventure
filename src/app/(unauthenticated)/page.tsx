@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
@@ -11,8 +10,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -23,30 +20,8 @@ import {
 
 export default function Home() {
   return (
-    <div className="text-[#281401] relative min-h-screen flex flex-col overflow-hidden bg-[#fef0c7]">
-      <Image
-      src="/images/background.jpg"
-      alt=""
-      fill
-      className="object-cover"
-      />
-      <div className="relative z-10 px-4 py-16">
-      <header className="flex justify-between p-5">
-        <div className="flex gap-5">
-        <BrandMark height={50} className="bg-transparent"/>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Balad&apos;indice
-        </h1>
-        </div>
-        <nav className="flex gap-6">
-          <Link href="#comment-ca-marche" className="hover:underline">Comment ça marche?</Link>
-          <Link href="#questions" className="hover:underline">Questions</Link>
-          <Link href="#reviews" className="hover:underline">Avis</Link>
-        </nav>
-        <Button className="bg-[#68a618] text-base">Télécharger l&apos;application</Button>
-      </header>
-      <div className="flex-1 flex flex-col items-center justify-center z-10 relative px-4">
-      <main className="max-w-6xl flex flex-col items-center text-center justify-center gap-8 mx-auto bg-[#fffaeb] p-5">
+    <div className="flex flex-1 flex-col items-center justify-center px-0 py-4">
+      <main className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-8 bg-[#fffaeb] p-5 text-center">
           <BrandMark height={150} className="bg-transparent"/>
          <div className="mb-6 flex flex-col justify-center gap-8">
           <h1 className="text-4xl font-semibold tracking-tight">
@@ -329,37 +304,6 @@ export default function Home() {
             </Button>
           </div>
         </main>
-      </div>
-
-      <footer className="max-w-6xl flex flex-col items-center text-center justify-center gap-8 mx-auto bg-[#fffaeb] p-5 border-t">
-        <div className="flex flex-row justify-between">
-        <p className="text-sm">&copy; 2026 LoluWeb Tous droits réservés</p>
-        <nav className="flex gap-6">
-      
-          <Link href="#" className="hover:underline">Contact</Link>
-          <Link href="#" className="hover:underline">Mention légales</Link>
-          <Link href="#" className="hover:underline">Politique de confidentialité</Link>
-          <Link href="#" className="hover:underline">Conditions d’utilisation</Link>
-          <Link href="#" className="hover:underline">Droit applicable : France</Link>
-  
-        </nav>
-        </div>
-        {/*Pour admin */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center border-t pt-4">
-          <p className="mt-4 text-sm text-muted-foreground">
-          Plateforme de gestion des parcours et du contenu. L’accès au tableau
-          de bord est réservé aux équipes habilitées.
-          </p>
-          <Link
-            href="/admin-game"
-            className="inline-flex h-8 items-center justify-center rounded-none px-6 text-sm text-primary-foreground hover:bg-primary/90 bg-[#68a618] "
-          >
-            Espace administration
-          </Link>
-          </div>
-      </footer>
-      </div>
-      </div>
-   
+    </div>
   );
 }

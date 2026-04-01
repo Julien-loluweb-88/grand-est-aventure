@@ -9,12 +9,11 @@ export default function ResetPasswordPage() {
   })
 
   return (
-    <><div className="w-screen p-10 flex justify-center items-center">
+    <div className="flex w-full flex-1 flex-col items-center justify-center p-6 md:p-10">
       <ResetPasswordFormComponent
         passwordForm={passwordForm}
         setPasswordForm={setPasswordForm}
       />
     </div>
-    </>
   )
 }
