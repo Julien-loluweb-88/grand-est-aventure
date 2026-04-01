@@ -82,7 +82,7 @@ export default function Home() {
     </blockquote>
      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">Étape 3</h3>
     <blockquote className="mt-6 border-l-2 pl-6">
-    Cherche et scanne des codes QR, trouve les réponses aux énigeme,
+    Cherche et scanne des codes QR, trouve les réponses aux énigemes,
     et la réponse te guidera vers le prochain QR code(énigme)
     </blockquote>
     </div>
