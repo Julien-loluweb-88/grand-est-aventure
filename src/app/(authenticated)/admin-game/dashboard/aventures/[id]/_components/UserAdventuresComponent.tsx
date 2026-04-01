@@ -5,7 +5,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -17,9 +16,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  TableFooter,
 } from "@/components/ui/table"
-import { Timestamp } from "next/dist/server/lib/cache-handlers/types"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { Input } from "@/components/ui/input"
 
 const PAGE_SIZE = 5
 
@@ -35,16 +36,103 @@ const PAGE_SIZE = 5
         }
     }
 
+    type Props = {
+  userAdventures: UserAdventure[]
+  total: number
+  page: number
+  search: string
+  loadError: string | null
+}
 
-export function UserAdventuresComponent({userAdventures}: {userAdventures: UserAdventure[]}){
-    console.log("userAdventure123", userAdventures)
+
+export function UserAdventuresComponent({
+  userAdventures,
+  total,
+  page,
+  search,
+  loadError,
+}: Props) {
+  const router = useRouter()
+  const [searchInput, setSearchInput] = useState(search)
+  const [debouncedSearch, setDebouncedSearch] = useState(search)
+
+  useEffect(() => {
+  setSearchInput(search)
+  }, [search])
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setDebouncedSearch(searchInput.trim())
+    }, 400)
+    return () => clearTimeout(t)
+  }, [searchInput])
+
+  useEffect(() => {
+    if (debouncedSearch === search) return
+    const params = new URLSearchParams()
+    if (debouncedSearch) params.set("search", debouncedSearch)
+    params.set("page", "1")
+  }, [debouncedSearch, router, search])
+
+  useEffect(() => {
+    if (loadError) toast.error(loadError)
+  }, [loadError])
+
+  const totalPages = total > 0 ? Math.max(1, Math.ceil(total / PAGE_SIZE)) : 1
+  const canPrev = page > 1
+  const canNext = page < totalPages
+  const showEmptyState = !loadError && userAdventures.length === 0
+
 
     return(
-        <Dialog>
+        <Dialog> 
       <DialogTrigger asChild>
         <Button variant="outline">Voir des utilisateurs</Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="!max-w-[95vw] overflow-x-auto p-4">
+         <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Input
+          type="search"
+          placeholder="Rechercher par nom ou date"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="max-w-sm"
+          aria-label="Rechercher une aventure (nom ou date, sans tenir compte des majuscules)"
+          autoComplete="off"
+        />
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canPrev}
+            onClick={() => {
+              const params = new URLSearchParams()
+              if (search) params.set("search", search)
+              params.set("page", String(Math.max(1, page - 1)))
+            }}
+          >
+            Précédent
+          </Button>
+          <span className="min-w-[120px] text-center tabular-nums" aria-live="polite">
+            <>Page {page} sur {totalPages}</>
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={!canNext}
+            onClick={() => {
+              const params = new URLSearchParams()
+              if (search) params.set("search", search)
+              params.set("page", String(page + 1))
+            }}
+          >
+            Suivant
+          </Button>
+          </div>
+          </div>
         <DialogHeader>
           <DialogTitle>Liste des utilisateures</DialogTitle>
           <DialogDescription>
@@ -69,7 +157,9 @@ export function UserAdventuresComponent({userAdventures}: {userAdventures: UserA
  ))}
       </TableBody>
     </Table>   
+    </div>
       </DialogContent>
     </Dialog>
+  
     )
 }
