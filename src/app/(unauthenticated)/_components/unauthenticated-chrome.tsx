@@ -62,12 +62,12 @@ function PublicFooter() {
       </div>
       <div className="flex w-full flex-col gap-3 border-t border-[#281401]/10 pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          Plateforme de gestion des parcours et du contenu. L&apos;accès au
-          tableau de bord est réservé aux équipes habilitées.
+          Plateforme de gestion des parcours et du contenu.
+          <br /> L&apos;accès au tableau de bord est réservé aux équipes habilitées.
         </p>
         <Link
           href="/admin-game"
-          className="inline-flex h-8 shrink-0 items-center justify-center rounded-none bg-[#68a618] px-6 text-sm text-primary-foreground hover:bg-primary/90"
+          className="inline-flex h-8 shrink-0 items-center justify-center rounded-none bg-gray-400 px-6 text-sm text-primary-foreground hover:bg-primary/90"
         >
           Espace administration
         </Link>
@@ -78,7 +78,7 @@ function PublicFooter() {
 
 export function UnauthenticatedChrome({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#fef0c7] text-[#281401]">
+    <div className="relative flex min-h-screen flex-col bg-[#fef0c7] text-[#281401]">
       <Image
         src="/images/background.jpg"
         alt=""

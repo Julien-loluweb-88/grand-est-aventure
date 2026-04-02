@@ -13,16 +13,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { getFiveStarReviews } from "./acceuil.action";
+import { getFiveStarReviews, getSampleAdventure } from "./acceuil.action";
+import  AdventureMapClient  from "./_components/adventureMap";
 
 export default async function Home() {
   const reviews = await getFiveStarReviews(5);
-  
+  const adventure = await getSampleAdventure();
+  if (!adventure) return <p>Aventure introuvable</p>;
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-0 py-4">
       <main className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-8 bg-[#fffaeb] p-5 text-center">
           <BrandMark height={150} className="bg-transparent"/>
-         <div className="mb-6 flex flex-col justify-center gap-8">
+         <div className="mb-6 flex flex-col justify-center gap-8 p-5">
           <h1 className="text-4xl font-semibold tracking-tight">
             Balad&apos;indice
           </h1>
@@ -35,7 +38,12 @@ export default async function Home() {
             et résous des énigmes. Au bout de l’aventure, un trésor t’attend!
           </p>
           </div>
-  
+    <section>
+    <div className="flex flex-col items-center gap-3 p-4">
+      <h2 className="text-3xl tracking-tight">Aventure {adventure.name} à {adventure.city.name}</h2>
+      <AdventureMapClient adventure={adventure} />
+    </div>
+    </section>
 
   <section className="flex flex-col gap-5">
          <h2 id="comment-ca-marche" className="text-3xl font-semibold tracking-tight border-b scroll-mt-24">Comment ça marche?</h2>
@@ -173,16 +181,25 @@ export default async function Home() {
       </CardHeader>
       <CardContent className="text-base">
         {review.content}
+        {review.image && (
+          <Image
+          src={review.image}
+          alt={`Photo de ${review.user.name}`}
+          width={300}
+          height={200}
+          className="mt-3 rounded-md object-cover w-full h-48"
+          />
+        )} 
       </CardContent>
       </Card>
       ))}
       </div>
   </section>
-          <div>
+          <div className="mb-8">
             <h2 className="text-xl font-semibold tracking-tight py-5">
               Prêt à commencer ton aventure?
             </h2>
-            <Button className="bg-[#68a618] text-lg">
+            <Button className="bg-[#68a618] text-lg p-5">
               Télécharger l&apos;application gratuitement
             </Button>
           </div>
