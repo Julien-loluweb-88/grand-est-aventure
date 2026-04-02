@@ -36,21 +36,20 @@ const PAGE_SIZE = 5
         }
     }
 
-    type Props = {
+  type Props = {
   userAdventures: UserAdventure[]
-  total: number
-  page: number
-  search: string
-  loadError: string | null
+  total?: number
+  page?: number
+  search?: string
+  loadError?: string | null
 }
-
 
 export function UserAdventuresComponent({
   userAdventures,
-  total,
-  page,
-  search,
-  loadError,
+  total = 0,
+  page = 1,
+  search = "",
+  loadError = null,
 }: Props) {
   const router = useRouter()
   const [searchInput, setSearchInput] = useState(search)

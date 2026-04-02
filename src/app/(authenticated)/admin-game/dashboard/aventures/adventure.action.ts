@@ -165,8 +165,8 @@ if (!(await userHasPermissionServer({ permissions: { adventure: ["read"] } }))) 
     q.length > 0
       ? {
           OR: [
-            { user: { name: { contains: q, mode: "insensitive" as const} } },
-            { adventure: { name: { contains: q, mode: "insensitive" as const } } },
+            { user: { is: { name: { contains: q, mode: "insensitive" as const}} } },
+            { adventure:{ is: { name: { contains: q, mode: "insensitive" as const } }} },
           ],
         }
       : {}
@@ -202,7 +202,7 @@ const scopedWhere = {
     ])
 
     return { ok: true, 
-      userAdventure: userAdventure.map((ua) => ({
+      userAdventures: userAdventures.map((ua) => ({
         id: ua.id,
       adventureId: ua.adventureId,
       giftNumber: ua.giftNumber,
