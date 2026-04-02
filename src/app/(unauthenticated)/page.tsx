@@ -162,7 +162,7 @@ export default async function Home() {
   <section>
     <h2 id="reviews" className="text-3xl font-semibold tracking-tight border-b scroll-mt-24 p-5">
       Témoignages d&apos;aventuriers</h2>
-      <div className="flex flex-row justify-between gap-5 p-5">
+      <div className="columns-1 sm:columns-2 md:columns-3 gap-5 p-5">
         {reviews.map((review) => (
       <Card key={review.id} className="p-5">
         <CardHeader>

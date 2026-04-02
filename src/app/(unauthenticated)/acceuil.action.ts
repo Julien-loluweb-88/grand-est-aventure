@@ -5,7 +5,9 @@ import type { JsonValue } from "type-fest";
 
 export async function getFiveStarReviews (rating: number ) {
     return await prisma.adventureReview.findMany({
-        where: { rating },
+        where: { rating,
+          consentCommunicationNetworks: true
+         },
             include: {
             user: true,
             },
