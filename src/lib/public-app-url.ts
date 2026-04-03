@@ -21,12 +21,9 @@ export function getResetPasswordRedirectUrl(): string {
  * URL de retour après clic sur le lien de vérification (param `callbackURL` Better Auth).
  * Doit être une origine autorisée : utiliser une URL absolue si `NEXT_PUBLIC_BETTER_AUTH_URL` est défini.
  */
-export function getEmailVerificationCallbackUrl(
-  context: "login" | "admin-game"
-): string {
+export function getEmailVerificationCallbackUrl(): string {
   const origin = getPublicAppOrigin();
-  const path =
-    context === "login" ? "/login?verified=1" : "/admin-game?verified=1";
+  const path = "/admin-game?verified=1";
   if (!origin) {
     return path;
   }

@@ -77,7 +77,7 @@ Ce script exécute `prisma generate` et `prisma db push`. En équipe, préférez
 npm run dev
 ```
 
-- **Site public** : [http://localhost:3000](http://localhost:3000) (accueil, lien connexion)
+- **Site public** : [http://localhost:3000](http://localhost:3000) (accueil)
 - **Administration** : [http://localhost:3000/admin-game](http://localhost:3000/admin-game) (après authentification compte autorisé)
 
 Les fichiers uploadés côté contenu sont stockés sous le dossier **`uploads/`** à la racine du dépôt ; ils sont servis publiquement via la réécriture Next (`/uploads/...` → API dédiée).

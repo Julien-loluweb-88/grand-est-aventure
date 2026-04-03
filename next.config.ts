@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/login",
+        destination: "/admin-game",
+        permanent: false,
+      },
+      {
         source: "/admin-game/dashboard/demandes-aventures",
         destination: "/admin-game/dashboard/demandes",
         permanent: true,

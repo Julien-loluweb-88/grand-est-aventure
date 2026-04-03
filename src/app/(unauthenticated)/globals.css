@@ -121,9 +121,15 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply m-0 min-h-dvh bg-background p-0 text-foreground;
   }
   html {
-    @apply font-mono;
+    @apply min-h-dvh font-mono;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
   }
 }

@@ -1,8 +1,6 @@
 "use client"
 
-import { useCallback, useMemo, useState } from "react"
-import Link from "next/link"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,96 +18,11 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { authClient } from "@/lib/auth-client"
-import {
-  getEmailVerificationCallbackUrl,
-  getResetPasswordRedirectUrl,
-} from "@/lib/public-app-url"
+import { getResetPasswordRedirectUrl } from "@/lib/public-app-url"
 import { toast } from "sonner"
-import {
-  EmailVerificationPrompt,
-  EmailVerificationQueryToasts,
-  isEmailNotVerifiedAuthError,
-} from "@/components/email-verification-prompt"
 import { DiscordSignInButton } from "@/components/discord-sign-in-button"
 import { FacebookSignInButton } from "@/components/facebook-sign-in-button"
 import { GoogleSignInButton } from "@/components/google-sign-in-button"
-import { BrandMark } from "@/components/brand-mark"
-
-function safeCallbackUrl(raw: string | null): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//")) {
-    return "/"
-  }
-  return raw
-}
-
-/** Connexion unique pour `/login` : utilise `?callbackUrl=` après redirection depuis l’admin. */
-export function LoginForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const callbackUrl = useMemo(
-    () => safeCallbackUrl(searchParams.get("callbackUrl")),
-    [searchParams]
-  )
-
-  const [signInForm, setSignInForm] = useState({
-    email: "",
-    password: "",
-  })
-  const [loading, setLoading] = useState(false)
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<
-    string | null
-  >(null)
-  const verificationCallbackUrl = getEmailVerificationCallbackUrl("login")
-
-  const handleSignIn = useCallback(
-    async (e: React.FormEvent<HTMLFormElement>) => {
-      e.preventDefault()
-      setPendingVerificationEmail(null)
-      setLoading(true)
-      const { error } = await authClient.signIn.email({
-        email: signInForm.email,
-        password: signInForm.password,
-        callbackURL: callbackUrl,
-      })
-      setLoading(false)
-      if (error) {
-        if (isEmailNotVerifiedAuthError(error)) {
-          setPendingVerificationEmail(signInForm.email.trim())
-          toast.error(error.message)
-          return
-        }
-        toast.error(error.message)
-        return
-      }
-      router.push(callbackUrl)
-    },
-    [callbackUrl, router, signInForm.email, signInForm.password]
-  )
-
-  return (
-    <>
-      <div className="mb-6 flex justify-center">
-        <BrandMark height={80} />
-      </div>
-      <EmailVerificationQueryToasts />
-      {pendingVerificationEmail ? (
-        <EmailVerificationPrompt
-          className="mb-4 rounded-none border border-border bg-muted/40 p-4 text-sm text-foreground"
-          email={pendingVerificationEmail}
-          callbackURL={verificationCallbackUrl}
-        />
-      ) : null}
-      <LoginFormComponent
-        signInForm={signInForm}
-        setSignInForm={setSignInForm}
-        handleSignIn={handleSignIn}
-        loading={loading}
-        oauthCallbackURL={callbackUrl}
-        signupHintVariant="public-login"
-      />
-    </>
-  )
-}
 
 type LoginFormProps = {
   className?: string
@@ -130,8 +43,6 @@ type LoginFormProps = {
    * `NEXT_PUBLIC_FACEBOOK_CLIENT_ID`, `NEXT_PUBLIC_DISCORD_CLIENT_ID`).
    */
   oauthCallbackURL?: string
-  /** `/login` : lien vers /admin-game. `/admin-game` : texte « onglet Inscription ». */
-  signupHintVariant?: "public-login" | "admin-tabs"
 }
 
 export function LoginFormComponent({
@@ -141,7 +52,6 @@ export function LoginFormComponent({
   handleSignIn,
   loading,
   oauthCallbackURL,
-  signupHintVariant = "admin-tabs",
 }: LoginFormProps) {
 
 const handleForgotPassword = async () => {
@@ -232,20 +142,7 @@ const handleForgotPassword = async () => {
                 ) : null}
 
                 <FieldDescription className="text-center">
-                  {signupHintVariant === "public-login" ? (
-                    <>
-                      Compte équipe (création d’aventures) :{" "}
-                      <Link
-                        href="/admin-game"
-                        className="font-medium text-foreground underline underline-offset-4 hover:no-underline"
-                      >
-                        inscription sur /admin-game
-                      </Link>
-                      .
-                    </>
-                  ) : (
-                    <>Pas encore de compte ? Utilisez l’onglet « Inscription ».</>
-                  )}
+                  Pas encore de compte ? Utilisez l’onglet « Inscription ».
                 </FieldDescription>
               </Field>
             </FieldGroup>

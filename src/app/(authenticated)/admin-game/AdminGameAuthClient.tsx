@@ -20,7 +20,7 @@ const ADMIN_ROLES = ["admin", "superadmin"] as const;
 export function AdminGameAuthClient() {
   const { data: session } = authClient.useSession();
   const router = useRouter();
-  const verificationCallbackUrl = getEmailVerificationCallbackUrl("admin-game");
+  const verificationCallbackUrl = getEmailVerificationCallbackUrl();
 
   useEffect(() => {
     if (
@@ -143,12 +143,12 @@ export function AdminGameAuthClient() {
         </Tabs>
       </div>
       <p className="mt-8 max-w-md text-center text-sm text-muted-foreground">
-        Connexion grand public (sans accès admin) :{" "}
+        Site grand public et application joueur :{" "}
         <Link
-          href="/login"
+          href="/"
           className="font-medium text-foreground underline underline-offset-4 hover:no-underline"
         >
-          /login
+          retour à l&apos;accueil
         </Link>
       </p>
     </div>

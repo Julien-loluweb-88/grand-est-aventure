@@ -69,7 +69,7 @@ export function EmailVerificationPrompt({
   );
 }
 
-/** À placer dans un `<Suspense>` (ex. page login / admin-game) : toasts + nettoyage de l’URL. */
+/** À placer dans un `<Suspense>` (ex. page `/admin-game`) : toasts + nettoyage de l’URL. */
 export function EmailVerificationQueryToasts() {
   const searchParams = useSearchParams();
   const pathname = usePathname();

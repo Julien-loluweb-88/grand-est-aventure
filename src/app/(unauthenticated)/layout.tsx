@@ -35,11 +35,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" className={cn("font-mono", jetbrainsMono.variable)}>
+    <html
+      lang="fr"
+      className={cn(
+        "scroll-smooth scroll-pt-19 font-mono",
+        jetbrainsMono.variable
+      )}
+    >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <UnauthenticatedChrome>{children}</UnauthenticatedChrome>
+        <UnauthenticatedChrome>
+          <main
+            id="contenu-principal"
+            className="flex min-h-0 min-w-0 w-full flex-1 flex-col"
+          >
+            {children}
+          </main>
+        </UnauthenticatedChrome>
       </body>
     </html>
   );

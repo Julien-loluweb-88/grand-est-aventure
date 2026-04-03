@@ -21,7 +21,7 @@ export default async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (!session?.user) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/admin-game", request.url));
   }
 
   const permCtxRes = await fetch(
@@ -32,7 +32,7 @@ export default async function proxy(request: NextRequest) {
     }
   );
   if (!permCtxRes.ok) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(new URL("/admin-game", request.url));
   }
   const permCtx = (await permCtxRes.json()) as { role?: string };
   const role = permCtx.role;
