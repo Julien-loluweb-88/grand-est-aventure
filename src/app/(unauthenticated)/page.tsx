@@ -23,16 +23,16 @@ export default async function Home() {
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-0 py-4">
-      <main className="mx-auto flex max-w-6xl flex-col items-center justify-center gap-8 bg-[#fffaeb] p-5 text-center">
+      <main className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-8 p-5 text-center">
           <BrandMark height={150} className="bg-transparent"/>
          <div className="mb-6 flex flex-col justify-center gap-8 p-5">
-          <h1 className="text-4xl font-semibold tracking-tight">
+          <h1 className="text-5xl font-bold tracking-tight text-shadow-lg/20">
             Balad&apos;indice
           </h1>
-          <p className="text-3xl tracking-tight">
+          <h2 className="text-3xl tracking-tight text-[#f78904] font-semibold">
             Pars à l&apos;aventure avec Balad’indice et ton téléphone
-          </p>
-          <p>
+          </h2>
+          <p className="text-lg">
             Balad’indice transforme la ville en une grande chasse au trésor.
             Scanne des QR codes avec ton téléphone, découvre des indices cachés
             et résous des énigmes. Au bout de l’aventure, un trésor t’attend!
@@ -45,53 +45,62 @@ export default async function Home() {
     </div>
     </section>
 
-  <section className="flex flex-col gap-5">
-         <h2 id="comment-ca-marche" className="text-3xl font-semibold tracking-tight border-b scroll-mt-24">Comment ça marche?</h2>
-         <div className="flex flex-row gap-5 p-5">
+  <section className="relative flex flex-col gap-5">
+     <Image
+        src="/images/roadbg.png"
+        alt=""
+        fill
+        className="object-cover shadow-md"
+        priority
+      />
+      <div className="relative z-10 p-8">
+         <h2 id="comment-ca-marche" className="text-3xl font-semibold text-[#39951a] tracking-tight border-b scroll-mt-24 mt-6">Comment ça marche?</h2>
+         <div className="flex flex-row gap-5 p-5 mt-6">
          <Image
          src="/images/scanQr.png"
          alt="Smartphone"
-         width={350}
-         height={350}
+         width={300}
+         height={300}
          />
        <div className="flex flex-col gap-3 text-left">
          <h3 className="scroll-m-20 text-2xl  font-semibold tracking-tight">Étape 1</h3>
-         <blockquote className="mt-6 border-l-2 pl-6">
+         <blockquote className="mt-6 font-medium border-l-2 pl-6">
       Télécharge l&apos;application de Balad&apos;indice sur ton smartphone.
     </blockquote>
     <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">Étape 2</h3>
-    <blockquote className="mt-6 border-l-2 pl-6">
+    <blockquote className="mt-6 font-medium border-l-2 pl-6">
     Découvre des aventures dans ta ville.
     </blockquote>
      <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">Étape 3</h3>
-    <blockquote className="mt-6 border-l-2 pl-6">
+    <blockquote className="mt-6 font-medium border-l-2 pl-6">
     Cherche et scanne des codes QR, trouve les réponses aux énigemes,
     et la réponse te guidera vers le prochain QR code(énigme)
     </blockquote>
     </div>
     </div>
-    <div className="flex flex-row gap-5 p-5">
+    <div className="flex flex-row justify-between gap-5 p-5">
       <div className="flex flex-col gap-3 text-left">
     <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">Étape 4</h3>
-    <blockquote className="mt-6 border-l-2 pl-6">
+    <blockquote className="mt-6 font-medium border-l-2 pl-6">
     Continue à résoudre les énigemes...
     </blockquote>
     <h3 className="scroll-m-20 text-2xl font-semibold tracking-tight">Étape 5</h3>
-    <blockquote className="mt-6 border-l-2 pl-6">
+    <blockquote className="mt-6 font-medium border-l-2 pl-6">
     Et Ta-da!! Les réponses aux énigemes te guideront jusqu’au trésor !
     </blockquote>
     </div>
     <Image
     src="/images/treasureia.png"
     alt="Tréasor"
-    width={350}
-    height={350}
+    width={300}
+    height={300}
     />
+    </div>
     </div>
   </section>
 
   <section>
-    <h2 id="questions" className="text-3xl font-semibold tracking-tight border-b scroll-mt-24 p-5">Questions fréquentes</h2>
+    <h2 id="questions" className="text-3xl font-semibold text-[#39951a] tracking-tight border-b scroll-mt-24 p-5">Questions fréquentes</h2>
     <Accordion
       type="single"
       collapsible
@@ -160,7 +169,7 @@ export default async function Home() {
     </Accordion>
   </section>
   <section>
-    <h2 id="reviews" className="text-3xl font-semibold tracking-tight border-b scroll-mt-24 p-5">
+    <h2 id="reviews" className="text-3xl font-semibold text-[#39951a] tracking-tight border-b scroll-mt-24 p-5">
       Témoignages d&apos;aventuriers</h2>
       <div className="columns-1 sm:columns-2 md:columns-3 gap-5 p-5">
         {reviews.map((review) => (
@@ -196,7 +205,7 @@ export default async function Home() {
       </div>
   </section>
           <div className="mb-8">
-            <h2 className="text-xl font-semibold tracking-tight py-5">
+            <h2 className="text-xl font-semibold text-[#f78904] tracking-tight py-5">
               Prêt à commencer ton aventure?
             </h2>
             <Button className="bg-[#68a618] text-lg p-5">

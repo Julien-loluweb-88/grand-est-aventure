@@ -78,14 +78,7 @@ function PublicFooter() {
 
 export function UnauthenticatedChrome({ children }: { children: ReactNode }) {
   return (
-    <div className="relative flex min-h-screen flex-col bg-[#fef0c7] text-[#281401]">
-      <Image
-        src="/images/background.jpg"
-        alt=""
-        fill
-        className="object-cover"
-        priority
-      />
+    <div className="flex min-h-screen flex-col bg-[#fffaeb] text-[#281401]">
       <div className="relative z-10 flex min-h-screen flex-1 flex-col px-4 py-6 sm:py-10">
         <LandingHeader />
         <div className="flex flex-1 flex-col">{children}</div>
