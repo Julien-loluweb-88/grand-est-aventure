@@ -1,7 +1,7 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import type { AdventureWithMarkers } from "../acceuil.action"
+import type { AdventureWithMarkers, LocationPickerContextMarker  } from "../acceuil.action"
 import { MapPin, Route } from "lucide-react";
 
 
@@ -11,52 +11,31 @@ const AdventureReadOnlyMap = dynamic(
 );
 
 type AdventureMapProps = {
-    adventure: AdventureWithMarkers;
+    adventures: AdventureWithMarkers[];
 };
 
-export default function AdventureMapClient({ adventure }: AdventureMapProps) {
+export default function AdventureMapClient({ adventures }: AdventureMapProps) {
   const mapNoop = () => {};
   if (typeof window === "undefined") return null;
 
-  function formatCoord(n: number) {
-  return n.toLocaleString("fr-FR", {
-    minimumFractionDigits: 5,
-    maximumFractionDigits: 5,
-  });
-}
+  const departureMarkers: LocationPickerContextMarker[] = adventures.flatMap((adv) =>
+  adv.mapContextMarkers.filter((m) => m.kind === "departure")
+  );
+
+  const initialLat = departureMarkers[0]?.latitude ?? 0;
+  const initialLng = departureMarkers[0]?.longitude ?? 0;
 
   return (
     <div className="flex flex-col items-center text-center gap-3">
-              <p className="text-base font-medium uppercase tracking-wide text-muted-foreground/90">
-                Distance parcours
-              </p>
-              <div className="flex flex-row gap-3">
-              <p className="flex items-center gap-1.5 font-medium text-foreground">
-                <Route className="size-3.5 shrink-0 opacity-70" aria-hidden />
-                {adventure.distance != null
-                  ? `${adventure.distance.toLocaleString("fr-FR", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })} km`
-                  : "Non calculée"}
-              </p>
-              <p className="flex items-center gap-1 text-xs text-muted-foreground">
-        <MapPin className="size-3.5 shrink-0" aria-hidden />
-        <span className="font-mono tabular-nums">
-          {formatCoord(adventure.latitude)}°, {formatCoord(adventure.longitude)}°
-        </span>
-        <span className="text-muted-foreground/80">(départ)</span>
-      </p>
-      </div>
             
-      <div className="w-[600px] h-[400px]">
+      <div className="w-150 h-100">
       <AdventureReadOnlyMap
         readOnly
-        latitude={adventure.latitude}
-        longitude={adventure.longitude}
+        latitude={initialLat}
+        longitude={initialLng}
         onChange={mapNoop}
-        contextMarkers={adventure.mapContextMarkers}
-        routePolyline={adventure.routePolyline}
+        contextMarkers={departureMarkers}
+        routePolyline={[]}
         editableMarkerKind="departure"
         mapClassName="min-h-[220px] sm:h-72"
       />

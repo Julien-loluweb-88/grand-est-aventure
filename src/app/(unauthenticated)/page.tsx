@@ -1,4 +1,3 @@
-import { BrandMark } from "@/components/brand-mark";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import {
@@ -13,47 +12,45 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { getFiveStarReviews, getSampleAdventure } from "./acceuil.action";
+import { getFiveStarReviews, getSampleAdventures } from "./acceuil.action";
 import  AdventureMapClient  from "./_components/adventureMap";
 
 export default async function Home() {
   const reviews = await getFiveStarReviews(5);
-  const adventure = await getSampleAdventure();
-  if (!adventure) return <p>Aventure introuvable</p>;
+  const adventures = await getSampleAdventures();
+  if (!adventures) return <p>Aventure introuvable</p>;
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-0 py-4">
       <main className="mx-auto flex max-w-7xl flex-col items-center justify-center gap-8 p-5 text-center">
-          <BrandMark height={150} className="bg-transparent"/>
-         <div className="mb-6 flex flex-col justify-center gap-8 p-5">
-          <h1 className="text-5xl font-bold tracking-tight text-shadow-lg/20">
-            Balad&apos;indice
-          </h1>
-          <h2 className="text-3xl tracking-tight text-[#f78904] font-semibold">
+         <div className="relative w-full h-75 mb-6 flex flex-col justify-center gap-8 p-5">
+         <Image
+         src="/images/Ville-Pres-Geo-1720509386955.webp"
+         alt="paysage"
+         fill
+         className="object-cover filter sepia-20"
+         priority
+         />
+         <div className="relative z-10 container mx-auto gap-5">
+          <h1 className="text-4xl tracking-tight text-white text-shadow-lg font-bold pb-5">
             Pars à l&apos;aventure avec Balad’indice et ton téléphone
-          </h2>
-          <p className="text-lg">
+          </h1>
+          <h2 className="text-xl font-semibold text-white text-shadow-lg">
             Balad’indice transforme la ville en une grande chasse au trésor.
             Scanne des QR codes avec ton téléphone, découvre des indices cachés
-            et résous des énigmes. Au bout de l’aventure, un trésor t’attend!
-          </p>
+            et résous des énigmes.<br />
+             Au bout de l’aventure, un trésor t’attend!
+          </h2>
+          </div>
           </div>
     <section>
     <div className="flex flex-col items-center gap-3 p-4">
-      <h2 className="text-3xl tracking-tight">Aventure {adventure.name} à {adventure.city.name}</h2>
-      <AdventureMapClient adventure={adventure} />
+      <h2 className="text-3xl tracking-tight">Découvre des aventures</h2>
+      <AdventureMapClient adventures={adventures} />
     </div>
     </section>
 
-  <section className="relative flex flex-col gap-5">
-     <Image
-        src="/images/roadbg.png"
-        alt=""
-        fill
-        className="object-cover shadow-md"
-        priority
-      />
-      <div className="relative z-10 p-8">
+  <section>
          <h2 id="comment-ca-marche" className="text-3xl font-semibold text-[#39951a] tracking-tight border-b scroll-mt-24 mt-6">Comment ça marche?</h2>
          <div className="flex flex-row gap-5 p-5 mt-6">
          <Image
@@ -95,7 +92,6 @@ export default async function Home() {
     width={300}
     height={300}
     />
-    </div>
     </div>
   </section>
 
@@ -204,13 +200,24 @@ export default async function Home() {
       ))}
       </div>
   </section>
-          <div className="mb-8">
-            <h2 className="text-xl font-semibold text-[#f78904] tracking-tight py-5">
+          <div className="flex flex-col mb-8 items-center">
+            <h2 className="text-2xl font-bold text-[#68a618] tracking-tight py-5">
               Prêt à commencer ton aventure?
             </h2>
-            <Button className="bg-[#68a618] text-lg p-5">
-              Télécharger l&apos;application gratuitement
-            </Button>
+              <p>Télécharger l&apos;application gratuitement </p>
+           <Image
+           src="/images/google-play.png"
+           alt="Logo google play"
+           width={200}
+          height={100}
+           />
+           <Image
+           src="/images/icons8-qr-code-50.png"
+           alt="Logo google play"
+           width={100}
+           height={100}
+           className="bg-white"
+           />
           </div>
         </main>
     </div>

@@ -1,20 +1,6 @@
-export type LocationPickerContextMarker =
-  | {
-      kind: "departure"
-      latitude: number
-      longitude: number
-    }
-  | {
-      kind: "enigma"
-      id: string
-      number: number
-      name: string
-      latitude: number
-      longitude: number
-    }
-  | {
-      kind: "treasure"
-      name: string
-      latitude: number
-      longitude: number
-    }
+export type LocationPickerContextMarker = {
+  kind: "departure" | "enigma" | "treasure";
+  name: string;
+  latitude: number;
+  longitude: number;
+};

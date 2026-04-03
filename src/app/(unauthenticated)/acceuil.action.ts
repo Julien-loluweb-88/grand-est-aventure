@@ -3,20 +3,6 @@
 import { prisma } from "@/lib/prisma";
 import type { JsonValue } from "type-fest";
 
-export async function getFiveStarReviews (rating: number ) {
-    return await prisma.adventureReview.findMany({
-        where: { rating,
-          consentCommunicationNetworks: true
-         },
-            include: {
-            user: true,
-            },
-        orderBy: {
-            createdAt: "desc"
-        }
-    })
-}
-
 type MapContextMarker = {
   latitude: number;
   longitude: number;
@@ -49,28 +35,43 @@ export type AdventureWithMarkers = {
   routePolyline?: [number, number][];
 };
 
-export async function getSampleAdventure(): Promise<AdventureWithMarkers | null> {
-  const adventure = await prisma.adventure.findUnique({
-    where: { id: "cmnfpciiz0001quy4l5rf0jjh" },
+export async function getSampleAdventures(): Promise<AdventureWithMarkers[]> {
+  const adventures = await prisma.adventure.findMany({
+    where: { status: true }
+    ,
     include: { city: true },
   });
 
-  if (!adventure) return null;
-
-  const markers: LocationPickerContextMarker[] = [
-    {
-      kind: "departure",
-      name: "Départ",
-      latitude: adventure.latitude,
-      longitude: adventure.longitude,
-    }
-  ];
+return adventures.map((adv) => {
+    const markers: LocationPickerContextMarker[] = [
+      {
+        kind: "departure",
+        name: "Départ",
+        latitude: adv.latitude,
+        longitude: adv.longitude,
+      },
+    ];
 
   return {
-    ...adventure,
-    description: adventure.description as JsonValue,
+    ...adv,
+    description: adv.description as JsonValue,
     mapContextMarkers: markers,
     routePolyline: [],
   }   
-  }
+  })
+}
+
+  export async function getFiveStarReviews (rating: number ) {
+    return await prisma.adventureReview.findMany({
+        where: { rating,
+          consentCommunicationNetworks: true
+         },
+            include: {
+            user: true,
+            },
+        orderBy: {
+            createdAt: "desc"
+        }
+    })
+}
 
