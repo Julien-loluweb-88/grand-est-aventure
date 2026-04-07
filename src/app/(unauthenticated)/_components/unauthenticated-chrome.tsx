@@ -214,7 +214,7 @@ function PublicFooter() {
                 aria-label="Liens du pied de page"
               >
                 <Link
-                  href="#"
+                  href="/contact"
                   className="text-[#281401]/85 underline-offset-4 hover:text-[#281401] hover:underline"
                 >
                   Contact
