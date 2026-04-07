@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { getFiveStarReviews, getSampleAdventures } from "./acceuil.action";
 import AdventureMapClient from "./_components/adventureMap";
+import Link from "next/link";
 
 const shell = "mx-auto w-full max-w-5xl px-4 sm:px-6";
 
@@ -245,7 +246,12 @@ export default async function Home() {
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
                 Essaie de redémarrer l&apos;application ou ton téléphone. Si
-                le problème continue, contacte-nous.
+                le problème continue, <Link
+                  href="/contact"
+                  className="text-[#281401]/85 underline-offset-4 hover:text-[#281401] hover:underline"
+                >
+                  Contacte-nous
+                </Link>.
               </AccordionContent>
             </AccordionItem>
           </Accordion>

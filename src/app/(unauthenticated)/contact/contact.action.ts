@@ -3,7 +3,7 @@
 import nodemailer  from "nodemailer";
 
 export async function contactForm(formData: FormData) {
-    console.log(process.env)
+    try{
     const name = formData.get("name") as string
     const email = formData.get("email") as string
     const message = formData.get("message") as string
@@ -21,7 +21,7 @@ export async function contactForm(formData: FormData) {
           from: `"Contact Form" <${process.env.NODEMAILER_USER}>`,
           to: "developpement@raonletape.fr",
           replyTo: email,
-          subject: `Contact form from ${name}`,
+          subject: `Nouveau message de ${name}`,
           text: `
     Nom: ${name}
     Email: ${email}
@@ -30,4 +30,9 @@ export async function contactForm(formData: FormData) {
     ${message}
           `,
         })
+        return { success: true }
+} catch (error) {
+    return { error: "Erreur lors d'énvoyer le message"}
+}
+
 }

@@ -1,29 +1,50 @@
+"use client"
 import { Button } from "@/components/ui/button";
 import {
   Field,
-  FieldDescription,
   FieldGroup,
   FieldLabel,
-  FieldLegend,
   FieldSet,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { contactForm } from "./contact.action";
 import {
-  LegalFooterNote,
-  LegalList,
   LegalPageShell,
-  legalLinkClass,
 } from "../_components/legal-document-shell";
+import {useRef, useState } from 'react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
 export default function ContactPage() {
+    const router = useRouter()
+    const [loading, setLoading] = useState(false)
+    const [result, setResult] = useState<{ success?: boolean; error?: string }>({})
+    const formRef = useRef<HTMLFormElement>(null)
+
+    const handleSubmit = async (FormData: FormData) => {
+        setLoading(true)
+        const res = await contactForm(FormData)
+        setLoading(false)
+        setResult(res)
+
+         if (res.success){
+            toast.success("Message envoyé")
+            formRef.current?.reset()
+            setTimeout(() => router.push('/contact'), 3000)
+        }
+        if (res.error){
+            toast.error(res.error)
+        }
+        }
+
+
   return (
     <LegalPageShell
       title="Contacte Nous"
       lead={<p>Remplie le formulaire et envoie-nous un message</p>}
     >
-      <form action={contactForm}>
+      <form ref={formRef} action={handleSubmit}>
         <FieldGroup>
           <FieldSet>
             <FieldGroup>
@@ -48,14 +69,14 @@ export default function ContactPage() {
                 <Textarea
                   id="message"
                   placeholder="Écrire un message"
-                  className="resize-none"
+                  className="resize-none h-32"
                 />
               </Field>
             </FieldGroup>
           </FieldSet>
-          <Field orientation="horizontal">
+          <Field orientation="horizontal" className="flex justify-end gap-2">
             <Button type="submit" className="bg-[#68a618] hover:bg-[#5a9014]">Envoyer</Button>
-            <Button variant="outline" type="button">
+            <Button variant="outline" type="reset">
               Annuler
             </Button>
           </Field>

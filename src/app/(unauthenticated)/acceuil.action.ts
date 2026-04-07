@@ -2,6 +2,7 @@
 
 import { prisma } from "@/lib/prisma";
 import type { JsonValue } from "type-fest";
+import { AdventureReviewModerationStatus } from "../../../generated/prisma/client"
 
 type MapContextMarker = {
   latitude: number;
@@ -61,10 +62,11 @@ return adventures.map((adv) => {
   })
 }
 
-  export async function getFiveStarReviews (rating: number ) {
+  export async function getFiveStarReviews (rating: number) {
     return await prisma.adventureReview.findMany({
         where: { rating,
-          consentCommunicationNetworks: true
+          consentCommunicationNetworks: true,
+          moderationStatus: AdventureReviewModerationStatus.APPROVED
          },
             include: {
             user: true,

@@ -55,7 +55,13 @@ export function ListAdventureReview({adventureReviews}: {adventureReviews: Adven
   const handleUpdate = async (reviewId: string, status: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED") => {
     try {
       const updated = await changeReviewStatus(reviewId, status);
-      setReviews(prev => prev.map(r => (r.id === updated.id ? updated : r)));
+      setReviews(prev =>
+      prev.map(review =>
+        review.id === reviewId
+          ? { ...review, moderationStatus: status, updatedAt: new Date().toISOString() }
+          : review
+      )
+    );
     } catch (err) {
       console.error("Failed to update review:", err);
     }
