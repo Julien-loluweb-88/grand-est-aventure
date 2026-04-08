@@ -1,9 +1,14 @@
 import React from "react";
-
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/auth/auth-user";
 
 export default async function Page() {
+  const session = await getSession();
+  if (!session) {
+  redirect("/unauthorized");
+}
+
   return (
-   
     
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="grid auto-rows-min gap-4 md:grid-cols-3">
