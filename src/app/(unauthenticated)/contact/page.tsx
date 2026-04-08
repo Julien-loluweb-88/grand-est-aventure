@@ -75,8 +75,8 @@ export default function ContactPage() {
             </FieldGroup>
           </FieldSet>
           <Field orientation="horizontal" className="flex justify-end gap-2">
-            <Button type="submit" className="bg-[#68a618] hover:bg-[#5a9014]">Envoyer</Button>
-            <Button variant="outline" type="reset">
+            <Button type="submit" className="bg-[#68a618] hover:bg-[#5a9014] font-bold p-2">Envoyer</Button>
+            <Button variant="outline" type="reset" className="font-bold">
               Annuler
             </Button>
           </Field>

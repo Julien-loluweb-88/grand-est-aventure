@@ -307,12 +307,12 @@ export default async function Home() {
 
         {/* CTA téléchargement */}
         <section
+        id="cta-download"
           className={`${shell} max-w-3xl`}
           aria-labelledby="cta-download"
         >
           <div className="rounded-2xl border border-[#281401]/10 bg-linear-to-br from-[#fef0c7]/80 to-white/90 px-6 py-10 text-center shadow-sm sm:px-10 sm:py-12">
             <h2
-              id="cta-download"
               className="text-balance text-2xl font-bold tracking-tight text-[#68a618] sm:text-3xl"
             >
               Prêt à commencer ton aventure&nbsp;?

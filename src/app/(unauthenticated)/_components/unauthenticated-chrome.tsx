@@ -109,12 +109,12 @@ function LandingHeader() {
       </nav>
 
       <div className="flex shrink-0 items-center gap-2">
-        <Button
-          className="hidden h-9 bg-[#68a618] px-4 text-sm md:inline-flex"
-          type="button"
-        >
-          Télécharger l&apos;application
-        </Button>
+       <HomeSectionLink
+            href="/#cta-download"
+            className="text-[#68a618] text-base font-semibold" 
+            onAfterNavigate={closeMobile}>
+            Télécharger l&apos;application
+      </HomeSectionLink>
 
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
@@ -165,13 +165,12 @@ function LandingHeader() {
               </HomeSectionLink>
             </nav>
             <SheetFooter className="border-t border-[#281401]/10">
-              <Button
-                type="button"
-                className="w-full bg-[#68a618] text-base hover:bg-[#5a9014]"
-                onClick={closeMobile}
-              >
+            <HomeSectionLink
+            href="/#cta-download"
+            className="text-[#68a618] text-base font-semibold" 
+              onAfterNavigate={closeMobile}>
                 Télécharger l&apos;application
-              </Button>
+              </HomeSectionLink>
             </SheetFooter>
           </SheetContent>
         </Sheet>
