@@ -106,16 +106,15 @@ function LandingHeader() {
         <HomeSectionLink href="/#reviews" className="hover:underline">
           Avis
         </HomeSectionLink>
-      </nav>
-
-      <div className="flex shrink-0 items-center gap-2">
-       <HomeSectionLink
+          <HomeSectionLink
             href="/#cta-download"
             className="text-[#68a618] text-base font-semibold" 
             onAfterNavigate={closeMobile}>
             Télécharger l&apos;application
       </HomeSectionLink>
+      </nav>
 
+      <div className="flex shrink-0 items-center gap-2">
         <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger asChild>
             <Button
@@ -163,14 +162,15 @@ function LandingHeader() {
               >
                 Avis
               </HomeSectionLink>
-            </nav>
-            <SheetFooter className="border-t border-[#281401]/10">
-            <HomeSectionLink
+              <HomeSectionLink
             href="/#cta-download"
             className="text-[#68a618] text-base font-semibold" 
               onAfterNavigate={closeMobile}>
                 Télécharger l&apos;application
               </HomeSectionLink>
+            </nav>
+            <SheetFooter className="border-t border-[#281401]/10">
+            
             </SheetFooter>
           </SheetContent>
         </Sheet>
