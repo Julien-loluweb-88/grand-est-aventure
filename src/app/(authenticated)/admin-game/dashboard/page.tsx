@@ -3,13 +3,13 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth/auth-user";
 
 export default async function Page() {
+  await new Promise(r => setTimeout(r, 3000))
   const session = await getSession();
   if (!session) {
   redirect("/unauthorized");
 }
 
   return (
-    
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <div className="grid auto-rows-min gap-4 md:grid-cols-3">
             <div className="aspect-video rounded-xl bg-muted/50" />
