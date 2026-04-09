@@ -27,6 +27,7 @@ const quote =
   "rounded-r-lg border-l-4 border-[#68a618] bg-[#fef0c7]/50 py-3 pl-4 pr-3 text-left text-sm leading-relaxed text-[#281401]/90 sm:pl-5 sm:text-base";
 
 export default async function Home() {
+  await new Promise(r => setTimeout(r, 5000))
   const reviews = await getFiveStarReviews(5);
   const adventures = await getSampleAdventures();
   if (!adventures) return <p>Aventure introuvable</p>;
