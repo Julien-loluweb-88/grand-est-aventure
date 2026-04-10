@@ -34,21 +34,21 @@ import { changeReviewStatus } from "../_lib/adventure.action";
 const PAGE_SIZE = 5
 
 type AdventureReview = {
-  id: string
-  adventureId: string
-  rating: number
-  content: string
-  image: string
+  id: string;
+  adventureId: string;
+  rating: number | null;
+  content: string | null;
+  image: string | null;
   moderationStatus: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED";
-  consentCommunicationNetworks: boolean
-  reportsMissingBadge: boolean
-  reportsStolenTreasure: boolean
-  updatedAt: string
+  consentCommunicationNetworks: boolean;
+  reportsMissingBadge: boolean;
+  reportsStolenTreasure: boolean;
+  updatedAt: Date | string;
   user: {
-    id: string
-    name: string
-  }
-}
+    id: string;
+    name: string | null;
+  };
+};
 
 export function ListAdventureReview({adventureReviews}: {adventureReviews: AdventureReview[]}){
   const [reviews, setReviews] = useState<AdventureReview[]>(adventureReviews);
@@ -111,8 +111,10 @@ export function ListAdventureReview({adventureReviews}: {adventureReviews: Adven
       <TableBody>
         {reviews.map((adventureReview) => ( 
         <TableRow key={adventureReview.id}>
-        <TableCell>{adventureReview.user.name}</TableCell>
-        <TableCell>{adventureReview.rating}</TableCell>
+        <TableCell>{adventureReview.user.name?.trim() || "—"}</TableCell>
+        <TableCell>
+          {adventureReview.rating != null ? adventureReview.rating : "—"}
+        </TableCell>
         <TableCell>
           {adventureReview.consentCommunicationNetworks ? (
           <span className="text-muted-foreground">Autorisé</span>
@@ -132,7 +134,7 @@ export function ListAdventureReview({adventureReviews}: {adventureReviews: Adven
             <span className="text-muted-foreground">Non</span>
           )}
           </TableCell>
-        <TableCell>{adventureReview.content}</TableCell>
+        <TableCell>{adventureReview.content?.trim() || "—"}</TableCell>
         <TableCell>{adventureReview.image ? (
     <span
       className="text-blue-600 underline cursor-pointer"

@@ -24,17 +24,17 @@ import { Input } from "@/components/ui/input"
 
 const PAGE_SIZE = 5
 
-  type UserAdventure = {
-        id: string
-        adventureId: string
-        giftNumber: number
-        success: boolean
-        updatedAt: string
-        user:{
-          id: string
-          name: string
-        }
-    }
+type UserAdventure = {
+  id: string;
+  adventureId: string;
+  giftNumber: number;
+  success: boolean;
+  updatedAt: Date | string;
+  user: {
+    id: string;
+    name: string | null;
+  };
+};
 
   type Props = {
   userAdventures: UserAdventure[]
@@ -149,7 +149,9 @@ export function UserAdventuresComponent({
       <TableBody>
         {userAdventures.map((userAdventure)=> (
           <TableRow key={userAdventure.id}>
-            <TableCell className="text-left">{userAdventure.user.name}</TableCell>
+            <TableCell className="text-left">
+              {userAdventure.user.name?.trim() || "—"}
+            </TableCell>
             <TableCell>{userAdventure.giftNumber}</TableCell>
             <TableCell>{new Date(userAdventure.updatedAt).toLocaleDateString()}</TableCell>
           </TableRow>

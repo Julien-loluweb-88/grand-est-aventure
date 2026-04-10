@@ -618,6 +618,7 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Crée ou met à jour un avis (unicité logique utilisateur × aventure). " +
             "URL réelle du handler App Router : dossier `adventure-review` (kebab-case).\n\n" +
+            "Route protégée : session requise, et `userId` doit correspondre à l’utilisateur connecté.\n\n" +
             "**JSON** (`application/json`) : `adventureId`, `userId`, `rating` (1–5, optionnel), `content`, `image` (URL optionnelle), " +
             "`consentCommunicationNetworks`, `reportsMissingBadge`, `reportsStolenTreasure` (booléens stricts : `true` seulement compte comme vrai).\n\n" +
             "**Multipart** (`multipart/form-data`) : mêmes champs en champs texte + fichier **`photo`** (ou **`image`**) pour envoyer **photo + avis en une requête** ; " +
@@ -625,7 +626,7 @@ export function buildGrandEstOpenApiDocument() {
             "Optionnel : **`imageUrl`** si l’image est déjà hébergée ailleurs.\n\n" +
             "Les avis **affichés publiquement** via `GET /api/game/adventure-reviews` le sont uniquement lorsque `moderationStatus` est `APPROVED` (côté base / modération).\n\n" +
             `**Rate limit** : selon déploiement. ${RATE_LIMIT_NOTE}`,
-          security: [],
+          security: [{ sessionCookie: [] }],
           requestBody: {
             required: true,
             content: {
@@ -684,6 +685,7 @@ export function buildGrandEstOpenApiDocument() {
               description: "Validation avis (note, contenu trop long, avis vide).",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
             },
+            "401": { description: "Session absente ou `userId` différent de l’utilisateur connecté." },
             "404": { description: "Aventure introuvable." },
             "429": { description: "Trop de requêtes." },
           },

@@ -1,26 +1,16 @@
 "use server"
 
 import { prisma } from "@/lib/prisma";
-import type { JsonValue } from "type-fest";
-import { AdventureReviewModerationStatus } from "../../../generated/prisma/client"
+import type { LocationPickerContextMarker as LocationPickerContextMarkerDef } from "@/components/location/location-picker-types";
+import { AdventureReviewModerationStatus } from "../../../generated/prisma/client";
 
-type MapContextMarker = {
-  latitude: number;
-  longitude: number;
-  label?: string;
-};
-
-export type LocationPickerContextMarker = {
-  kind: "departure" | "enigma" | "treasure";
-  name: string;
-  latitude: number;
-  longitude: number;
-};
+/** Alias réexporté pour les imports depuis ce module server (évite la perte des `export type { … } from`). */
+export type LocationPickerContextMarker = LocationPickerContextMarkerDef;
 
 export type AdventureWithMarkers = {
   id: string;
   name: string;
-  description: JsonValue; 
+  description: unknown; 
   cityId: string;
   latitude: number;
   longitude: number;
@@ -55,7 +45,7 @@ return adventures.map((adv) => {
 
   return {
     ...adv,
-    description: adv.description as JsonValue,
+    description: adv.description,
     mapContextMarkers: markers,
     routePolyline: [],
   }   

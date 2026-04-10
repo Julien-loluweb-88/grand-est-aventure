@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import {
@@ -143,22 +145,36 @@ async function parseReviewRequest(request: NextRequest): Promise<
  * **`photo`** (ou **`image`**) pour envoyer photo + texte en une seule requête.
  */
 export async function POST(request: NextRequest) {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
+  }
+
   const parsed = await parseReviewRequest(request);
   if (!parsed.ok) {
     return NextResponse.json({ error: parsed.error }, { status: parsed.status });
   }
 
   const { adventureId, userId, content, rating, image, ...flags } = parsed.data;
+  const sessionUserId = session.user.id;
 
-  if (!adventureId || !userId) {
+  if (!adventureId) {
     return NextResponse.json(
-      { error: "adventureId et userId sont requis." },
+      { error: "adventureId est requis." },
       { status: 400 }
     );
   }
+  if (!userId) {
+    return NextResponse.json({ error: "userId est requis." }, { status: 400 });
+  }
+  if (userId !== sessionUserId) {
+    return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
+  }
 
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`review:${ip}:${userId}`, MAX_PER_WINDOW, WINDOW_MS);
+  const rl = checkRateLimit(`review:${ip}:${sessionUserId}`, MAX_PER_WINDOW, WINDOW_MS);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Trop de requêtes. Réessayez plus tard." },
@@ -173,7 +189,7 @@ export async function POST(request: NextRequest) {
     const result = await prisma.$transaction((tx) =>
       processAdventureReview(tx, {
         adventureId,
-        userId,
+        userId: sessionUserId,
         rating,
         content,
         image,
