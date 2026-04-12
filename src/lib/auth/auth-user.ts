@@ -43,7 +43,7 @@ export const isAdmin = async () => {
     redirect("/admin-game");
   }
 
-  if (!["admin", "superadmin"].includes(user.role ?? "")) {
+  if (!["admin", "superadmin", "merchant"].includes(user.role ?? "")) {
     redirect("/admin-game");
   }
   return true;

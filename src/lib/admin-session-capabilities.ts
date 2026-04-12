@@ -5,6 +5,8 @@ import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import { prisma } from "@/lib/prisma";
 
 export type AdminSessionCapabilities = {
+  /** Compte `merchant` : shell web réduit (pas d’aventures / pubs / OpenAPI). */
+  merchantPortal: boolean;
   adventure: {
     read: boolean;
     create: boolean;
@@ -38,17 +40,35 @@ export async function getAdminSessionCapabilities(): Promise<AdminSessionCapabil
     return null;
   }
 
+  const actorRow = await prisma.user.findUnique({
+    where: { id: subjectId },
+    select: { role: true },
+  });
+
+  if (actorRow?.role === "merchant") {
+    return {
+      merchantPortal: true,
+      adventure: { read: false, create: false, update: false, delete: false },
+      user: {
+        get: false,
+        update: false,
+        ban: false,
+        delete: false,
+        create: false,
+        setPassword: false,
+        impersonate: false,
+      },
+      session: { list: false, revoke: false },
+      canAssignRolesAndScopes: false,
+    };
+  }
+
   const canAccessDashboard = await userHasPermissionServer({
     permissions: { adventure: ["read"] },
   });
   if (!canAccessDashboard) {
     return null;
   }
-
-  const actorRow = await prisma.user.findUnique({
-    where: { id: subjectId },
-    select: { role: true },
-  });
 
   const [
     advCreate,
@@ -79,6 +99,7 @@ export async function getAdminSessionCapabilities(): Promise<AdminSessionCapabil
   ]);
 
   return {
+    merchantPortal: false,
     adventure: {
       read: canAccessDashboard,
       create: advCreate,

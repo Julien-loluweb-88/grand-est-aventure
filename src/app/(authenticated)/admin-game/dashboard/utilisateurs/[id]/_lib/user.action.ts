@@ -75,7 +75,7 @@ export async function unBanUser(userId: string) {
 
 export async function roleUser(
   userId: string,
-  role: "user" | "admin" | "superadmin" | "myCustomRole"
+  role: "user" | "admin" | "superadmin" | "myCustomRole" | "merchant"
 ) {
   try {
     await requireSuperadmin();

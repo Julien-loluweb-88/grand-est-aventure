@@ -2,7 +2,10 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { listCitiesForAdventureSelect } from "@/lib/city-admin-queries";
-import { getAdvertisementForAdminEdit } from "../_lib/advertisement-admin-queries";
+import {
+  getAdvertisementForAdminEdit,
+  listMerchantUsersForAdvertisementForm,
+} from "../_lib/advertisement-admin-queries";
 import { toDatetimeLocalValue } from "../_lib/datetime-local";
 import { AdvertisementForm } from "../_components/AdvertisementForm";
 
@@ -12,9 +15,10 @@ export default async function EditPublicitePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [result, cities] = await Promise.all([
+  const [result, cities, merchants] = await Promise.all([
     getAdvertisementForAdminEdit(id),
     listCitiesForAdventureSelect(),
+    listMerchantUsersForAdvertisementForm(),
   ]);
 
   if (!result.ok) {
@@ -43,6 +47,7 @@ export default async function EditPublicitePage({
             mode="edit"
             advertisementId={ad.id}
             cities={cities}
+            merchantOptions={merchants ?? []}
             defaultValues={{
               name: ad.name,
               advertiserKind: ad.advertiserKind,
@@ -63,6 +68,11 @@ export default async function EditPublicitePage({
               targetRadiusMeters:
                 ad.targetRadiusMeters != null ? String(ad.targetRadiusMeters) : "",
               targetCityIds: ad.targetCities.map((c) => c.id),
+              partnerBadgeTitle: ad.partnerBadgeDefinition?.title ?? "",
+              partnerBadgeImageUrl: ad.partnerBadgeDefinition?.imageUrl ?? "",
+              partnerMaxRedemptionsPerUser: ad.partnerMaxRedemptionsPerUser,
+              partnerClaimsOpen: ad.partnerClaimsOpen,
+              merchantUserIds: ad.merchantAssignments.map((m) => m.userId),
             }}
           />
         </CardContent>

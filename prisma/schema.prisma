@@ -48,6 +48,9 @@ model User {
   userBadges                UserBadge[]
   claimedAdventureBadgeInstances AdventureBadgeInstance[] @relation("BadgeClaimant")
   adventureBadgeStockEventsCreated AdventureBadgeStockEvent[]
+  merchantAdvertisementAssignments MerchantAdvertisement[]
+  partnerOfferClaimsAsPlayer      PartnerOfferClaim[]       @relation("PartnerOfferClaimPlayer")
+  partnerOfferClaimsResolved      PartnerOfferClaim[]       @relation("PartnerOfferClaimResolver")
 
   @@map("user")
 }
@@ -240,6 +243,8 @@ enum BadgeDefinitionKind {
   MILESTONE_ADVENTURES
   /// Kilomètres cumulés (parcours `Adventure.distance` des aventures réussies).
   MILESTONE_KM
+  /// Badge obtenu via validation d’offre partenaire (publicité / commerce).
+  PARTNER_OFFER
 }
 
 enum AdventureBadgeInstanceStatus {
@@ -265,6 +270,8 @@ model BadgeDefinition {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   userBadges  UserBadge[]
+  /// Une publicité partenaire peut référencer ce badge (au plus une pub par définition).
+  partnerAdvertisement Advertisement?
 
   @@index([kind])
 }
@@ -312,6 +319,46 @@ enum AdvertisementEventType {
   CLICK
 }
 
+enum PartnerOfferClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+/// Utilisateur `role = merchant` autorisé à valider les demandes pour une publicité donnée.
+model MerchantAdvertisement {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  advertisementId String
+  advertisement   Advertisement @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([userId, advertisementId])
+  @@index([advertisementId])
+}
+
+/// Demande joueur « j’ai profité de l’offre » — le commerçant approuve ou refuse.
+model PartnerOfferClaim {
+  id               String                  @id @default(cuid())
+  userId           String
+  user             User                    @relation("PartnerOfferClaimPlayer", fields: [userId], references: [id], onDelete: Cascade)
+  advertisementId  String
+  advertisement    Advertisement           @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  status           PartnerOfferClaimStatus @default(PENDING)
+  rejectionReason  String?
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolvedBy       User?                   @relation("PartnerOfferClaimResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([advertisementId, status])
+  @@index([userId, advertisementId])
+  @@index([status, createdAt])
+}
+
 enum AdventureReviewModerationStatus {
   /// Brouillon côté joueur (non soumis à la modération).
   DRAFT
@@ -351,6 +398,15 @@ model Advertisement {
   targetRadiusMeters    Int?
   targetCities          City[]               @relation("AdvertisementTargetCities")
   events                AdvertisementEvent[]
+  /// Badge débloqué une fois l’offre validée (type `PARTNER_OFFER`). Au plus une pub par badge.
+  partnerBadgeDefinitionId String?           @unique
+  partnerBadgeDefinition   BadgeDefinition?  @relation(fields: [partnerBadgeDefinitionId], references: [id], onDelete: SetNull)
+  /// Nombre max de validations approuvées par joueur pour cette offre (avantage répétable) ; le badge reste unique.
+  partnerMaxRedemptionsPerUser Int           @default(1)
+  /// Si false : plus de nouvelles demandes ; les badges déjà obtenus restent en collection.
+  partnerClaimsOpen     Boolean              @default(true)
+  merchantAssignments   MerchantAdvertisement[]
+  partnerOfferClaims    PartnerOfferClaim[]
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 

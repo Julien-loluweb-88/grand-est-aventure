@@ -49,7 +49,13 @@ export function buildGrandEstOpenApiDocument() {
       { name: "Authentification", description: "Handler Better Auth (login, OAuth, session, etc.)." },
       { name: "Jeu", description: "Découverte (catalogue, villes), progression, validation, fin de parcours, avis." },
       { name: "Publicités", description: "Liste des encarts et événements analytics (impressions / clics)." },
+      {
+        name: "Offres partenaires",
+        description:
+          "Demandes joueur et validation commerçant (badges partenaires) — en pratique consommé par l’app mobile avec session Better Auth.",
+      },
       { name: "Utilisateur", description: "Données liées au compte connecté." },
+      { name: "Cron", description: "Tâches planifiées (secret Bearer)." },
       { name: "Admin", description: "Contexte rôle pour le tableau de bord (proxy d’administration)." },
       { name: "Fichiers", description: "Fichiers publics du dossier `uploads/`." },
     ],
@@ -210,6 +216,133 @@ export function buildGrandEstOpenApiDocument() {
             authorDisplayName: { type: ["string", "null"] },
           },
         },
+        PartnerOfferClaimCreateResponse: {
+          type: "object",
+          required: ["claimId"],
+          properties: { claimId: { type: "string" } },
+        },
+        MerchantPartnerClaimResolveOkResponse: {
+          type: "object",
+          required: ["status", "awardedUserBadge"],
+          properties: {
+            status: { type: "string", enum: ["APPROVED", "REJECTED"] },
+            awardedUserBadge: {
+              type: "boolean",
+              description: "Vrai si une nouvelle ligne `UserBadge` a été créée (première fois pour ce badge).",
+            },
+          },
+        },
+        MerchantPartnerClaimsListResponse: {
+          type: "object",
+          required: ["claims"],
+          properties: {
+            claims: {
+              type: "array",
+              items: {
+                type: "object",
+                required: [
+                  "id",
+                  "advertisementId",
+                  "status",
+                  "createdAt",
+                  "resolvedAt",
+                  "rejectionReason",
+                  "player",
+                  "advertisement",
+                ],
+                properties: {
+                  id: { type: "string" },
+                  advertisementId: { type: "string" },
+                  status: { type: "string", enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"] },
+                  createdAt: { type: "string", format: "date-time" },
+                  resolvedAt: { type: ["string", "null"], format: "date-time" },
+                  rejectionReason: { type: ["string", "null"] },
+                  player: {
+                    type: "object",
+                    required: ["id", "name", "email"],
+                    properties: {
+                      id: { type: "string" },
+                      name: { type: ["string", "null"] },
+                      email: { type: ["string", "null"] },
+                    },
+                  },
+                  advertisement: {
+                    type: "object",
+                    required: [
+                      "id",
+                      "name",
+                      "advertiserName",
+                      "title",
+                      "badgeTitle",
+                      "badgeImageUrl",
+                    ],
+                    properties: {
+                      id: { type: "string" },
+                      name: { type: "string" },
+                      advertiserName: { type: ["string", "null"] },
+                      title: { type: ["string", "null"] },
+                      badgeTitle: { type: ["string", "null"] },
+                      badgeImageUrl: {
+                        type: ["string", "null"],
+                        description: "Comme `partnerOffer.badgeImageUrl` sur `GET /api/advertisements`.",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        PartnerOfferClaimsListResponse: {
+          type: "object",
+          required: ["claims", "summaryByAdvertisementId"],
+          properties: {
+            claims: {
+              type: "array",
+              items: {
+                type: "object",
+                required: [
+                  "id",
+                  "advertisementId",
+                  "status",
+                  "createdAt",
+                  "resolvedAt",
+                  "rejectionReason",
+                  "advertiserName",
+                  "advertisementTitle",
+                  "badgeTitle",
+                  "badgeImageUrl",
+                ],
+                properties: {
+                  id: { type: "string" },
+                  advertisementId: { type: "string" },
+                  status: { type: "string", enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"] },
+                  createdAt: { type: "string", format: "date-time" },
+                  resolvedAt: { type: ["string", "null"], format: "date-time" },
+                  rejectionReason: { type: ["string", "null"] },
+                  advertiserName: { type: ["string", "null"] },
+                  advertisementTitle: { type: ["string", "null"] },
+                  badgeTitle: { type: ["string", "null"] },
+                  badgeImageUrl: {
+                    type: ["string", "null"],
+                    description: "Même règle que `partnerOffer.badgeImageUrl` sur `GET /api/advertisements`.",
+                  },
+                },
+              },
+            },
+            summaryByAdvertisementId: {
+              type: "object",
+              additionalProperties: {
+                type: "object",
+                required: ["pending", "approvedCount"],
+                properties: {
+                  pending: { type: "boolean" },
+                  approvedCount: { type: "integer" },
+                },
+              },
+            },
+          },
+        },
         AdvertisementListResponse: {
           type: "object",
           required: ["advertisements"],
@@ -218,7 +351,16 @@ export function buildGrandEstOpenApiDocument() {
               type: "array",
               items: {
                 type: "object",
-                required: ["id", "title", "body", "imageUrl", "targetUrl", "advertiserName", "sortOrder"],
+                required: [
+                  "id",
+                  "title",
+                  "body",
+                  "imageUrl",
+                  "targetUrl",
+                  "advertiserName",
+                  "sortOrder",
+                  "partnerOffer",
+                ],
                 properties: {
                   id: { type: "string" },
                   title: { type: "string" },
@@ -227,6 +369,21 @@ export function buildGrandEstOpenApiDocument() {
                   targetUrl: { type: ["string", "null"] },
                   advertiserName: { type: ["string", "null"] },
                   sortOrder: { type: "integer" },
+                  partnerOffer: {
+                    type: ["object", "null"],
+                    description:
+                      "Présent si un badge partenaire est configuré : `open` = nouvelles demandes acceptées.",
+                    properties: {
+                      open: { type: "boolean" },
+                      maxRedemptionsPerUser: { type: "integer" },
+                      badgeTitle: { type: ["string", "null"] },
+                      badgeImageUrl: {
+                        type: ["string", "null"],
+                        description:
+                          "URL du visuel du badge (dédié ou, à défaut, même valeur que `imageUrl` de l’encart).",
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -754,32 +911,40 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Publicités"],
           summary: "Liste des publicités éligibles",
           description:
-            "**Publique** (pas de session requise). Filtre actif / dates / placement / géolocalisation via `filterEligibleAdvertisements`.",
+            "**Publique** (pas de session requise). Pubs `active`, bon `placement`, fenêtre de dates. " +
+            "Puis `filterEligibleAdvertisements` : si la pub cible des **villes**, `cityId` doit être dans la liste ; " +
+            "si elle définit un **disque** (centre lat/lon + rayon m), le client doit envoyer **latitude et longitude** " +
+            "et la distance Haversine doit être ≤ rayon (sinon la pub est exclue). Les deux filtres sont **cumulatifs** si configurés ensemble.",
           parameters: [
             {
               name: "placement",
               in: "query",
               required: true,
               schema: { type: "string" },
-              description: "Clé d’emplacement configurée côté admin.",
+              description: "Clé d’emplacement configurée côté admin (ex. home, library).",
             },
             {
               name: "cityId",
               in: "query",
               required: false,
               schema: { type: "string" },
+              description:
+                "Id `City` du référentiel. Requis côté effet si la publicité a des villes cibles : sans `cityId` ou hors liste, la pub est exclue.",
             },
             {
               name: "latitude",
               in: "query",
               required: false,
               schema: { type: "number" },
+              description:
+                "Latitude joueur (WGS84). Avec `longitude`, sert au filtre disque ; si la pub a un disque et qu’une coordonnée manque, elle est exclue.",
             },
             {
               name: "longitude",
               in: "query",
               required: false,
               schema: { type: "number" },
+              description: "Longitude joueur (WGS84). Voir `latitude`.",
             },
           ],
           responses: {
@@ -791,6 +956,141 @@ export function buildGrandEstOpenApiDocument() {
               description: "`placement` manquant ou coordonnées non numériques.",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
             },
+          },
+        },
+      },
+      "/api/partner-offers/claims": {
+        get: {
+          tags: ["Offres partenaires"],
+          summary: "Mes demandes d’offre",
+          description:
+            "Joueur connecté : historique récent + résumé par publicité. " +
+            `**Rate limit** : ~${120}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          responses: {
+            "200": {
+              description:
+                "Historique récent : chaque ligne inclut `badgeTitle` et `badgeImageUrl` (repli sur l’image de l’encart) pour l’UI.",
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/PartnerOfferClaimsListResponse" } },
+              },
+            },
+            "401": { description: "Non authentifié." },
+            "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
+          },
+        },
+        post: {
+          tags: ["Offres partenaires"],
+          summary: "Créer une demande de validation",
+          description:
+            "Corps JSON `{ \"advertisementId\": \"…\" }`. " +
+            `**Rate limit** : ~${15}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["advertisementId"],
+                  properties: { advertisementId: { type: "string" } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Demande créée.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/PartnerOfferClaimCreateResponse" },
+                },
+              },
+            },
+            "400": { description: "Offre fermée, plafond atteint ou demande déjà en attente." },
+            "401": { description: "Non authentifié." },
+            "404": { description: "Publicité introuvable." },
+            "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
+          },
+        },
+      },
+      "/api/merchant/partner-claims": {
+        get: {
+          tags: ["Offres partenaires"],
+          summary: "Demandes pour mes publicités",
+          description:
+            "Compte **role = merchant** rattaché à la publicité. Query `status` (défaut PENDING). " +
+            "Chaque élément inclut `advertisement.badgeTitle` et `advertisement.badgeImageUrl` (même règle que sur `GET /api/advertisements`).",
+          security: [{ sessionCookie: [] }],
+          parameters: [
+            {
+              name: "status",
+              in: "query",
+              schema: { type: "string", enum: ["PENDING", "APPROVED", "REJECTED", "EXPIRED"] },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Liste des demandes (tableau vide si aucune publicité assignée).",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/MerchantPartnerClaimsListResponse" },
+                },
+              },
+            },
+            "401": { description: "Non authentifié." },
+            "403": { description: "Pas un compte commerçant." },
+          },
+        },
+      },
+      "/api/merchant/partner-claims/{id}/resolve": {
+        post: {
+          tags: ["Offres partenaires"],
+          summary: "Approuver ou refuser une demande",
+          description: "Corps `{ \"action\": \"approve\" | \"reject\", \"rejectionReason\"? }`.",
+          security: [{ sessionCookie: [] }],
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["action"],
+                  properties: {
+                    action: { type: "string", enum: ["approve", "reject"] },
+                    rejectionReason: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Traité ; `awardedUserBadge` indique si une nouvelle attribution badge a eu lieu.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/MerchantPartnerClaimResolveOkResponse" },
+                },
+              },
+            },
+            "400": { description: "Statut ou plafond invalide." },
+            "401": { description: "Non authentifié." },
+            "403": { description: "Commerçant non autorisé sur cette publicité." },
+            "404": { description: "Demande introuvable." },
+          },
+        },
+      },
+      "/api/cron/expire-partner-claims": {
+        get: {
+          tags: ["Cron"],
+          summary: "Expire les demandes PENDING > 24 h",
+          description: "En-tête `Authorization: Bearer $CRON_SECRET`.",
+          parameters: [],
+          responses: {
+            "200": { description: "`{ expired: number }`" },
+            "401": { description: "Secret incorrect." },
+            "503": { description: "CRON_SECRET non configuré." },
           },
         },
       },

@@ -60,6 +60,12 @@ export const routePermissionsByRole = {
     user: SUPERADMIN_USER_PERMS,
     session: SUPERADMIN_SESSION_PERMS,
   },
+  /** Compte partenaire : pas de droits « matrice » sur le dashboard ; accès web minimal (voir `proxy.ts`). */
+  merchant: {
+    adventure: [] as const,
+    user: [] as const,
+    session: [] as const,
+  },
 } as const;
 
 export type DashboardAdminRole = keyof typeof routePermissionsByRole;
@@ -106,4 +112,9 @@ export const superadmin = ac.newRole({
 export const myCustomRole = ac.newRole({ 
     project: ["create", "update", "delete"], 
     user: ["ban"], 
-}); 
+});
+
+/** Compte partenaire : validation des offres via l’app + accès web minimal `/admin-game/dashboard/commercant`. */
+export const merchant = ac.newRole({
+  project: [],
+});

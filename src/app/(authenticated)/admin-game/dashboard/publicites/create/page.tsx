@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { listCitiesForAdventureSelect } from "@/lib/city-admin-queries";
+import { listMerchantUsersForAdvertisementForm } from "../_lib/advertisement-admin-queries";
 import { AdvertisementForm } from "../_components/AdvertisementForm";
 
 export default async function CreatePublicitePage() {
-  const cities = await listCitiesForAdventureSelect();
+  const [cities, merchants] = await Promise.all([
+    listCitiesForAdventureSelect(),
+    listMerchantUsersForAdvertisementForm(),
+  ]);
 
   return (
     <div className="m-8 space-y-6">
@@ -23,7 +27,11 @@ export default async function CreatePublicitePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <AdvertisementForm mode="create" cities={cities} />
+          <AdvertisementForm
+            mode="create"
+            cities={cities}
+            merchantOptions={merchants ?? []}
+          />
         </CardContent>
       </Card>
     </div>

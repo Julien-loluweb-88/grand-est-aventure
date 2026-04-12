@@ -31,8 +31,11 @@ import { toast } from "sonner";
 export function RoleEditForm({ user }: { user: User }) {
   const caps = useAdminCapabilities();
   const dialogRef = useRef<DialogCloseRef>(null);
-  const [role, setRole] = useState<"user" | "admin" | "superadmin" | "myCustomRole">(
-    (user?.role as "user" | "admin" | "superadmin" | "myCustomRole") ?? "user"
+  const [role, setRole] = useState<
+    "user" | "admin" | "superadmin" | "myCustomRole" | "merchant"
+  >(
+    (user?.role as "user" | "admin" | "superadmin" | "myCustomRole" | "merchant") ??
+      "user"
   );
 
   const handleRole = async (e: React.SyntheticEvent) => {
@@ -79,7 +82,9 @@ export function RoleEditForm({ user }: { user: User }) {
         </DialogHeader>
         <Select
           onValueChange={(value) =>
-            setRole(value as "user" | "admin" | "superadmin" | "myCustomRole")
+            setRole(
+              value as "user" | "admin" | "superadmin" | "myCustomRole" | "merchant"
+            )
           }
           value={role}
         >
@@ -92,6 +97,7 @@ export function RoleEditForm({ user }: { user: User }) {
               <SelectItem value="user">Utilisateur</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="superadmin">Super admin</SelectItem>
+              <SelectItem value="merchant">Commerçant</SelectItem>
               {user.role === "myCustomRole" ? (
                 <SelectItem value="myCustomRole">Rôle personnalisé (actuel)</SelectItem>
               ) : null}

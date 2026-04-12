@@ -4,8 +4,12 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
-import { finalizeAdvertisementDraftImageUrl } from "@/lib/uploads/finalize-advertisement-draft-image";
+import {
+  finalizeAdvertisementDraftImageUrl,
+  finalizeAdvertisementDraftPartnerBadgeImageUrl,
+} from "@/lib/uploads/finalize-advertisement-draft-image";
 import type { AdvertiserKind } from "../../../../../../generated/prisma/client";
+import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
 
 export type AdvertisementFormInput = {
   name: string;
@@ -24,6 +28,14 @@ export type AdvertisementFormInput = {
   targetCenterLongitude: string;
   targetRadiusMeters: string;
   targetCityIds: string[];
+  /** Titre du badge partenaire (création du badge si renseigné et pas encore lié). */
+  partnerBadgeTitle: string;
+  /** Image dédiée du badge ; vide = même URL que l’image campagne. */
+  partnerBadgeImageUrl: string;
+  partnerMaxRedemptionsPerUser: number;
+  partnerClaimsOpen: boolean;
+  /** Utilisateurs `role = merchant` autorisés à valider les demandes. */
+  merchantUserIds: string[];
   /** Brouillon téléversement image (création uniquement). */
   advertisementImageDraftId?: string | null;
 };
@@ -57,6 +69,86 @@ async function assertCanMutateAds() {
     return { ok: false as const, error: "Non autorisé." };
   }
   return { ok: true as const, actor };
+}
+
+async function syncPartnerOfferAndMerchants(
+  advertisementId: string,
+  input: AdvertisementFormInput,
+  ctx: {
+    advertiserName: string;
+    advertisementImageUrl: string | null;
+    partnerBadgeImageUrl: string | null;
+  }
+) {
+  const maxR = Math.min(
+    100,
+    Math.max(1, Math.floor(Number(input.partnerMaxRedemptionsPerUser) || 1))
+  );
+  const ad = await prisma.advertisement.findUnique({
+    where: { id: advertisementId },
+    select: { partnerBadgeDefinitionId: true },
+  });
+  let badgeId = ad?.partnerBadgeDefinitionId ?? null;
+  const titleInput = input.partnerBadgeTitle.trim();
+  const resolvedTitle =
+    titleInput.length > 0 ? titleInput : ctx.advertiserName.trim();
+
+  const explicitBadgeImg = ctx.partnerBadgeImageUrl?.trim() ?? "";
+  const imageUrlForBadge =
+    explicitBadgeImg.length > 0
+      ? explicitBadgeImg
+      : ctx.advertisementImageUrl?.trim() || null;
+
+  if (badgeId) {
+    await prisma.badgeDefinition.update({
+      where: { id: badgeId },
+      data: {
+        title: resolvedTitle,
+        imageUrl: imageUrlForBadge,
+      },
+    });
+  } else if (titleInput.length > 0) {
+    const slug = `partner-ad-${advertisementId}`;
+    const bd = await prisma.badgeDefinition.create({
+      data: {
+        slug,
+        title: resolvedTitle,
+        kind: BadgeDefinitionKind.PARTNER_OFFER,
+        imageUrl: imageUrlForBadge ?? undefined,
+        sortOrder: 100,
+      },
+    });
+    badgeId = bd.id;
+  }
+
+  await prisma.advertisement.update({
+    where: { id: advertisementId },
+    data: {
+      partnerBadgeDefinitionId: badgeId,
+      partnerMaxRedemptionsPerUser: maxR,
+      partnerClaimsOpen: input.partnerClaimsOpen,
+    },
+  });
+
+  const uniqueMerchantIds = [...new Set(input.merchantUserIds.filter(Boolean))];
+  const validMerchants =
+    uniqueMerchantIds.length > 0
+      ? await prisma.user.findMany({
+          where: { id: { in: uniqueMerchantIds }, role: "merchant" },
+          select: { id: true },
+        })
+      : [];
+  await prisma.$transaction(async (tx) => {
+    await tx.merchantAdvertisement.deleteMany({ where: { advertisementId } });
+    if (validMerchants.length > 0) {
+      await tx.merchantAdvertisement.createMany({
+        data: validMerchants.map((u) => ({
+          userId: u.id,
+          advertisementId,
+        })),
+      });
+    }
+  });
 }
 
 export async function createAdvertisement(
@@ -121,6 +213,18 @@ export async function createAdvertisement(
     });
 
     const draftId = input.advertisementImageDraftId?.trim();
+    let partnerBadgeImg = input.partnerBadgeImageUrl.trim() || null;
+    if (draftId && partnerBadgeImg) {
+      const finalizedPb = await finalizeAdvertisementDraftPartnerBadgeImageUrl({
+        draftId,
+        advertisementId: row.id,
+        imageUrl: partnerBadgeImg,
+      });
+      if (finalizedPb) {
+        partnerBadgeImg = finalizedPb;
+      }
+    }
+
     if (draftId && imageUrl) {
       const finalUrl = await finalizeAdvertisementDraftImageUrl({
         draftId,
@@ -135,6 +239,12 @@ export async function createAdvertisement(
         });
       }
     }
+
+    await syncPartnerOfferAndMerchants(row.id, input, {
+      advertiserName: input.advertiserName.trim(),
+      advertisementImageUrl: imageUrl ?? null,
+      partnerBadgeImageUrl: partnerBadgeImg,
+    });
 
     revalidatePath("/admin-game/dashboard/publicites");
     return { success: true, id: row.id };
@@ -216,6 +326,12 @@ export async function updateAdvertisement(
         },
       },
     });
+    await syncPartnerOfferAndMerchants(id, input, {
+      advertiserName: input.advertiserName.trim(),
+      advertisementImageUrl: imageUrl,
+      partnerBadgeImageUrl: input.partnerBadgeImageUrl.trim() || null,
+    });
+
     revalidatePath("/admin-game/dashboard/publicites");
     revalidatePath(`/admin-game/dashboard/publicites/${id}`);
     return { success: true };

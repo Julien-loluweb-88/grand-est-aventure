@@ -37,8 +37,24 @@ export default async function proxy(request: NextRequest) {
   const permCtx = (await permCtxRes.json()) as { role?: string };
   const role = permCtx.role;
 
-  if (!role || !["admin", "superadmin"].includes(role)) {
+  if (!role || !["admin", "superadmin", "merchant"].includes(role)) {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
+  }
+
+  const dashboardRoot = "/admin-game/dashboard";
+  const isDashboardHome =
+    pathname === dashboardRoot || pathname === `${dashboardRoot}/`;
+  const isAccesRefuse = pathname.startsWith(`${dashboardRoot}/acces-refuse`);
+  const isParametres = pathname.startsWith(`${dashboardRoot}/parametres`);
+  const isCommercant = pathname.startsWith(`${dashboardRoot}/commercant`);
+
+  if (role === "merchant") {
+    if (isDashboardHome || isAccesRefuse || isParametres || isCommercant) {
+      return NextResponse.next();
+    }
+    return NextResponse.redirect(
+      new URL("/admin-game/dashboard/commercant", request.url)
+    );
   }
 
   // Adventure management routes
@@ -121,11 +137,6 @@ export default async function proxy(request: NextRequest) {
   }
 
   // Tableau de bord, page d’erreur, etc. : uniquement ces chemins hors préfixes ci‑dessus
-  const dashboardRoot = "/admin-game/dashboard";
-  const isDashboardHome =
-    pathname === dashboardRoot || pathname === `${dashboardRoot}/`;
-  const isAccesRefuse = pathname.startsWith(`${dashboardRoot}/acces-refuse`);
-  const isParametres = pathname.startsWith(`${dashboardRoot}/parametres`);
   const isApiDocs = pathname.startsWith(`${dashboardRoot}/docs`);
   if (isApiDocs) {
     if (!roleHasRoutePermission(role, "adventure", "read")) {
@@ -133,7 +144,7 @@ export default async function proxy(request: NextRequest) {
     }
     return NextResponse.next();
   }
-  if (isDashboardHome || isAccesRefuse || isParametres) {
+  if (isDashboardHome || isAccesRefuse || isParametres || isCommercant) {
     return NextResponse.next();
   }
 

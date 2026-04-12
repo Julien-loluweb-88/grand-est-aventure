@@ -56,6 +56,11 @@ function breadcrumbsForPath(pathname: string | null): Crumb[] {
     return crumbs
   }
 
+  if (tail.startsWith("commercant")) {
+    crumbs.push({ label: "Compte commerçant", href: null })
+    return crumbs
+  }
+
   if (tail === "utilisateurs") {
     crumbs.push({ label: "Utilisateurs", href: null })
     return crumbs

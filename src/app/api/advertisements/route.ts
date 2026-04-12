@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { filterEligibleAdvertisements } from "@/lib/advertisement-eligibility";
+import { resolvePartnerBadgeImageUrl } from "@/lib/advertisements/resolve-partner-badge-image-url";
 
 /**
  * Liste les publicités éligibles pour l’appli joueur.
  * Query : `placement` (obligatoire), `cityId`, `latitude`, `longitude`.
+ * Ciblage : voir `filterEligibleAdvertisements` — villes (cityId dans la liste cible)
+ * et/ou disque (lat+lon à distance ≤ rayon si centre + rayon configurés).
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -45,7 +48,10 @@ export async function GET(request: NextRequest) {
         { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
       ],
     },
-    include: { targetCities: { select: { id: true } } },
+    include: {
+      targetCities: { select: { id: true } },
+      partnerBadgeDefinition: { select: { title: true, imageUrl: true } },
+    },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 
@@ -59,14 +65,30 @@ export async function GET(request: NextRequest) {
   );
 
   return NextResponse.json({
-    advertisements: eligible.map((a) => ({
-      id: a.id,
-      title: a.title,
-      body: a.body,
-      imageUrl: a.imageUrl,
-      targetUrl: a.targetUrl,
-      advertiserName: a.advertiserName,
-      sortOrder: a.sortOrder,
-    })),
+    advertisements: eligible.map((a) => {
+      const badgeImageUrl = resolvePartnerBadgeImageUrl({
+        advertisementImageUrl: a.imageUrl,
+        badgeDefinitionImageUrl: a.partnerBadgeDefinition?.imageUrl,
+      });
+
+      return {
+        id: a.id,
+        title: a.title,
+        body: a.body,
+        imageUrl: a.imageUrl,
+        targetUrl: a.targetUrl,
+        advertiserName: a.advertiserName,
+        sortOrder: a.sortOrder,
+        partnerOffer:
+          a.partnerBadgeDefinitionId == null
+            ? null
+            : {
+                open: a.partnerClaimsOpen,
+                maxRedemptionsPerUser: a.partnerMaxRedemptionsPerUser,
+                badgeTitle: a.partnerBadgeDefinition?.title ?? null,
+                badgeImageUrl,
+              },
+      };
+    }),
   });
 }

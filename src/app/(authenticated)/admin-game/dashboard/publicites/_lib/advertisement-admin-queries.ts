@@ -61,8 +61,33 @@ export async function listAdvertisementsForAdminTable(): Promise<
 }
 
 export type AdvertisementEditRow = Prisma.AdvertisementGetPayload<{
-  include: { targetCities: { select: { id: true } } };
+  include: {
+    targetCities: { select: { id: true } };
+    partnerBadgeDefinition: { select: { id: true; title: true; imageUrl: true } };
+    merchantAssignments: { select: { userId: true } };
+  };
 }>;
+
+export type MerchantUserOption = {
+  id: string;
+  email: string;
+  name: string | null;
+};
+
+export async function listMerchantUsersForAdvertisementForm(): Promise<
+  MerchantUserOption[] | null
+> {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) return null;
+  if (!(await userHasPermissionServer({ permissions: { adventure: ["read"] } }))) {
+    return null;
+  }
+  return prisma.user.findMany({
+    where: { role: "merchant" },
+    select: { id: true, email: true, name: true },
+    orderBy: { email: "asc" },
+  });
+}
 
 export async function getAdvertisementForAdminEdit(
   id: string
@@ -82,6 +107,8 @@ export async function getAdvertisementForAdminEdit(
     where: { id },
     include: {
       targetCities: { select: { id: true } },
+      partnerBadgeDefinition: { select: { id: true, title: true, imageUrl: true } },
+      merchantAssignments: { select: { userId: true } },
     },
   });
   if (!row) {

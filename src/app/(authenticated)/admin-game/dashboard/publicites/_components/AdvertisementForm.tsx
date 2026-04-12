@@ -69,15 +69,21 @@ const schema = z.object({
   targetCenterLatitude: z.string().max(32).optional().default(""),
   targetCenterLongitude: z.string().max(32).optional().default(""),
   targetRadiusMeters: z.string().max(16).optional().default(""),
+  partnerBadgeTitle: z.string().max(200).optional().default(""),
+  partnerBadgeImageUrl: z.string().max(2048).optional().default(""),
+  partnerMaxRedemptionsPerUser: z.coerce.number().int().min(1).max(100),
+  partnerClaimsOpen: z.boolean(),
 });
 
 export type AdvertisementFormDefaultValues = Partial<z.infer<typeof schema>> & {
   targetCityIds?: string[];
+  merchantUserIds?: string[];
 };
 
 function toFormInput(
   values: z.infer<typeof schema>,
   cityIds: string[],
+  merchantIds: string[],
   mode: "create" | "edit",
   advertisementImageDraftId: string | null
 ): AdvertisementFormInput {
@@ -98,20 +104,33 @@ function toFormInput(
     targetCenterLongitude: values.targetCenterLongitude ?? "",
     targetRadiusMeters: values.targetRadiusMeters ?? "",
     targetCityIds: cityIds,
+    partnerBadgeTitle: values.partnerBadgeTitle ?? "",
+    partnerBadgeImageUrl: values.partnerBadgeImageUrl ?? "",
+    partnerMaxRedemptionsPerUser: values.partnerMaxRedemptionsPerUser,
+    partnerClaimsOpen: values.partnerClaimsOpen,
+    merchantUserIds: merchantIds,
     advertisementImageDraftId:
       mode === "create" ? advertisementImageDraftId : undefined,
   };
 }
 
+export type MerchantSelectOption = {
+  id: string;
+  email: string;
+  name: string | null;
+};
+
 export function AdvertisementForm({
   mode,
   advertisementId,
   cities,
+  merchantOptions = [],
   defaultValues = {},
 }: {
   mode: "create" | "edit";
   advertisementId?: string;
   cities: CitySelectOption[];
+  merchantOptions?: MerchantSelectOption[];
   defaultValues?: AdvertisementFormDefaultValues;
 }) {
   const router = useRouter();
@@ -121,7 +140,12 @@ export function AdvertisementForm({
     () => new Set(defaultValues.targetCityIds ?? []),
     [defaultValues.targetCityIds]
   );
+  const initialMerchantIds = useMemo(
+    () => new Set(defaultValues.merchantUserIds ?? []),
+    [defaultValues.merchantUserIds]
+  );
   const [targetCityIds, setTargetCityIds] = useState<Set<string>>(initialCityIds);
+  const [merchantUserIds, setMerchantUserIds] = useState<Set<string>>(initialMerchantIds);
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -141,6 +165,10 @@ export function AdvertisementForm({
       targetCenterLatitude: defaultValues.targetCenterLatitude ?? "",
       targetCenterLongitude: defaultValues.targetCenterLongitude ?? "",
       targetRadiusMeters: defaultValues.targetRadiusMeters ?? "",
+      partnerBadgeTitle: defaultValues.partnerBadgeTitle ?? "",
+      partnerBadgeImageUrl: defaultValues.partnerBadgeImageUrl ?? "",
+      partnerMaxRedemptionsPerUser: defaultValues.partnerMaxRedemptionsPerUser ?? 1,
+      partnerClaimsOpen: defaultValues.partnerClaimsOpen ?? true,
     },
   });
 
@@ -191,11 +219,22 @@ export function AdvertisementForm({
     });
   }, []);
 
+  const toggleMerchant = useCallback((userId: string, checked: boolean) => {
+    setMerchantUserIds((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(userId);
+      else next.delete(userId);
+      return next;
+    });
+  }, []);
+
   const onSubmit = async (values: z.infer<typeof schema>) => {
     const cityIds = [...targetCityIds];
+    const mIds = [...merchantUserIds];
     const payload = toFormInput(
       values,
       cityIds,
+      mIds,
       mode,
       mode === "create" ? advertisementImageDraftIdRef.current : null
     );
@@ -435,6 +474,142 @@ export function AdvertisementForm({
             </Field>
           )}
         />
+
+        <Field>
+          <FieldLabel>Offre partenaire & badge</FieldLabel>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Renseignez un titre de badge pour activer l’offre : les joueurs pourront demander une
+            validation, les comptes commerçant cochés ci‑dessous pourront approuver. Vous pouvez
+            définir une{" "}
+            <span className="font-medium text-foreground">image dédiée</span> pour le badge (sinon
+            l’image de la campagne, ci‑dessus, est réutilisée). Fermer les demandes ne
+            retire pas les badges déjà obtenus.
+          </p>
+          <div className="space-y-4 rounded-md border border-input p-4">
+            <Controller
+              name="partnerBadgeTitle"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor="ad-partner-badge-title">
+                    Titre du badge (offre partenaire)
+                  </FieldLabel>
+                  <Input
+                    id="ad-partner-badge-title"
+                    {...field}
+                    placeholder="Ex. Fidèle chez …"
+                    autoComplete="off"
+                  />
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
+            />
+            <Controller
+              name="partnerBadgeImageUrl"
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <DashboardImageUploadField
+                    scope={
+                      mode === "edit" && advertisementId
+                        ? "advertisement"
+                        : "advertisement-draft"
+                    }
+                    advertisementId={
+                      mode === "edit" && advertisementId ? advertisementId : undefined
+                    }
+                    advertisementDraftId={
+                      mode === "create" ? advertisementImageDraftIdRef.current : undefined
+                    }
+                    label="Image du badge (offre partenaire)"
+                    description={
+                      mode === "create"
+                        ? "Optionnel (JPEG, PNG, WebP). Même brouillon que l’image campagne : enregistrez la fiche pour finaliser les fichiers. Champ vide = même visuel que l’image de la campagne."
+                        : `Téléversement dans uploads/advertisements/${advertisementId ?? "…"}/. Champ vide : le badge utilise l’image de la campagne.`
+                    }
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    disabled={!caps.adventure.update}
+                  />
+                  {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                </Field>
+              )}
+            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Controller
+                name="partnerMaxRedemptionsPerUser"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={fieldState.invalid}>
+                    <FieldLabel htmlFor="ad-partner-max">
+                      Validations max / joueur
+                    </FieldLabel>
+                    <Input
+                      id="ad-partner-max"
+                      type="number"
+                      min={1}
+                      max={100}
+                      {...field}
+                      onChange={(e) => field.onChange(e.target.value)}
+                      value={String(field.value ?? 1)}
+                    />
+                    {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
+                  </Field>
+                )}
+              />
+              <Controller
+                name="partnerClaimsOpen"
+                control={form.control}
+                render={({ field }) => (
+                  <Field orientation="horizontal" className="items-end gap-2 pb-2">
+                    <Checkbox
+                      id="ad-partner-claims-open"
+                      checked={field.value}
+                      onCheckedChange={(v) => field.onChange(v === true)}
+                    />
+                    <FieldLabel htmlFor="ad-partner-claims-open" className="font-normal">
+                      Accepter de nouvelles demandes
+                    </FieldLabel>
+                  </Field>
+                )}
+              />
+            </div>
+            <Field>
+              <FieldLabel>Commerçants validateurs</FieldLabel>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Comptes avec le rôle « commerçant » (défini par un super administrateur). Ils
+                traitent les demandes depuis l&apos;application mobile (API{" "}
+                <span className="font-mono">/api/merchant/partner-claims</span>).
+              </p>
+              <div className="max-h-36 space-y-2 overflow-y-auto rounded-md border border-input p-3">
+                {merchantOptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Aucun utilisateur commerçant. Attribuez le rôle « Commerçant » dans
+                    Utilisateurs.
+                  </p>
+                ) : (
+                  merchantOptions.map((m) => (
+                    <label
+                      key={m.id}
+                      className="flex cursor-pointer items-center gap-3 text-sm"
+                    >
+                      <Checkbox
+                        checked={merchantUserIds.has(m.id)}
+                        onCheckedChange={(checked) =>
+                          toggleMerchant(m.id, checked === true)
+                        }
+                      />
+                      <span>
+                        {m.name ?? m.email}
+                        <span className="ml-2 text-xs text-muted-foreground">{m.email}</span>
+                      </span>
+                    </label>
+                  ))
+                )}
+              </div>
+            </Field>
+          </div>
+        </Field>
 
         <Field>
           <FieldLabel>Ciblage par villes (référentiel)</FieldLabel>

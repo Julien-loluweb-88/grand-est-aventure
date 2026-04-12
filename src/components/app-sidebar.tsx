@@ -23,6 +23,10 @@ import {
   EnvelopeSimpleIcon,
   ScrollIcon,
   BracketsCurlyIcon,
+  MapPinIcon,
+  MegaphoneSimpleIcon,
+  HouseIcon,
+  StorefrontIcon,
 } from "@phosphor-icons/react"
 import { BrandMark } from "@/components/brand-mark"
 
@@ -33,6 +37,35 @@ export type DashboardSessionUser = {
 }
 
 function buildNavMain(caps: AdminSessionCapabilities) {
+  if (caps.merchantPortal) {
+    return [
+      {
+        title: "Accueil",
+        url: "/admin-game/dashboard",
+        icon: <HouseIcon />,
+        isActive: false,
+        items: [
+          {
+            title: "Tableau de bord",
+            url: "/admin-game/dashboard",
+          },
+        ],
+      },
+      {
+        title: "Compte commerçant",
+        url: "/admin-game/dashboard/commercant",
+        icon: <StorefrontIcon />,
+        isActive: true,
+        items: [
+          {
+            title: "Validations (app mobile)",
+            url: "/admin-game/dashboard/commercant",
+          },
+        ],
+      },
+    ];
+  }
+
   const utilisateursNav = caps.user.get
     ? [
         {
@@ -96,6 +129,8 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       ]
     : []
 
+  const aventuresOpenByDefault = !caps.user.get
+
   return [
     ...utilisateursNav,
     ...demandesNav,
@@ -104,7 +139,7 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       title: "Aventures",
       url: "/admin-game/dashboard/aventures",
       icon: <BookOpenIcon />,
-      isActive: !caps.user.get,
+      isActive: aventuresOpenByDefault,
       items: [
         {
           title: "Liste",
@@ -122,8 +157,16 @@ function buildNavMain(caps: AdminSessionCapabilities) {
             ? "Vous ne pouvez pas créer une aventure."
             : DEFAULT_DENY_MESSAGE,
         },
+      ],
+    },
+    {
+      title: "Villes",
+      url: "/admin-game/dashboard/villes",
+      icon: <MapPinIcon />,
+      isActive: false,
+      items: [
         {
-          title: "Villes",
+          title: "Liste",
           url: "/admin-game/dashboard/villes",
           disabled: !caps.adventure.read,
           disabledReason: !caps.adventure.read
@@ -138,8 +181,16 @@ function buildNavMain(caps: AdminSessionCapabilities) {
             ? "Vous ne pouvez pas gérer les villes."
             : DEFAULT_DENY_MESSAGE,
         },
+      ],
+    },
+    {
+      title: "Publicités",
+      url: "/admin-game/dashboard/publicites",
+      icon: <MegaphoneSimpleIcon />,
+      isActive: false,
+      items: [
         {
-          title: "Publicités",
+          title: "Liste",
           url: "/admin-game/dashboard/publicites",
           disabled: !caps.adventure.read,
           disabledReason: !caps.adventure.read

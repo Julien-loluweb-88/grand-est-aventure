@@ -2,6 +2,7 @@ import type { Advertisement, City } from "../../generated/prisma/client";
 
 type AdWithTargets = Advertisement & {
   targetCities: Pick<City, "id">[];
+  partnerBadgeDefinition?: { title: string; imageUrl: string | null } | null;
 };
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {

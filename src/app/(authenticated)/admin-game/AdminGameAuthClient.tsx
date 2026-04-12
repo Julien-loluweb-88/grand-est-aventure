@@ -15,7 +15,7 @@ import {
   isEmailNotVerifiedAuthError,
 } from "@/components/email-verification-prompt";
 
-const ADMIN_ROLES = ["admin", "superadmin"] as const;
+const ADMIN_ROLES = ["admin", "superadmin", "merchant"] as const;
 
 export function AdminGameAuthClient() {
   const { data: session } = authClient.useSession();
@@ -23,12 +23,15 @@ export function AdminGameAuthClient() {
   const verificationCallbackUrl = getEmailVerificationCallbackUrl();
 
   useEffect(() => {
-    if (
-      session?.user?.role &&
-      ADMIN_ROLES.includes(session.user.role as (typeof ADMIN_ROLES)[number])
-    ) {
-      router.replace("/admin-game/dashboard");
+    const r = session?.user?.role;
+    if (!r || !ADMIN_ROLES.includes(r as (typeof ADMIN_ROLES)[number])) {
+      return;
     }
+    if (r === "merchant") {
+      router.replace("/admin-game/dashboard/commercant");
+      return;
+    }
+    router.replace("/admin-game/dashboard");
   }, [session, router]);
 
   const [signUpForm, setSignUpForm] = useState({

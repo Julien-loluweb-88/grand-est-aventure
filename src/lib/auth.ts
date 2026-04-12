@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { expo } from "@better-auth/expo";
 import { admin as adminPlugin } from "better-auth/plugins";
 import { i18n } from "@better-auth/i18n";
-import { ac, admin, user, myCustomRole, superadmin } from "@/lib/permissions";
+import { ac, admin, user, myCustomRole, superadmin, merchant } from "@/lib/permissions";
 import { nextCookies } from "better-auth/next-js";
 import { prisma } from "@/lib/prisma";
 import { queueTransactionalEmail } from "@/lib/send-transactional-email";
@@ -165,6 +165,7 @@ export const auth = betterAuth({
         user,
         myCustomRole,
         superadmin,
+        merchant,
       },
       adminRoles: ["admin", "superadmin"],
       defaultBanReason: DEFAULT_ADMIN_BAN_REASON,

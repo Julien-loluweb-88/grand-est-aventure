@@ -151,7 +151,8 @@ export async function bridgeSetRole(body: {
         | "admin"
         | "superadmin"
         | "myCustomRole"
-        | ("user" | "admin" | "superadmin" | "myCustomRole")[];
+        | "merchant"
+        | ("user" | "admin" | "superadmin" | "myCustomRole" | "merchant")[];
     },
     headers: h,
   });
@@ -180,7 +181,7 @@ export async function bridgeCreateUser(body: {
       email: body.email,
       password: body.password,
       name: body.name,
-      role: body.role as "user" | "admin" | "myCustomRole",
+      role: body.role as "user" | "admin" | "myCustomRole" | "merchant",
       data: body.data,
     },
     headers: h,

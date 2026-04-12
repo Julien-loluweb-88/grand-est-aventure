@@ -48,3 +48,40 @@ export async function finalizeAdvertisementDraftImageUrl(params: {
 
   return `/uploads/${newRel}`;
 }
+
+/**
+ * Si `imageUrl` pointe vers un fichier sous `uploads/advertisements/drafts/{draftId}/`,
+ * le copie vers `uploads/advertisements/{advertisementId}/partner-badge.{ext}`.
+ * Ne supprime pas le dossier brouillon (à faire après via la finalisation de l’image campagne).
+ */
+export async function finalizeAdvertisementDraftPartnerBadgeImageUrl(params: {
+  draftId: string;
+  advertisementId: string;
+  imageUrl: string | null | undefined;
+}): Promise<string | null> {
+  const imageUrl = params.imageUrl?.trim();
+  if (!imageUrl) return imageUrl ?? null;
+  const draftId = params.draftId.trim();
+  if (!UUID_RE.test(draftId)) return imageUrl;
+
+  const needle = `/uploads/advertisements/drafts/${draftId}/`;
+  if (!imageUrl.includes(needle)) {
+    return imageUrl;
+  }
+
+  const prefix = "/uploads/";
+  if (!imageUrl.startsWith(prefix)) return imageUrl;
+  const rel = imageUrl.slice(prefix.length);
+  const uploadsRoot = path.join(process.cwd(), "uploads");
+  const oldAbs = path.join(uploadsRoot, rel);
+  const ext = path.extname(rel) || ".jpg";
+  const newRel = path
+    .join("advertisements", params.advertisementId, `partner-badge${ext}`)
+    .replace(/\\/g, "/");
+  const newAbs = path.join(uploadsRoot, newRel);
+
+  await mkdir(path.dirname(newAbs), { recursive: true });
+  await copyFile(oldAbs, newAbs);
+
+  return `/uploads/${newRel}`;
+}
