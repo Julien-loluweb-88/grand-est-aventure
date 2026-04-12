@@ -103,3 +103,15 @@ export async function gateAdvertisementImageUpload(
   if (!row) return { ok: false };
   return { ok: true, actor };
 }
+
+/** Téléversement image pour un badge palier global (`BadgeDefinition` sans aventure). */
+export async function gateMilestoneBadgeImageUpload(): Promise<
+  AdventureGateOk | AdventureGateFail
+> {
+  const actor = await getAdminActorForAuthorization();
+  if (!actor) return { ok: false };
+  if (!(await userHasPermissionServer({ permissions: { adventure: ["update"] } }))) {
+    return { ok: false };
+  }
+  return { ok: true, actor };
+}

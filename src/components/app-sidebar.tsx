@@ -25,6 +25,7 @@ import {
   BracketsCurlyIcon,
   MapPinIcon,
   MegaphoneSimpleIcon,
+  TrophyIcon,
   HouseIcon,
   StorefrontIcon,
 } from "@phosphor-icons/react"
@@ -203,6 +204,30 @@ function buildNavMain(caps: AdminSessionCapabilities) {
           disabled: !caps.adventure.update,
           disabledReason: !caps.adventure.update
             ? "Vous ne pouvez pas gérer les publicités."
+            : DEFAULT_DENY_MESSAGE,
+        },
+      ],
+    },
+    {
+      title: "Badges globaux",
+      url: "/admin-game/dashboard/badges-globaux",
+      icon: <TrophyIcon />,
+      isActive: false,
+      items: [
+        {
+          title: "Paliers",
+          url: "/admin-game/dashboard/badges-globaux",
+          disabled: !caps.adventure.read,
+          disabledReason: !caps.adventure.read
+            ? "Vous ne pouvez pas consulter les badges."
+            : undefined,
+        },
+        {
+          title: "Nouveau palier",
+          url: "/admin-game/dashboard/badges-globaux/create",
+          disabled: !caps.adventure.update,
+          disabledReason: !caps.adventure.update
+            ? "Vous ne pouvez pas gérer les badges paliers."
             : DEFAULT_DENY_MESSAGE,
         },
       ],

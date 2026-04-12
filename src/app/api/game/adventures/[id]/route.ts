@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { listDiscoveryPointsPublicByCityId } from "@/lib/game/discovery-points-public-query";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 /**
  * Détail "safe" d'une aventure pour app mobile.
  * Expose énigmes + trésor sans divulguer les réponses/codes.
+ * Inclut les **points de découverte** de la **ville** de l’aventure (même jeu que `GET /api/game/discovery-points?cityId=…`).
  */
 export async function GET(_request: NextRequest, context: Ctx) {
   const { id } = await context.params;
@@ -68,6 +70,8 @@ export async function GET(_request: NextRequest, context: Ctx) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
   }
 
+  const discoveryPoints = await listDiscoveryPointsPublicByCityId(adventure.city.id);
+
   return NextResponse.json({
     id: adventure.id,
     name: adventure.name,
@@ -80,6 +84,7 @@ export async function GET(_request: NextRequest, context: Ctx) {
     physicalBadgeStockCount: adventure.physicalBadgeStockCount,
     enigmas: adventure.enigmas,
     treasure: adventure.treasure,
+    discoveryPoints,
     updatedAt: adventure.updatedAt.toISOString(),
   });
 }

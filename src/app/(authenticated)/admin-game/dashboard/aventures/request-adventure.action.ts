@@ -25,7 +25,8 @@ const DEFAULT_REQUEST_TYPES = [
   },
 ] as const;
 
-async function ensureDefaultAdminRequestTypes(actorUserId: string): Promise<void> {
+/** Crée les types métier par défaut s’ils manquent (`upsert` par `key`). Appelé à l’ouverture des Demandes et avant soumission d’une demande. */
+export async function ensureDefaultAdminRequestTypes(actorUserId: string): Promise<void> {
   for (const item of DEFAULT_REQUEST_TYPES) {
     await prisma.adminRequestType.upsert({
       where: { key: item.key },
@@ -57,6 +58,8 @@ export async function submitAdventureCreationRequest(message: string) {
   if (!user) {
     return { success: false as const, error: "Non autorisé." };
   }
+
+  await ensureDefaultAdminRequestTypes(user.id);
 
   const trimmed = message.trim();
   if (trimmed.length > 2000) {

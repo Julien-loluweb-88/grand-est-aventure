@@ -20,6 +20,7 @@ export const SWAGGER_PATH_ORDER: readonly string[] = [
   "/api/merchant/partner-claims/{id}/resolve",
   "/api/cron/expire-partner-claims",
   "/api/user/badges",
+  "/api/user/advertisement-dismissals",
   "/api/admin-game/permission-context",
   "/api/uploads/{path}",
 ];

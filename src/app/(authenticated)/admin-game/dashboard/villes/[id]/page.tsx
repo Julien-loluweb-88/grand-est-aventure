@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getCityByIdForAdmin } from "../_lib/city-queries";
+import { listDiscoveryPointsAdmin } from "../../_lib/discovery-point-admin-queries";
 import { CityForm } from "../_components/CityForm";
+import { DiscoveryPointsAdminSection } from "../../_components/DiscoveryPointsAdminSection";
 
 export default async function EditVillePage({
   params,
@@ -12,6 +14,11 @@ export default async function EditVillePage({
   const { id } = await params;
   const city = await getCityByIdForAdmin(id);
   if (!city) notFound();
+
+  const cityDiscoveryPoints = await listDiscoveryPointsAdmin({
+    cityId: city.id,
+    scope: { type: "city" },
+  });
 
   return (
     <div className="m-8 space-y-6">
@@ -41,6 +48,19 @@ export default async function EditVillePage({
           />
         </CardContent>
       </Card>
+
+      {cityDiscoveryPoints !== null ? (
+        <DiscoveryPointsAdminSection
+          scope={{ type: "city", cityId: city.id }}
+          initialPoints={cityDiscoveryPoints}
+          mapContext={{
+            defaultLatitude: city.latitude ?? 48.0794,
+            defaultLongitude: city.longitude ?? 7.3585,
+            contextMarkers: [],
+            routePolyline: null,
+          }}
+        />
+      ) : null}
     </div>
   );
 }

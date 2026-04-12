@@ -9,4 +9,8 @@ export type DashboardImageScope =
   /** Image publicité (fiche existante) : `uploads/advertisements/{advertisementId}/…` */
   | "advertisement"
   /** Brouillon (création publicité) : `uploads/advertisements/drafts/{draftId}/…` */
-  | "advertisement-draft";
+  | "advertisement-draft"
+  /** Badge palier global (admin) : `uploads/badges/milestone/…` */
+  | "milestone-badge"
+  /** Image point de découverte (admin) : `uploads/badges/discovery/…` */
+  | "discovery-point";

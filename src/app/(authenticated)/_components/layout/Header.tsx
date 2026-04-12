@@ -94,6 +94,57 @@ function breadcrumbsForPath(pathname: string | null): Crumb[] {
     return crumbs
   }
 
+  if (tail === "villes") {
+    crumbs.push({ label: "Villes", href: null })
+    return crumbs
+  }
+  if (tail.startsWith("villes/")) {
+    if (tail === "villes/create") {
+      crumbs.push({ label: "Villes", href: `${DASHBOARD}/villes` })
+      crumbs.push({ label: "Nouvelle ville", href: null })
+    } else {
+      crumbs.push({ label: "Villes", href: `${DASHBOARD}/villes` })
+      crumbs.push({ label: "Modifier la ville", href: null })
+    }
+    return crumbs
+  }
+
+  if (tail === "publicites") {
+    crumbs.push({ label: "Publicités", href: null })
+    return crumbs
+  }
+  if (tail.startsWith("publicites/")) {
+    if (tail === "publicites/create") {
+      crumbs.push({ label: "Publicités", href: `${DASHBOARD}/publicites` })
+      crumbs.push({ label: "Nouvelle publicité", href: null })
+    } else {
+      crumbs.push({ label: "Publicités", href: `${DASHBOARD}/publicites` })
+      crumbs.push({ label: "Modifier la publicité", href: null })
+    }
+    return crumbs
+  }
+
+  if (tail === "badges-globaux") {
+    crumbs.push({ label: "Badges globaux (paliers)", href: null })
+    return crumbs
+  }
+  if (tail.startsWith("badges-globaux/")) {
+    if (tail === "badges-globaux/create") {
+      crumbs.push({
+        label: "Badges globaux (paliers)",
+        href: `${DASHBOARD}/badges-globaux`,
+      })
+      crumbs.push({ label: "Nouveau badge palier", href: null })
+    } else {
+      crumbs.push({
+        label: "Badges globaux (paliers)",
+        href: `${DASHBOARD}/badges-globaux`,
+      })
+      crumbs.push({ label: "Modifier le badge", href: null })
+    }
+    return crumbs
+  }
+
   return [{ label: "Tableau de bord", href: null }]
 }
 

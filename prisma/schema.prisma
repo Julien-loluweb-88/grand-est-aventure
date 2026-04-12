@@ -51,6 +51,7 @@ model User {
   merchantAdvertisementAssignments MerchantAdvertisement[]
   partnerOfferClaimsAsPlayer      PartnerOfferClaim[]       @relation("PartnerOfferClaimPlayer")
   partnerOfferClaimsResolved      PartnerOfferClaim[]       @relation("PartnerOfferClaimResolver")
+  advertisementDismissals         UserAdvertisementDismissal[]
 
   @@map("user")
 }
@@ -117,6 +118,7 @@ model City {
   updatedAt            DateTime        @updatedAt
   adventures           Adventure[]
   advertisementTargets Advertisement[] @relation("AdvertisementTargetCities")
+  discoveryPoints      DiscoveryPoint[]
 
   @@index([name])
 }
@@ -150,6 +152,7 @@ model Adventure {
   adventureBadgeInstances AdventureBadgeInstance[]
   badgeStockEvents AdventureBadgeStockEvent[]
   adminRequests       AdminRequest[]
+  discoveryPoints     DiscoveryPoint[]
 
   @@index([cityId])
 }
@@ -245,6 +248,8 @@ enum BadgeDefinitionKind {
   MILESTONE_KM
   /// Badge obtenu via validation d’offre partenaire (publicité / commerce).
   PARTNER_OFFER
+  /// Badge « point de découverte » géolocalisé (ville et/ou aventure).
+  DISCOVERY
 }
 
 enum AdventureBadgeInstanceStatus {
@@ -272,8 +277,34 @@ model BadgeDefinition {
   userBadges  UserBadge[]
   /// Une publicité partenaire peut référencer ce badge (au plus une pub par définition).
   partnerAdvertisement Advertisement?
+  /// Point de découverte (1:1) — `kind` = DISCOVERY.
+  discoveryPointId String?            @unique
+  discoveryPoint   DiscoveryPoint?    @relation(fields: [discoveryPointId], references: [id], onDelete: Cascade)
 
   @@index([kind])
+}
+
+/// Lieu d’exploration hors fil d’énigmes : badge virtuel à collecter sur place (géofence).
+/// `adventureId` null = ouvert à toute la ville ; renseigné = réservé aux joueurs ayant une partie sur cette aventure.
+model DiscoveryPoint {
+  id           String     @id @default(cuid())
+  cityId       String
+  city         City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  adventureId  String?
+  adventure    Adventure? @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  title        String
+  teaser       String?
+  latitude     Float
+  longitude    Float
+  radiusMeters Int        @default(50)
+  imageUrl     String?
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  badgeDefinition BadgeDefinition?
+
+  @@index([cityId])
+  @@index([adventureId])
 }
 
 /// Badge obtenu par un utilisateur (collection app).
@@ -407,11 +438,26 @@ model Advertisement {
   partnerClaimsOpen     Boolean              @default(true)
   merchantAssignments   MerchantAdvertisement[]
   partnerOfferClaims    PartnerOfferClaim[]
+  userDismissals        UserAdvertisementDismissal[]
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
 
   @@index([placement, active])
   @@index([startsAt, endsAt])
+}
+
+/// Masquage persistant d’une publicité par joueur (liste `GET /api/advertisements` exclut ces ids si session présente).
+model UserAdvertisementDismissal {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  advertisementId String
+  advertisement   Advertisement @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([userId, advertisementId])
+  @@index([userId])
+  @@map("user_advertisement_dismissal")
 }
 
 /// Événement analytique pub (impression affichée, clic). Agrégations par jour / utilisateur via requêtes sur `createdAt` et `userId`.

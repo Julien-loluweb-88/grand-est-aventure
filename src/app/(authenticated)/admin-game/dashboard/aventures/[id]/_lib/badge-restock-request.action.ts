@@ -6,6 +6,7 @@ import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { isSuperadmin } from "@/lib/admin-access";
 import { AdminRequestStatus } from "@/lib/badges/prisma-enums";
 import { notifySuperadminsBadgeRestockRequest } from "@/lib/notify-superadmins-badge-restock-request";
+import { ensureDefaultAdminRequestTypes } from "../../request-adventure.action";
 
 const MSG_MIN = 10;
 const BADGE_RESTOCK_KEY = "badge_restock";
@@ -52,6 +53,8 @@ export async function submitBadgeRestockRequest(
   const qty = parseOptionalQuantity(quantityRequested);
 
   try {
+    await ensureDefaultAdminRequestTypes(gate.actor.id);
+
     const requestType = await prisma.adminRequestType.findUnique({
       where: { key: BADGE_RESTOCK_KEY },
       select: { id: true, isActive: true },

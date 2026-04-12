@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 type Props = {
   scope: DashboardImageScope;
-  /** Requis pour les scopes liés à une aventure (sauf `advertisement` / `advertisement-draft`). */
+  /** Requis pour les scopes liés à une aventure (sauf `advertisement` / `advertisement-draft` / `milestone-badge`). */
   adventureId?: string;
   /** Scopes `advertisement` : id de la fiche publicité. */
   advertisementId?: string;
@@ -54,6 +54,8 @@ export function DashboardImageUploadField({
         toast.error("Identifiant de publicité manquant.");
         return;
       }
+    } else if (scope === "milestone-badge" || scope === "discovery-point") {
+      /* gate serveur uniquement */
     } else if (!adventureId.trim()) {
       toast.error("Identifiant d’aventure manquant.");
       return;
@@ -67,6 +69,8 @@ export function DashboardImageUploadField({
         body.set("advertisementDraftId", advertisementDraftId!.trim());
       } else if (scope === "advertisement") {
         body.set("advertisementId", advertisementId!.trim());
+      } else if (scope === "milestone-badge" || scope === "discovery-point") {
+        /* rien */
       } else {
         body.set("adventureId", adventureId);
         if (enigmaId) body.set("enigmaId", enigmaId);

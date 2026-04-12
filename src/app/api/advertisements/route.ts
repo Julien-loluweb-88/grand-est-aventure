@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth/auth-user";
 import { filterEligibleAdvertisements } from "@/lib/advertisement-eligibility";
 import { resolvePartnerBadgeImageUrl } from "@/lib/advertisements/resolve-partner-badge-image-url";
 
@@ -8,6 +9,7 @@ import { resolvePartnerBadgeImageUrl } from "@/lib/advertisements/resolve-partne
  * Query : `placement` (obligatoire), `cityId`, `latitude`, `longitude`.
  * Ciblage : voir `filterEligibleAdvertisements` — villes (cityId dans la liste cible)
  * et/ou disque (lat+lon à distance ≤ rayon si centre + rayon configurés).
+ * Si une **session** joueur est envoyée, les publicités masquées (`POST …/user/advertisement-dismissals`) sont exclues.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -64,8 +66,23 @@ export async function GET(request: NextRequest) {
     longitude ?? null
   );
 
+  const session = await getSession();
+  const userId = session?.user?.id;
+  let dismissedIds = new Set<string>();
+  if (userId) {
+    const rows = await prisma.userAdvertisementDismissal.findMany({
+      where: { userId },
+      select: { advertisementId: true },
+    });
+    dismissedIds = new Set(rows.map((r) => r.advertisementId));
+  }
+
+  const visible = dismissedIds.size
+    ? eligible.filter((a) => !dismissedIds.has(a.id))
+    : eligible;
+
   return NextResponse.json({
-    advertisements: eligible.map((a) => {
+    advertisements: visible.map((a) => {
       const badgeImageUrl = resolvePartnerBadgeImageUrl({
         advertisementImageUrl: a.imageUrl,
         badgeDefinitionImageUrl: a.partnerBadgeDefinition?.imageUrl,

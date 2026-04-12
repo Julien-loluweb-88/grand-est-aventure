@@ -9,6 +9,7 @@ import {
   gateAdventureUpdateContent,
   gateAdvertisementDraftImageUpload,
   gateAdvertisementImageUpload,
+  gateMilestoneBadgeImageUpload,
 } from "@/lib/adventure-authorization";
 import { prisma } from "@/lib/prisma";
 import type { DashboardImageScope } from "@/lib/uploads/dashboard-image-scope";
@@ -112,6 +113,40 @@ export async function saveDashboardImage(params: {
     const fileStem = randomUUID();
     const relative = path
       .join("advertisements", adId, `${fileStem}${ext}`)
+      .replace(/\\/g, "/");
+    const uploadsRoot = path.join(process.cwd(), "uploads");
+    const absoluteDir = path.join(uploadsRoot, path.dirname(relative));
+    const absoluteFile = path.join(uploadsRoot, relative);
+    await mkdir(absoluteDir, { recursive: true });
+    await writeFile(absoluteFile, params.fileBuffer);
+    return { ok: true, publicUrl: publicUrlForRelative(relative) };
+  }
+
+  if (params.scope === "milestone-badge") {
+    const gate = await gateMilestoneBadgeImageUpload();
+    if (!gate.ok) {
+      return { ok: false, error: "Non autorisé." };
+    }
+    const fileStem = randomUUID();
+    const relative = path
+      .join("badges", "milestone", `${fileStem}${ext}`)
+      .replace(/\\/g, "/");
+    const uploadsRoot = path.join(process.cwd(), "uploads");
+    const absoluteDir = path.join(uploadsRoot, path.dirname(relative));
+    const absoluteFile = path.join(uploadsRoot, relative);
+    await mkdir(absoluteDir, { recursive: true });
+    await writeFile(absoluteFile, params.fileBuffer);
+    return { ok: true, publicUrl: publicUrlForRelative(relative) };
+  }
+
+  if (params.scope === "discovery-point") {
+    const gate = await gateMilestoneBadgeImageUpload();
+    if (!gate.ok) {
+      return { ok: false, error: "Non autorisé." };
+    }
+    const fileStem = randomUUID();
+    const relative = path
+      .join("badges", "discovery", `${fileStem}${ext}`)
       .replace(/\\/g, "/");
     const uploadsRoot = path.join(process.cwd(), "uploads");
     const absoluteDir = path.join(uploadsRoot, path.dirname(relative));

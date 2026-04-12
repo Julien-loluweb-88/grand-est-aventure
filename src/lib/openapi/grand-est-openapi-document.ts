@@ -534,7 +534,9 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Détail public d’une aventure active, incluant énigmes et trésor " +
             "sans exposer les champs sensibles : réponses d’énigmes (`answer`), ni les codes trésor " +
-            "(`mapRevealCode`, `chestCode`, variantes — validés uniquement via POST `/api/game/validate-treasure`).",
+            "(`mapRevealCode`, `chestCode`, variantes — validés uniquement via POST `/api/game/validate-treasure`). " +
+            "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +
+            "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`).",
           parameters: [
             { name: "id", in: "path", required: true, schema: { type: "string" } },
           ],
@@ -545,7 +547,7 @@ export function buildGrandEstOpenApiDocument() {
                 "application/json": {
                   schema: {
                     type: "object",
-                    required: ["id", "name", "city", "enigmas", "updatedAt"],
+                    required: ["id", "name", "city", "enigmas", "discoveryPoints", "updatedAt"],
                     properties: {
                       id: { type: "string" },
                       name: { type: "string" },
@@ -558,6 +560,37 @@ export function buildGrandEstOpenApiDocument() {
                       physicalBadgeStockCount: { type: "integer" },
                       enigmas: { type: "array", items: { type: "object", additionalProperties: true } },
                       treasure: { type: ["object", "null"], additionalProperties: true },
+                      discoveryPoints: {
+                        type: "array",
+                        description:
+                          "POI découverte de la ville (`city.id`) — même structure que les éléments de `GET /api/game/discovery-points`.",
+                        items: {
+                          type: "object",
+                          required: [
+                            "id",
+                            "cityId",
+                            "adventureId",
+                            "title",
+                            "latitude",
+                            "longitude",
+                            "radiusMeters",
+                            "imageUrl",
+                            "sortOrder",
+                          ],
+                          properties: {
+                            id: { type: "string" },
+                            cityId: { type: "string" },
+                            adventureId: { type: ["string", "null"] },
+                            title: { type: "string" },
+                            teaser: { type: ["string", "null"] },
+                            latitude: { type: "number" },
+                            longitude: { type: "number" },
+                            radiusMeters: { type: "integer" },
+                            imageUrl: { type: ["string", "null"] },
+                            sortOrder: { type: "integer" },
+                          },
+                        },
+                      },
                       updatedAt: { type: "string", format: "date-time" },
                     },
                   },
@@ -649,6 +682,132 @@ export function buildGrandEstOpenApiDocument() {
             "401": { description: "Non connecté." },
             "404": { description: "Aventure introuvable ou inactive (`status === false`)." },
             "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
+          },
+        },
+      },
+      "/api/game/discovery-points": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Points de découverte (carte)",
+          description:
+            "Liste les POI d’exploration pour une ville (`cityId`). " +
+            "Inclut les points **ville seule** et ceux **rattachés à une aventure** (`adventureId` non null dans chaque élément). " +
+            "Pas d’authentification requise (données non secrètes).",
+          parameters: [
+            {
+              name: "cityId",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+              description: "Identifiant `City`.",
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Liste ordonnée des points.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["points"],
+                    properties: {
+                      points: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          required: [
+                            "id",
+                            "cityId",
+                            "adventureId",
+                            "title",
+                            "latitude",
+                            "longitude",
+                            "radiusMeters",
+                            "imageUrl",
+                            "sortOrder",
+                          ],
+                          properties: {
+                            id: { type: "string" },
+                            cityId: { type: "string" },
+                            adventureId: { type: ["string", "null"] },
+                            title: { type: "string" },
+                            teaser: { type: ["string", "null"] },
+                            latitude: { type: "number" },
+                            longitude: { type: "number" },
+                            radiusMeters: { type: "integer" },
+                            imageUrl: { type: ["string", "null"] },
+                            sortOrder: { type: "integer" },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "`cityId` manquant.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
+            },
+            "404": { description: "Ville inconnue." },
+          },
+        },
+      },
+      "/api/game/claim-discovery": {
+        post: {
+          tags: ["Jeu"],
+          summary: "Réclamer un badge de point de découverte",
+          description:
+            "Vérifie la **proximité** (Haversine, rayon `radiusMeters`) et les règles : " +
+            "point sans aventure = tout joueur connecté ; point lié à une aventure = au moins une ligne `UserAdventures` pour cette aventure.\n\n" +
+            "**Corps** : `userId` (= session), `discoveryPointId`, `latitude`, `longitude` (position client).\n\n" +
+            `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["userId", "discoveryPointId", "latitude", "longitude"],
+                  properties: {
+                    userId: { type: "string" },
+                    discoveryPointId: { type: "string" },
+                    latitude: { type: "number" },
+                    longitude: { type: "number" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "`ok`, `userBadgeId`, éventuellement `alreadyHad`.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["ok", "userBadgeId"],
+                    properties: {
+                      ok: { type: "boolean", const: true },
+                      userBadgeId: { type: "string" },
+                      alreadyHad: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Trop loin, aventure non démarrée, corps invalide.",
+              content: {
+                "application/json": {
+                  schema: { oneOf: [{ $ref: "#/components/schemas/ErrorMessage" }, { $ref: "#/components/schemas/ErrorWithCode" }] },
+                },
+              },
+            },
+            "401": { description: "Session ou `userId` incohérent." },
+            "404": { description: "Point ou aventure inactive." },
+            "429": { description: "Trop de requêtes." },
           },
         },
       },
@@ -914,7 +1073,8 @@ export function buildGrandEstOpenApiDocument() {
             "**Publique** (pas de session requise). Pubs `active`, bon `placement`, fenêtre de dates. " +
             "Puis `filterEligibleAdvertisements` : si la pub cible des **villes**, `cityId` doit être dans la liste ; " +
             "si elle définit un **disque** (centre lat/lon + rayon m), le client doit envoyer **latitude et longitude** " +
-            "et la distance Haversine doit être ≤ rayon (sinon la pub est exclue). Les deux filtres sont **cumulatifs** si configurés ensemble.",
+            "et la distance Haversine doit être ≤ rayon (sinon la pub est exclue). Les deux filtres sont **cumulatifs** si configurés ensemble. " +
+            "Si le client envoie la **session** du joueur, les encarts enregistrés comme masqués via `POST /api/user/advertisement-dismissals` sont **exclus**.",
           parameters: [
             {
               name: "placement",
@@ -1144,6 +1304,46 @@ export function buildGrandEstOpenApiDocument() {
               description: "Liste des badges.",
             },
             "401": { description: "Non connecté." },
+          },
+        },
+      },
+      "/api/user/advertisement-dismissals": {
+        post: {
+          tags: ["Utilisateur"],
+          summary: "Masquer une publicité pour ce compte",
+          description:
+            "Corps JSON `{ \"advertisementId\": \"…\" }`. Idempotent : plusieurs appels ne créent qu’une entrée. " +
+            `**Rate limit** : ~${30}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["advertisementId"],
+                  properties: { advertisementId: { type: "string" } },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Masquage enregistré.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["ok"],
+                    properties: { ok: { type: "boolean", const: true } },
+                  },
+                },
+              },
+            },
+            "400": { description: "Corps invalide." },
+            "401": { description: "Non authentifié." },
+            "404": { description: "Publicité introuvable." },
+            "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
           },
         },
       },

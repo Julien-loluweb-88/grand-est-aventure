@@ -15,6 +15,8 @@ const ALLOWED_SCOPES: DashboardImageScope[] = [
   "treasure",
   "advertisement",
   "advertisement-draft",
+  "milestone-badge",
+  "discovery-point",
 ];
 
 /** Téléversement unique (dashboard) : écrit dans `uploads/adventures/{id}/` à la racine du projet. */
@@ -47,6 +49,8 @@ export async function uploadDashboardImage(
     if (!advertisementId.trim()) {
       return { ok: false, error: "Identifiant de publicité manquant." };
     }
+  } else if (scope === "milestone-badge" || scope === "discovery-point") {
+    /* pas d’id métier : gate côté saveDashboardImage */
   } else if (!adventureId) {
     return { ok: false, error: "Identifiant d’aventure manquant." };
   }

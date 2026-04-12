@@ -30,6 +30,8 @@ import {
   getMyBadgeRestockRequestsForAdventure,
   getPendingBadgeRestockRequestsForAdventure,
 } from "./_lib/badge-restock-request-queries";
+import { listDiscoveryPointsAdmin } from "../../_lib/discovery-point-admin-queries";
+import { DiscoveryPointsAdminSection } from "../../_components/DiscoveryPointsAdminSection";
 
 export default async function AdventurePage({
   params,
@@ -98,6 +100,11 @@ export default async function AdventurePage({
       ? await getMyBadgeRestockRequestsForAdventure(id, currentUser.id)
       : null;
 
+  const adventureDiscoveryPoints = await listDiscoveryPointsAdmin({
+    cityId: adventure.cityId,
+    scope: { type: "adventure", adventureId: id },
+  });
+
   return (
     <div className="space-y-8 p-4 md:p-6">
       <Link
@@ -157,6 +164,22 @@ export default async function AdventurePage({
             mapReferenceMarkers={mapReferenceMarkersNoTreasure}
             routePolyline={routePolyline}
           />
+          {adventureDiscoveryPoints !== null ? (
+            <DiscoveryPointsAdminSection
+              scope={{
+                type: "adventure",
+                cityId: adventure.cityId,
+                adventureId: adventure.id,
+              }}
+              initialPoints={adventureDiscoveryPoints}
+              mapContext={{
+                defaultLatitude: adventure.latitude,
+                defaultLongitude: adventure.longitude,
+                contextMarkers: mapReferenceMarkersAll,
+                routePolyline: routePolyline,
+              }}
+            />
+          ) : null}
           {pendingBadgeRestock.length > 0 ? (
             <AdventureAdminPendingBadgeRestockList
               adventureId={adventure.id}
