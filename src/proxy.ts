@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { roleHasRoutePermission } from "@/lib/permissions";
 
-async function getSessionFromAuthApi(request: NextRequest) {
-  const sessionResponse = await fetch(`${request.nextUrl.origin}/api/auth/get-session`, {
+/**
+ * Origine pour les fetch serveur→serveur (middleware → routes API).
+ * En prod derrière un reverse proxy, `request.nextUrl.origin` peut être incohérent (TLS) ;
+ * définir `INTERNAL_APP_ORIGIN` (ex. `http://127.0.0.1:3000`) pour pointer vers l’écoute HTTP locale de Next.
+ */
+function getInternalFetchOrigin(request: NextRequest): string {
+  const raw = process.env.INTERNAL_APP_ORIGIN?.trim();
+  if (raw) {
+    return raw.replace(/\/$/, "");
+  }
+  return request.nextUrl.origin;
+}
+
+async function getSessionFromAuthApi(request: NextRequest, internalOrigin: string) {
+  const sessionResponse = await fetch(`${internalOrigin}/api/auth/get-session`, {
     headers: {
       cookie: request.headers.get("cookie") ?? "",
     },
@@ -17,7 +30,8 @@ async function getSessionFromAuthApi(request: NextRequest) {
 }
 
 export default async function proxy(request: NextRequest) {
-  const session = await getSessionFromAuthApi(request);
+  const internalOrigin = getInternalFetchOrigin(request);
+  const session = await getSessionFromAuthApi(request, internalOrigin);
   const pathname = request.nextUrl.pathname;
 
   if (!session?.user) {
@@ -25,7 +39,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   const permCtxRes = await fetch(
-    `${request.nextUrl.origin}/api/admin-game/permission-context`,
+    `${internalOrigin}/api/admin-game/permission-context`,
     {
       headers: { cookie: request.headers.get("cookie") ?? "" },
       cache: "no-store",
