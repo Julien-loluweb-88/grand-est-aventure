@@ -27,14 +27,15 @@ function HomeMapEmpty() {
           🗺️
         </div>
         <h3 className="text-balance text-lg font-semibold tracking-tight text-[#281401] sm:text-xl">
-          Les prochaines aventures arrivent bientôt
+          Encore un peu de patience…
         </h3>
         <p className="text-pretty text-sm leading-relaxed text-[#281401]/75 sm:text-base">
-          Les parcours arrivent progressivement près de chez toi. La carte s&apos;animera au fil des
-          semaines — en attendant, télécharge l&apos;app Android pour être prêt au premier départ&nbsp;!
+          Les parcours se rajoutent au fil des semaines près de chez vous. En attendant, installez
+          l&apos;app Android : le jour où la carte s&apos;anime, vous n&apos;aurez plus qu&apos;à
+          choisir votre prochaine sortie en famille&nbsp;!
         </p>
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#68a618]">
-          Patience — l&apos;exploration continue
+          À très bientôt sur les chemins
         </p>
       </div>
     </div>
@@ -87,9 +88,10 @@ export default function AdventureMapClient({ adventures }: AdventureMapProps) {
           />
         )}
       </div>
-      <p className="max-w-lg text-xs text-[#281401]/55 sm:text-sm">
-        Survole un marqueur pour voir le nom du parcours, la distance et la note moyenne
-        (avis publics). Clique pour plus de détails.
+      <p className="max-w-lg text-xs leading-relaxed text-[#281401]/55 sm:text-sm">
+        Chaque <strong className="font-medium text-[#281401]/70">pastille</strong>, c&apos;est un
+        départ. Survolez-la pour voir le nom du parcours, la distance et les avis des autres
+        joueurs ; cliquez pour lire tout en détail avant de vous lancer&nbsp;!
       </p>
     </div>
   );

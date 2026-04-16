@@ -235,30 +235,41 @@ export default async function Home() {
               id="adventures-heading"
               className="text-balance text-2xl font-semibold tracking-tight text-[#281401] sm:text-3xl"
             >
-              Où jouer&nbsp;?
+              Où jouer en famille&nbsp;?
             </h2>
-            <p className="max-w-2xl text-pretty text-sm text-[#281401]/80 sm:text-base">
+            <p className="max-w-2xl text-pretty text-sm leading-relaxed text-[#281401]/80 sm:text-base">
               {adventureCount > 0 ? (
-                <>
-                  <strong className="font-semibold text-[#281401]">
-                    {adventureCount} aventure{adventureCount > 1 ? "s" : ""}
-                  </strong>{" "}
-                  {adventureCount === 1
-                    ? "est disponible sur la carte"
-                    : "sont disponibles sur la carte"}{" "}
-                  — repère le point de départ, puis ouvre l&apos;app pour commencer.
-                </>
+                adventureCount === 1 ? (
+                  <>
+                    Une aventure vous attend déjà&nbsp;! La{" "}
+                    <strong className="font-semibold text-[#281401]">pastille</strong> sur la carte,
+                    c&apos;est le petit coin où tout commence. Repérez-la ensemble, puis ouvrez
+                    l&apos;app une fois sur place — parfait pour une sortie avec les enfants ou entre
+                    amis.
+                  </>
+                ) : (
+                  <>
+                    Pour l&apos;instant, il y a{" "}
+                    <strong className="font-semibold text-[#281401]">
+                      {adventureCount} aventures
+                    </strong>{" "}
+                    à partager : chaque pastille, c&apos;est un départ différent. Regardez la carte,
+                    choisissez celle qui vous tente, et tout se joue dans l&apos;app quand vous y
+                    êtes.
+                  </>
+                )
               ) : (
                 <>
-                  Les premiers départs apparaîtront ici. En attendant, installe l&apos;app Android
-                  pour être prêt dès l&apos;ouverture d&apos;un parcours près de chez toi.
+                  De nouvelles sorties arriveront ici petit à petit. En attendant, installez
+                  l&apos;app Android : le jour venu, il n&apos;y aura plus qu&apos;à vous y rendre et
+                  à profiter ensemble&nbsp;!
                 </>
               )}
             </p>
             <AdventureMapClient adventures={adventures} />
-            <p className="max-w-md text-xs text-[#281401]/55 sm:text-sm">
-              Astuce : télécharge l&apos;app avant de partir — le jeu se pilote depuis ton
-              téléphone.
+            <p className="max-w-md text-xs leading-relaxed text-[#281401]/55 sm:text-sm">
+              Petit conseil avant le départ : avoir l&apos;app sur le téléphone, comme ça toute la
+              troupe est prête à jouer dès qu&apos;on arrive&nbsp;!
             </p>
           </div>
         </section>
