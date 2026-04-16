@@ -14,6 +14,7 @@ import {
   Polyline,
   Popup,
   TileLayer,
+  Tooltip,
   useMap,
   useMapEvents,
 } from "react-leaflet"
@@ -61,6 +62,10 @@ type Props = {
   markerPopupLabel?: string
   /** Aucun clic ni déplacement : consultation uniquement */
   readOnly?: boolean
+  /**
+   * N’affiche pas le marqueur principal au centre (ex. carte accueil : tous les départs sont dans `contextMarkers`).
+   */
+  omitPrimaryMarker?: boolean
   className?: string
   /** Classes Tailwind pour le conteneur Leaflet (hauteur, etc.) */
   mapClassName?: string
@@ -157,7 +162,7 @@ function SmartFit({
     const ctx = contextMarkers
       .map((m) =>
         m.kind === "departure"
-          ? `d:${m.latitude.toFixed(5)}:${m.longitude.toFixed(5)}`
+          ? `d:${m.adventureId ?? ""}:${m.latitude.toFixed(5)}:${m.longitude.toFixed(5)}`
           : m.kind === "enigma"
             ? `e:${m.id}:${m.number}:${m.latitude.toFixed(5)}:${m.longitude.toFixed(5)}`
             : `t:${m.latitude.toFixed(5)}:${m.longitude.toFixed(5)}`
@@ -215,6 +220,7 @@ export default function LocationPickerMap({
   radiusMeters = null,
   markerPopupLabel = "Point de départ de l'aventure",
   readOnly = false,
+  omitPrimaryMarker = false,
   className,
   mapClassName,
 }: Props) {
@@ -233,7 +239,9 @@ export default function LocationPickerMap({
     editableMarkerKind === "departure" ? departureRefIcon : markerIcon
 
   const hasSmartFit =
-    mapContextMarkers.length > 0 || (routePolyline && routePolyline.length >= 2)
+    omitPrimaryMarker ||
+    mapContextMarkers.length > 0 ||
+    (routePolyline && routePolyline.length >= 2)
 
   const showCircle =
     radiusMeters != null &&
@@ -288,12 +296,42 @@ export default function LocationPickerMap({
         {mapContextMarkers.map((m) =>
           m.kind === "departure" ? (
             <Marker
-              key="ref-departure"
+              key={`departure-${m.adventureId ?? `${m.latitude}-${m.longitude}`}`}
               position={[m.latitude, m.longitude]}
               icon={departureRefIcon}
             >
+              <Tooltip
+                direction="top"
+                offset={[0, -12]}
+                opacity={1}
+                className="rounded-md border border-white/15 bg-[#281401] px-2 py-1.5 text-white shadow-lg"
+              >
+                <div className="max-w-56 space-y-0.5 text-xs leading-snug">
+                  <p className="font-semibold">{m.name?.trim() || "Aventure"}</p>
+                  {m.distanceKm != null && Number.isFinite(m.distanceKm) ? (
+                    <p className="font-normal opacity-95">
+                      Parcours ~{m.distanceKm.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km
+                    </p>
+                  ) : null}
+                  {m.averageRating != null && Number.isFinite(m.averageRating) ? (
+                    <p className="font-normal opacity-95">
+                      Note moyenne {m.averageRating.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}/5
+                    </p>
+                  ) : null}
+                </div>
+              </Tooltip>
               <Popup>
-                <span className="text-sm">Départ de l&apos;aventure</span>
+                <div className="space-y-1 text-sm">
+                  <p className="font-semibold text-[#281401]">{m.name?.trim() || "Aventure"}</p>
+                  {m.distanceKm != null && Number.isFinite(m.distanceKm) ? (
+                    <p>Distance du parcours : ~{m.distanceKm.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} km</p>
+                  ) : null}
+                  {m.averageRating != null && Number.isFinite(m.averageRating) ? (
+                    <p>Note moyenne : {m.averageRating.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}/5</p>
+                  ) : (
+                    <p className="text-muted-foreground">Pas encore d&apos;avis publié avec note.</p>
+                  )}
+                </div>
               </Popup>
             </Marker>
           ) : m.kind === "enigma" ? (
@@ -332,29 +370,31 @@ export default function LocationPickerMap({
             }}
           />
         ) : null}
-        <Marker
-          position={[latitude, longitude]}
-          icon={primaryIcon}
-          draggable={!readOnly}
-          eventHandlers={
-            readOnly
-              ? undefined
-              : {
-                  dragend(e) {
-                    const marker = e.target
-                    const { lat, lng } = marker.getLatLng()
-                    onChange({
-                      latitude: Number(lat.toFixed(6)),
-                      longitude: Number(lng.toFixed(6)),
-                    })
-                  },
-                }
-          }
-        >
-          <Popup>
-            <span className="text-sm">{markerPopupLabel}</span>
-          </Popup>
-        </Marker>
+        {omitPrimaryMarker ? null : (
+          <Marker
+            position={[latitude, longitude]}
+            icon={primaryIcon}
+            draggable={!readOnly}
+            eventHandlers={
+              readOnly
+                ? undefined
+                : {
+                    dragend(e) {
+                      const marker = e.target
+                      const { lat, lng } = marker.getLatLng()
+                      onChange({
+                        latitude: Number(lat.toFixed(6)),
+                        longitude: Number(lng.toFixed(6)),
+                      })
+                    },
+                  }
+            }
+          >
+            <Popup>
+              <span className="text-sm">{markerPopupLabel}</span>
+            </Popup>
+          </Marker>
+        )}
         {readOnly ? null : <ClickHandler onChange={onChange} />}
       </MapContainer>
       <style jsx global>{`

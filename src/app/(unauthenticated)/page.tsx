@@ -30,7 +30,6 @@ export default async function Home() {
  
   const reviews = await getFiveStarReviews(5);
   const adventures = await getSampleAdventures();
-  if (!adventures) return <p>Aventure introuvable</p>;
 
   return (
     <div className="flex w-full flex-1 flex-col">
