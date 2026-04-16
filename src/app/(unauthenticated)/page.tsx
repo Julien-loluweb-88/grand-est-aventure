@@ -32,13 +32,13 @@ const quote =
   "rounded-r-lg border-l-4 border-[#68a618] bg-[#fef0c7]/50 py-3 pl-4 pr-3 text-left text-sm leading-relaxed text-[#281401]/90 sm:pl-5 sm:text-base";
 
 export const metadata: Metadata = {
-  title: "Chasse au trésor en Vosges & Lunévillois",
+  title: "Chasse au trésor dans le Grand Est",
   description:
-    "Balad'indice : chasse au trésor urbaine sur smartphone. Télécharge l'app sur Google Play (Android). Parcours autour de Saint-Dié-des-Vosges et du Lunévillois (Lunéville, Baccarat). iOS prévu ensuite.",
+    "Balad'indice : chasse au trésor urbaine sur smartphone. Télécharge l'app sur Google Play (Android). Parcours déployés progressivement près de chez toi. iOS prévu ensuite.",
   openGraph: {
-    title: "Balad'indice — chasse au trésor · Vosges & Lunévillois",
+    title: "Balad'indice — chasse au trésor · Grand Est",
     description:
-      "QR codes, énigmes et trésor au bout du parcours. App mobile Android (Play Store), iOS bientôt.",
+      "Énigmes, indices et trésor au bout du parcours. App mobile Android (Play Store), iOS bientôt.",
   },
 };
 
@@ -104,16 +104,9 @@ export default async function Home() {
           </h1>
           <p className="mx-auto max-w-2xl text-pretty text-base font-medium leading-relaxed text-white/95 drop-shadow sm:text-lg md:text-xl">
             Avec <strong className="font-semibold text-white">Balad&apos;indice</strong>, marche,
-            scanne des QR codes et résous des énigmes jusqu&apos;au trésor. On déploie d&apos;abord
-            l&apos;agglo de{" "}
-            <strong className="font-semibold text-[#d4f0a8]">
-              Saint-Dié-des-Vosges
-            </strong>
-            , puis le{" "}
-            <strong className="font-semibold text-[#d4f0a8]">
-              Lunévillois
-            </strong>{" "}
-            (Lunéville, Baccarat)&nbsp;: les parcours s&apos;ajoutent au fil des mois.
+            suis les indices et résous les énigmes dans l&apos;app jusqu&apos;au trésor. Les parcours se déploient
+            <strong className="font-semibold text-[#d4f0a8]"> progressivement</strong>, au plus près de
+            chez toi — la carte s&apos;enrichit au fil des semaines.
           </p>
           <div
             className="mx-auto flex flex-wrap items-center justify-center gap-2 text-xs text-white/90 sm:text-sm"
@@ -169,13 +162,11 @@ export default async function Home() {
           className={`${shell} flex flex-col items-center gap-2 text-center sm:flex-row sm:justify-center sm:gap-6 sm:text-left`}
         >
           <p className="text-sm font-semibold text-[#281401] sm:shrink-0">
-            Lancement par territoire
+            Lancement progressif
           </p>
           <p className="max-w-3xl text-pretty text-sm leading-relaxed text-[#281401]/85">
-            <span className="font-medium text-[#281401]">1.</span> Saint-Dié-des-Vosges et alentours
-            &nbsp;·&nbsp;
-            <span className="font-medium text-[#281401]">2.</span> Lunéville, Baccarat et le
-            Lunévillois. Peu d&apos;aventures au début, c&apos;est normal — la carte se remplit avec
+            On ouvre le jeu <strong className="font-medium text-[#281401]">zone par zone</strong> dans
+            le Grand Est. Peu d&apos;aventures au début, c&apos;est normal — la carte se remplit avec
             vous.
           </p>
         </div>
@@ -205,7 +196,7 @@ export default async function Home() {
               <Card className="h-full border-[#281401]/10 bg-white/80 shadow-sm transition-shadow hover:shadow-md">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-lg text-[#281401]">
-                    QR &amp; énigmes
+                    Énigmes &amp; indices
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm leading-relaxed text-[#281401]/80">
@@ -222,8 +213,8 @@ export default async function Home() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm leading-relaxed text-[#281401]/80">
-                  On concentre d&apos;abord nos parcours sur des bassins de vie réels — Vosges et
-                  Lunévillois — pour des aventures qui ont du sens pour celles et ceux qui y vivent.
+                  Des parcours pensés pour des territoires réels, pas une carte vide : au fur et à
+                  mesure, tu pourras jouer près de chez toi.
                 </CardContent>
               </Card>
             </li>
@@ -279,7 +270,7 @@ export default async function Home() {
             <div className="relative aspect-square w-full max-w-[280px] shrink-0 sm:max-w-xs">
               <Image
                 src="/images/scanQr.png"
-                alt="Smartphone pour scanner un code QR"
+                alt="Smartphone avec l&apos;application Balad&apos;indice"
                 fill
                 className="object-contain drop-shadow-md"
                 sizes="(max-width: 1024px) 280px, 320px"
@@ -298,14 +289,13 @@ export default async function Home() {
               <div className="space-y-3">
                 <h3 className={stepH3}>Étape 2</h3>
                 <blockquote className={quote}>
-                  Choisis une aventure sur la carte (Saint-Dié, Lunévillois…) et rends-toi au point
-                  de départ.
+                  Choisis une aventure sur la carte et rends-toi au point de départ.
                 </blockquote>
               </div>
               <div className="space-y-3">
                 <h3 className={stepH3}>Étape 3</h3>
                 <blockquote className={quote}>
-                  Cherche et scanne les codes QR, réponds aux énigmes : chaque bonne réponse
+                  Avance dans le parcours : réponds aux énigmes dans l&apos;app — chaque bonne réponse
                   t&apos;indique où aller pour la suivante.
                 </blockquote>
               </div>
@@ -393,17 +383,17 @@ export default async function Home() {
                 Faut-il une connexion Internet&nbsp;?
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Oui, une connexion est recommandée pour scanner les QR codes et accéder aux
-                énigmes.
+                Oui, une connexion est recommandée pour charger le parcours, valider les étapes et
+                accéder aux énigmes dans l&apos;application.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question5" className="border-[#281401]/10">
               <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                Que faire si je ne trouve pas un QR code&nbsp;?
+                Je suis bloqué sur une énigme, que faire&nbsp;?
               </AccordionTrigger>
               <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Pas de panique&nbsp;! Regarde bien autour de toi, relis l&apos;énigme précédente ou
-                demande de l&apos;aide à un adulte.
+                Pas de panique&nbsp;! Relis bien l&apos;indice, observe autour de toi, reprends le
+                fil depuis l&apos;étape précédente ou demande de l&apos;aide à un adulte.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question6" className="border-[#281401]/10">
@@ -537,13 +527,13 @@ export default async function Home() {
               <div className="flex flex-col items-center gap-2">
                 <Image
                   src="/images/icons8-qr-code-50.png"
-                  alt="Code QR pour télécharger l&apos;application"
+                  alt="Accès rapide au téléchargement sur mobile"
                   width={120}
                   height={120}
                   className="rounded-lg bg-white p-2 shadow-sm ring-1 ring-[#281401]/10"
                 />
                 <span className="text-xs text-[#281401]/60">
-                  Scanne pour ouvrir le Play Store
+                  Ouvre depuis ton mobile pour télécharger
                 </span>
               </div>
             </div>

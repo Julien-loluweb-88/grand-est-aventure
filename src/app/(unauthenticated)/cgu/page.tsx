@@ -81,8 +81,8 @@ export default function CguPage() {
             <strong className="font-semibold text-[#281401]">
               parcours d&apos;aventure
             </strong>{" "}
-            (quêtes, balades) combinant indices, énigmes, codes ou dispositifs type
-            QR selon les parcours proposés, et le cas échéant une phase de « trésor »
+            (quêtes, balades) combinant indices, énigmes et validations dans
+            l&apos;application selon les parcours proposés, et le cas échéant une phase de « trésor »
             (localisation sur carte, code coffre, attribution de récompenses
             virtuelles comme des badges, ou modalités définies par l&apos;organisateur
             du parcours). Le service peut inclure un espace d&apos;administration
