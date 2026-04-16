@@ -30,9 +30,11 @@ function HomeMapEmpty() {
           Les prochaines aventures arrivent bientôt
         </h3>
         <p className="text-pretty text-sm leading-relaxed text-[#281401]/75 sm:text-base">
-          Nous préparons de nouveaux parcours dans le Grand Est. Reviens vite : la carte
-          s&apos;animera dès qu&apos;une aventure sera disponible. En attendant, télécharge
-          l&apos;app pour être prêt au premier lancement&nbsp;!
+          On déploie d&apos;abord les parcours autour de{" "}
+          <strong className="font-semibold text-[#281401]">Saint-Dié-des-Vosges</strong>, puis le{" "}
+          <strong className="font-semibold text-[#281401]">Lunévillois</strong> (Lunéville, Baccarat).
+          La carte s&apos;animera au fil des semaines — en attendant, télécharge l&apos;app Android
+          pour être prêt au premier départ&nbsp;!
         </p>
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#68a618]">
           Patience — l&apos;exploration continue
