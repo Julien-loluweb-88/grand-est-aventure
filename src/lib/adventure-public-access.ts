@@ -10,11 +10,12 @@ type DbClient = Prisma.TransactionClient | typeof prisma;
 /**
  * Filtre catalogue / listes visibles par tous les joueurs (sans compte démo).
  * Exclut les aventures `audience: DEMO` (réservées admins + liste blanche).
+ * `status` explicite `false` = désactivée ; `true` ou `null` = considérée active (schéma optionnel).
  */
-export const publicCatalogAdventureWhere = {
-  status: true,
+export const publicCatalogAdventureWhere: Prisma.AdventureWhereInput = {
   audience: AdventureAudience.PUBLIC,
-} as const;
+  OR: [{ status: true }, { status: null }],
+};
 
 export async function getUserRoleForAccess(userId: string): Promise<string | null> {
   const u = await prisma.user.findUnique({

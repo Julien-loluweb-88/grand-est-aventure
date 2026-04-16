@@ -144,6 +144,7 @@ export async function createAdventure(
     for (const uid of scopeUserIdsToRevalidate) {
       revalidatePath(`/admin-game/dashboard/utilisateurs/${uid}`);
     }
+    revalidatePath("/");
     revalidatePath("/admin-game/dashboard/aventures");
     revalidatePath(`/admin-game/dashboard/aventures/${result.id}`);
     revalidatePath("/admin-game/dashboard/journal-admin");

@@ -16,10 +16,14 @@ export async function statusAdventure(id: string, status: boolean) {
   if (!gate.ok) {
     throw new Error("Non autorisé.");
   }
-  return await prisma.adventure.update({
+  const updated = await prisma.adventure.update({
     where: { id },
     data: { status },
   });
+  revalidatePath("/");
+  revalidatePath("/admin-game/dashboard/aventures");
+  revalidatePath(`/admin-game/dashboard/aventures/${id}`);
+  return updated;
 }
 
 const MSG_NO_DELETE_RIGHT =
@@ -48,6 +52,7 @@ export async function RemoveAdventure(adventureId: string) {
       /* dossier absent ou déjà supprimé */
     }
 
+    revalidatePath("/");
     revalidatePath("/admin-game/dashboard/aventures");
     return {
       success: true,

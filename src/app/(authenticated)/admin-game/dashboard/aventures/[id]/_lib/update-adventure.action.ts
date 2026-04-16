@@ -93,6 +93,7 @@ export async function updateAdventure(
     }
 
     await syncAdventureRouteDistance(id);
+    revalidatePath("/");
     revalidatePath("/admin-game/dashboard/aventures");
     revalidatePath(`/admin-game/dashboard/aventures/${id}`);
     return { success: true, id: result.id };

@@ -31,6 +31,9 @@ const stepH3 =
 const quote =
   "rounded-r-lg border-l-4 border-[#68a618] bg-[#fef0c7]/50 py-3 pl-4 pr-3 text-left text-sm leading-relaxed text-[#281401]/90 sm:pl-5 sm:text-base";
 
+/** Données catalogue à jour après publication / changement d’audience (évite cache RSC obsolète). */
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Chasse au trésor dans le Grand Est",
   description:
