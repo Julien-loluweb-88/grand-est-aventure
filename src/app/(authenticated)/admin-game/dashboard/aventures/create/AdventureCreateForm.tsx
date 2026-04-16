@@ -51,6 +51,7 @@ const formSchema = z.object({
   badgeImageUrl: z.string().max(2048).optional().default(""),
   /** Exemplaires physiques numérotés dans le trésor (0 = pas de stock suivi). */
   physicalBadgeStockCount: z.coerce.number().int().min(0).max(100_000).default(0),
+  audience: z.enum(["PUBLIC", "DEMO"]),
 })
 
 export type CreateAdventureAssignableAdmin = {
@@ -132,6 +133,7 @@ export function CreateAdventureForm({
       coverImageUrl: "",
       badgeImageUrl: "",
       physicalBadgeStockCount: 0,
+      audience: "PUBLIC",
     },
   })
   const latitudeValue = useWatch({ control: form.control, name: "latitude" })
@@ -218,6 +220,33 @@ export function CreateAdventureForm({
                       {c.name}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          name="audience"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Visibilité</FieldLabel>
+              <p className="mb-1 text-xs text-muted-foreground">
+                « Démo » : l’aventure n’apparaît pas dans le catalogue public ; vous pourrez inviter
+                des comptes depuis la fiche aventure.
+              </p>
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger
+                  id={field.name}
+                  className="w-full max-w-md"
+                  aria-invalid={fieldState.invalid}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PUBLIC">Publique</SelectItem>
+                  <SelectItem value="DEMO">Démo (restreinte)</SelectItem>
                 </SelectContent>
               </Select>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

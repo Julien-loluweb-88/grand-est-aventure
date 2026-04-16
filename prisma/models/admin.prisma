@@ -1,0 +1,84 @@
+// Administration : demandes, périmètre assigné, journal d’audit.
+
+enum AdminRequestStatus {
+  PENDING
+  CLOSED
+}
+
+/// Type de demande admin configurable par les superadmin.
+/// La `key` est un identifiant technique stable (slug unique) utilisé en code et dans les payloads.
+model AdminRequestType {
+  id              String         @id @default(cuid())
+  /// Identifiant technique immuable (ex. "adventure_creation", "badge_restock").
+  key             String         @unique
+  /// Libellé métier affiché en interface.
+  label           String
+  /// Description courte d'aide à la saisie.
+  description     String?
+  /// Active/désactive la création de nouvelles demandes de ce type.
+  isActive        Boolean        @default(true)
+  /// Configuration libre (champs requis, hints UI, etc.).
+  config          Json?
+  createdByUserId String?
+  createdBy       User?          @relation("AdminRequestTypeCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  requests        AdminRequest[]
+
+  @@index([isActive])
+}
+
+/// Demande admin générique (création aventure, réassort badges, etc.).
+model AdminRequest {
+  id              String             @id @default(cuid())
+  requestTypeId   String
+  requestType     AdminRequestType   @relation(fields: [requestTypeId], references: [id], onDelete: Restrict)
+  status          AdminRequestStatus @default(PENDING)
+  requesterId     String
+  requester       User               @relation("AdminRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+  /// Aventure concernée si la demande est contextuelle (nullable pour demandes globales).
+  adventureId     String?
+  adventure       Adventure?         @relation(fields: [adventureId], references: [id], onDelete: SetNull)
+  message         String?
+  /// Données spécifiques au type (ex: quantityRequested pour badge_restock).
+  payload         Json?
+  closedAt        DateTime?
+  closedByUserId  String?
+  closedBy        User?              @relation("AdminRequestHandler", fields: [closedByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([requestTypeId, status, createdAt])
+  @@index([requesterId, status, createdAt])
+  @@index([adventureId, status, createdAt])
+  @@index([status, createdAt])
+}
+
+model AdminAdventureAccess {
+  id          String    @id @default(cuid())
+  userId      String
+  adventureId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, adventureId])
+  @@index([userId])
+  @@index([adventureId])
+}
+
+model AdminAuditLog {
+  id           String   @id @default(cuid())
+  action       String
+  actorUserId  String
+  targetUserId String?
+  payload      Json?
+  createdAt    DateTime @default(now())
+  actor        User     @relation("AdminAuditActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  target       User?    @relation("AdminAuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([targetUserId])
+  @@index([action])
+}

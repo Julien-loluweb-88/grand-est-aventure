@@ -23,4 +23,6 @@ export type AdventureEditFormPayload = {
   coverImageUrl: string | null
   badgeImageUrl: string | null
   physicalBadgeStockCount: number
+  /** PUBLIC = catalogue ; DEMO = réservé admins + liste blanche. */
+  audience: "PUBLIC" | "DEMO"
 }

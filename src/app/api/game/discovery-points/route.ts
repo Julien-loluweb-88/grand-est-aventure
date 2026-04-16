@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUserRoleForAccess } from "@/lib/adventure-public-access";
 import { listDiscoveryPointsPublicByCityId } from "@/lib/game/discovery-points-public-query";
 
 /**
@@ -20,7 +23,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Ville introuvable." }, { status: 404 });
   }
 
-  const points = await listDiscoveryPointsPublicByCityId(cityId);
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const viewerId = session?.user?.id;
+  const viewerRole = viewerId ? await getUserRoleForAccess(viewerId) : null;
+
+  const points = await listDiscoveryPointsPublicByCityId(
+    cityId,
+    viewerId ? { userId: viewerId, role: viewerRole } : null
+  );
 
   return NextResponse.json({ points });
 }

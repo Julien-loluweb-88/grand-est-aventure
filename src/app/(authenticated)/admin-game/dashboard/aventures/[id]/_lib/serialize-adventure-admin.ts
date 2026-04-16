@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
+import { AdventureAudience } from "../../../../../../../../generated/prisma/client";
 import type { AdventureAdminDetail } from "./adventure-queries";
 import type { AdventureEditFormPayload } from "./adventure-edit-payload";
 import { buildMapReferenceMarkers, type AdventureForMapReferences } from "./map-reference-markers";
@@ -62,6 +63,8 @@ export function adventurePayloadForEditForm(
       coverImageUrl: adventure.coverImageUrl ?? null,
       badgeImageUrl: adventure.virtualBadge?.imageUrl ?? null,
       physicalBadgeStockCount: adventure.physicalBadgeStockCount ?? 0,
+      audience:
+        adventure.audience === AdventureAudience.DEMO ? "DEMO" : "PUBLIC",
     })
   ) as AdventureEditFormPayload;
 }

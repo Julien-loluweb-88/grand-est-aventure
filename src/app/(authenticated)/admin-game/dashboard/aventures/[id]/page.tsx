@@ -32,6 +32,9 @@ import {
 } from "./_lib/badge-restock-request-queries";
 import { listDiscoveryPointsAdmin } from "../../_lib/discovery-point-admin-queries";
 import { DiscoveryPointsAdminSection } from "../../_components/DiscoveryPointsAdminSection";
+import { AdventureAudience } from "../../../../../../../generated/prisma/client";
+import { listAdventureDemoAccess } from "./_lib/demo-access.action";
+import { AdventureDemoAccessCard } from "./_components/AdventureDemoAccessCard";
 
 export default async function AdventurePage({
   params,
@@ -105,6 +108,11 @@ export default async function AdventurePage({
     scope: { type: "adventure", adventureId: id },
   });
 
+  const demoAccessRows =
+    adventure.audience === AdventureAudience.DEMO
+      ? await listAdventureDemoAccess(id)
+      : null;
+
   return (
     <div className="space-y-8 p-4 md:p-6">
       <Link
@@ -144,6 +152,9 @@ export default async function AdventurePage({
             adventurePayload={adventurePayload}
             cities={cities}
           />
+          {demoAccessRows !== null ? (
+            <AdventureDemoAccessCard adventureId={id} initialRows={demoAccessRows} />
+          ) : null}
           <AdventureAdminEnigmasSection
             adventureId={adventure.id}
             nextEnigmaNumber={nextEnigmaNumber}

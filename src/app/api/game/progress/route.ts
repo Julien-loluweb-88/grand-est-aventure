@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  getUserRoleForAccess,
+  userCanAccessAdventureForPlay,
+} from "@/lib/adventure-public-access";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import {
@@ -50,12 +54,23 @@ export async function GET(request: NextRequest) {
     select: {
       id: true,
       status: true,
+      audience: true,
       enigmas: { select: { number: true }, orderBy: { number: "asc" } },
       treasure: { select: { id: true } },
     },
   });
 
   if (!adventure || adventure.status === false) {
+    return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
+  }
+
+  const userRole = await getUserRoleForAccess(userId);
+  const canPlay = await userCanAccessAdventureForPlay(prisma, {
+    userId,
+    role: userRole,
+    adventure,
+  });
+  if (!canPlay) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
   }
 

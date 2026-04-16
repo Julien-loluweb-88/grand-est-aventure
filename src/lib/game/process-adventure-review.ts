@@ -1,4 +1,5 @@
 import type { Prisma } from "../../../generated/prisma/client";
+import { userCanAccessAdventureForPlay } from "@/lib/adventure-public-access";
 
 type Tx = Prisma.TransactionClient;
 
@@ -20,6 +21,8 @@ export class ReviewValidationError extends Error {
 export type ProcessAdventureReviewInput = {
   adventureId: string;
   userId: string;
+  /** Rôle Better Auth (accès aventures démo). */
+  userRole: string | null | undefined;
   /** Nombre 1–5, chaîne numérique, ou omis / null pour « pas de note ». */
   rating?: unknown;
   content: string;
@@ -58,9 +61,18 @@ export async function processAdventureReview(
 ): Promise<{ id: string }> {
   const adventure = await tx.adventure.findUnique({
     where: { id: input.adventureId },
-    select: { id: true },
+    select: { id: true, status: true, audience: true },
   });
   if (!adventure) {
+    throw new ReviewValidationError("ADVENTURE_NOT_FOUND");
+  }
+
+  const canAccess = await userCanAccessAdventureForPlay(tx, {
+    userId: input.userId,
+    role: input.userRole,
+    adventure,
+  });
+  if (!canAccess) {
     throw new ReviewValidationError("ADVENTURE_NOT_FOUND");
   }
 

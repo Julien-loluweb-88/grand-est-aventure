@@ -1,5 +1,6 @@
 import type { Prisma } from "../../../generated/prisma/client";
 import { BadgeDefinitionKind } from "../../../generated/prisma/client";
+import { userCanAccessAdventureForPlay } from "@/lib/adventure-public-access";
 import { haversineMeters } from "@/lib/geo/haversine-meters";
 
 type Tx = Prisma.TransactionClient;
@@ -25,6 +26,7 @@ export async function claimDiscoveryPointInTransaction(
   tx: Tx,
   input: {
     userId: string;
+    userRole: string | null | undefined;
     discoveryPointId: string;
     clientLatitude: number;
     clientLongitude: number;
@@ -38,7 +40,9 @@ export async function claimDiscoveryPointInTransaction(
       longitude: true,
       radiusMeters: true,
       adventureId: true,
-      adventure: { select: { id: true, status: true, cityId: true } },
+      adventure: {
+        select: { id: true, status: true, cityId: true, audience: true },
+      },
       cityId: true,
       badgeDefinition: {
         select: { id: true, kind: true },
@@ -70,6 +74,22 @@ export async function claimDiscoveryPointInTransaction(
 
   if (point.adventureId) {
     if (!point.adventure || point.adventure.status === false) {
+      return {
+        ok: false,
+        code: "INACTIVE_ADVENTURE",
+        message: "Aventure inactive ou introuvable.",
+      };
+    }
+    const canPlay = await userCanAccessAdventureForPlay(tx, {
+      userId: input.userId,
+      role: input.userRole,
+      adventure: {
+        id: point.adventure.id,
+        status: point.adventure.status,
+        audience: point.adventure.audience,
+      },
+    });
+    if (!canPlay) {
       return {
         ok: false,
         code: "INACTIVE_ADVENTURE",

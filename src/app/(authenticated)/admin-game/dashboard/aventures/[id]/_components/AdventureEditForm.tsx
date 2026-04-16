@@ -75,6 +75,7 @@ const formSchema = z.object({
   coverImageUrl: z.string().max(2048).optional().default(""),
   badgeImageUrl: z.string().max(2048).optional().default(""),
   physicalBadgeStockCount: z.coerce.number().int().min(0).max(100_000).default(0),
+  audience: z.enum(["PUBLIC", "DEMO"]),
 });
 
 const FORM_ID = "adventure-edit-form";
@@ -107,6 +108,7 @@ export function AdventureEditForm({
       coverImageUrl: adventure.coverImageUrl ?? "",
       badgeImageUrl: adventure.badgeImageUrl ?? "",
       physicalBadgeStockCount: adventure.physicalBadgeStockCount ?? 0,
+      audience: adventure.audience,
     },
   });
   const latitudeValue = useWatch({ control: form.control, name: "latitude" });
@@ -130,6 +132,7 @@ export function AdventureEditForm({
         coverImageUrl: a.coverImageUrl ?? "",
         badgeImageUrl: a.badgeImageUrl ?? "",
         physicalBadgeStockCount: a.physicalBadgeStockCount ?? 0,
+        audience: a.audience,
       });
     }
     wasDialogOpenRef.current = open;
@@ -221,6 +224,14 @@ export function AdventureEditForm({
                 Ville
               </p>
               <p className="font-medium text-foreground">{adventure.cityName}</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                Visibilité
+              </p>
+              <p className="font-medium text-foreground">
+                {adventure.audience === "DEMO" ? "Démo (restreinte)" : "Publique"}
+              </p>
             </div>
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
@@ -359,6 +370,40 @@ export function AdventureEditForm({
                                     {c.name}
                                   </SelectItem>
                                 ))}
+                              </SelectContent>
+                            </Select>
+                            {fieldState.invalid && (
+                              <FieldError errors={[fieldState.error]} />
+                            )}
+                          </Field>
+                        )}
+                      />
+                      <Controller
+                        name="audience"
+                        control={form.control}
+                        render={({ field, fieldState }) => (
+                          <Field data-invalid={fieldState.invalid}>
+                            <FieldLabel htmlFor={field.name}>Visibilité</FieldLabel>
+                            <p className="mb-1 text-xs text-muted-foreground">
+                              Public : catalogue et application joueur. Démo : visible uniquement
+                              pour les administrateurs et les comptes ajoutés ci‑dessous (section
+                              dédiée sur la fiche).
+                            </p>
+                            <Select
+                              value={field.value}
+                              onValueChange={field.onChange}
+                              disabled={!caps.adventure.update}
+                            >
+                              <SelectTrigger
+                                id={field.name}
+                                className="w-full max-w-md"
+                                aria-invalid={fieldState.invalid}
+                              >
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="PUBLIC">Publique</SelectItem>
+                                <SelectItem value="DEMO">Démo (restreinte)</SelectItem>
                               </SelectContent>
                             </Select>
                             {fieldState.invalid && (

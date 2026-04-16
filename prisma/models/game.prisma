@@ -1,0 +1,77 @@
+// Progression joueur, étapes validées, avis fin de parcours.
+
+/// Validation serveur d’une étape de parcours (`enigma:1`, …, `treasure:map`, `treasure`). Requis avant finalisation sur `POST /api/game/validate-treasure` (code coffre).
+model UserAdventureStepValidation {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventureId  String
+  adventure    Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  stepKey      String
+  validatedAt  DateTime  @default(now())
+
+  @@unique([userId, adventureId, stepKey])
+  @@index([userId, adventureId])
+}
+
+/// Progression joueur. Badges virtuels : `UserBadge` lié au `BadgeDefinition` de l’aventure ; stock physique : `AdventureBadgeInstance`.
+model UserAdventures {
+  id          String           @id @default(cuid())
+  success     Boolean
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now())
+  giftNumber  Int              @default(0)
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  adventureId String
+  adventure   Adventure        @relation("AdventureUserAdventures", fields: [adventureId], references: [id])
+  /// Avis / signalement associé à cette partie (écran de fin), si rempli.
+  review      AdventureReview?
+
+  @@index([userId, success])
+}
+
+enum AdventureReviewModerationStatus {
+  /// Brouillon côté joueur (non soumis à la modération).
+  DRAFT
+  /// Soumis, en attente de traitement admin.
+  PENDING
+  /// Validé, affichable publiquement.
+  APPROVED
+  /// Refusé, non affiché.
+  REJECTED
+}
+
+/// Avis et signalements en fin de parcours (une entrée par joueur et par aventure).
+/// Côté appli : proposer après succès (ou écran final) les cases « plus de badge », « trésor absent / volé » + texte optionnel.
+/// Case à part : autorisation RGPD/explicit consent pour réutiliser avis / photo sur les réseaux ou supports de com’.
+model AdventureReview {
+  id                           String                          @id @default(cuid())
+  /// Note de 1 à 5 (valider côté appli) ; null si pas d’étoiles (ex. signalement seul).
+  rating                       Int?
+  /// Commentaire libre (avis, détail du signalement) — peut être vide si seuls les booléens sont cochés.
+  content                      String?
+  image                        String?
+  /// Workflow modération (brouillon → attente → validé / refusé).
+  moderationStatus             AdventureReviewModerationStatus @default(PENDING)
+  /// Le joueur autorise l’usage de ces contenus (texte, image, prénom ou pseudo affiché) pour communication publique (réseaux sociaux, site, newsletter, etc.).
+  consentCommunicationNetworks Boolean                         @default(false)
+  /// Plus de badge physique disponible (rupture, vol du point de retrait, etc.).
+  reportsMissingBadge          Boolean                         @default(false)
+  /// Trésor absent, vandalisé ou volé sur le lieu prévu.
+  reportsStolenTreasure        Boolean                         @default(false)
+  userId                       String
+  user                         User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventureId                  String
+  adventure                    Adventure                       @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  /// Partie terminée concernée (pour relier au bon passage) — optionnel.
+  userAdventureId              String?                         @unique
+  userAdventure                UserAdventures?                 @relation(fields: [userAdventureId], references: [id], onDelete: SetNull)
+  createdAt                    DateTime                        @default(now())
+  updatedAt                    DateTime                        @updatedAt
+
+  @@unique([userId, adventureId])
+  @@index([adventureId])
+  @@index([userId])
+  @@index([moderationStatus])
+}

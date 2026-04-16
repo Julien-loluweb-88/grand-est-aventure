@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  getUserRoleForAccess,
+  userCanAccessAdventureForPlay,
+} from "@/lib/adventure-public-access";
 import { processGameFinish } from "@/lib/badges/award-on-finish";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
@@ -129,6 +133,7 @@ export async function POST(request: NextRequest) {
     select: {
       id: true,
       status: true,
+      audience: true,
       treasure: {
         select: {
           mapRevealCode: true,
@@ -142,6 +147,16 @@ export async function POST(request: NextRequest) {
   });
 
   if (!adventure || adventure.status === false) {
+    return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
+  }
+
+  const userRole = await getUserRoleForAccess(userId);
+  const canPlay = await userCanAccessAdventureForPlay(prisma, {
+    userId,
+    role: userRole,
+    adventure,
+  });
+  if (!canPlay) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
   }
 

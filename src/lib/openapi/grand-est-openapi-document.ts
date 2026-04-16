@@ -14,6 +14,11 @@ const RATE_LIMIT_NOTE =
   "Limite par fenêtre glissante (IP + utilisateur quand session). " +
   "En cas de dépassement : réponse **429** avec en-tête Retry-After (secondes).";
 
+/** Audience `PUBLIC` / `DEMO` sur `Adventure` — rappel pour les routes jeu. */
+const ADVENTURE_AUDIENCE_DEMO =
+  " **Aventures démo** (`Adventure.audience = DEMO`) : absentes du catalogue et du comptage villes « actives » ; " +
+  "accès détail / jeu / avis / POI découverte filtrés réservés aux **admin / superadmin** ou aux comptes autorisés (`AdventureDemoAccess`). Sinon **404**.";
+
 /** Si API_DOCS_ENABLED vaut la chaîne « false », désactive /api/openapi et la page docs. */
 export function apiDocsDisabled(): boolean {
   return process.env.API_DOCS_ENABLED === "false";
@@ -35,6 +40,11 @@ export function buildGrandEstOpenApiDocument() {
         "### Rate limiting",
         RATE_LIMIT_NOTE,
         "",
+        "### Aventures publiques vs démo (audience)",
+        "Chaque aventure a un champ **`audience`** en base : `PUBLIC` ou `DEMO` (voir Prisma `AdventureAudience`).",
+        "- **`PUBLIC`** et **`status: true`** : visibles dans **`GET /api/game/adventures`**, comptées pour **`activeAdventureCount`** dans **`GET /api/game/cities`** (`activeOnly` par défaut), détail **`GET /api/game/adventures/{id}`** accessible **sans session**.",
+        "- **`DEMO`** : **hors catalogue** ; le détail, la progression, les validations, les avis publics et les points de découverte (filtrage côté serveur) exigent une **session** et un **accès autorisé** : rôles **admin** ou **superadmin**, ou compte présent dans la table **`AdventureDemoAccess`** (gérée depuis la fiche admin). Sinon les réponses sont **404** (comportement « introuvable »).",
+        "",
         "### Interface de documentation",
         "La page **`/admin-game/dashboard/docs/api`** utilise Swagger UI avec **exécution des requêtes désactivée** : consultation sans envoi depuis l’UI ; accès réservé aux comptes admin du dashboard.",
         "Pour exporter la spec hors navigateur, appelez GET /api/openapi avec les cookies de session admin (ou désactivez temporairement la garde en dev).",
@@ -47,7 +57,12 @@ export function buildGrandEstOpenApiDocument() {
     servers: [{ url: "/", description: "Même origine que l’application" }],
     tags: [
       { name: "Authentification", description: "Handler Better Auth (login, OAuth, session, etc.)." },
-      { name: "Jeu", description: "Découverte (catalogue, villes), progression, validation, fin de parcours, avis." },
+      {
+        name: "Jeu",
+        description:
+          "Découverte (catalogue, villes), progression, validation, fin de parcours, avis. " +
+          "Les aventures **démo** (`audience = DEMO`) sont exclues du catalogue ; accès restreint (voir section **Aventures publiques vs démo** dans la description OpenAPI).",
+      },
       { name: "Publicités", description: "Liste des encarts et événements analytics (impressions / clics)." },
       {
         name: "Offres partenaires",
@@ -452,7 +467,9 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Catalogue mobile des aventures actives",
           description:
             "Liste publique \"safe\" pour app mobile (sans réponses d’énigmes ni codes trésor). " +
-            "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination.",
+            "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination. " +
+            "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**." +
+            ADVENTURE_AUDIENCE_DEMO,
           parameters: [
             { name: "cityId", in: "query", required: false, schema: { type: "string" } },
             { name: "q", in: "query", required: false, schema: { type: "string" } },
@@ -536,7 +553,9 @@ export function buildGrandEstOpenApiDocument() {
             "sans exposer les champs sensibles : réponses d’énigmes (`answer`), ni les codes trésor " +
             "(`mapRevealCode`, `chestCode`, variantes — validés uniquement via POST `/api/game/validate-treasure`). " +
             "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +
-            "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`).",
+            "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`). " +
+            "Pour une aventure **`DEMO`**, session requise + droit d’accès ; sinon **404**." +
+            ADVENTURE_AUDIENCE_DEMO,
           parameters: [
             { name: "id", in: "path", required: true, schema: { type: "string" } },
           ],
@@ -598,7 +617,10 @@ export function buildGrandEstOpenApiDocument() {
               },
             },
             "400": { description: "id manquant ou invalide." },
-            "404": { description: "Aventure introuvable ou inactive." },
+            "404": {
+              description:
+                "Aventure introuvable, inactive, ou **démo** sans session / sans accès autorisé.",
+            },
           },
         },
       },
@@ -608,7 +630,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Référentiel villes pour app mobile",
           description:
             "Liste de villes pour filtres/autocomplete. " +
-            "`activeOnly=true` (défaut) limite aux villes ayant au moins une aventure active.",
+            "`activeOnly=true` (défaut) limite aux villes ayant au moins une aventure **publique** active (`audience: PUBLIC` et `status: true`). " +
+            "Les seules aventures **démo** ne font pas passer une ville en « active » pour ce compteur.",
           parameters: [
             { name: "q", in: "query", required: false, schema: { type: "string" } },
             {
@@ -658,7 +681,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "État serveur de progression",
           description:
             "Retourne les étapes validées, les métadonnées d’aventure utilisateur et ce qui manque pour une terminaison en succès. " +
-            "Aucun secret de jeu (codes, réponses) n’est exposé.\n\n" +
+            "Aucun secret de jeu (codes, réponses) n’est exposé. " +
+            "Aventure **démo** : accès réservé aux utilisateurs autorisés (même règle que le détail aventure).\n\n" +
             `**Rate limit** : ~120 requêtes / minute / clé. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           parameters: [
@@ -680,7 +704,10 @@ export function buildGrandEstOpenApiDocument() {
               content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
             },
             "401": { description: "Non connecté." },
-            "404": { description: "Aventure introuvable ou inactive (`status === false`)." },
+            "404": {
+              description:
+                "Aventure introuvable, inactive, ou **démo** sans droit d’accès pour l’utilisateur connecté.",
+            },
             "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
           },
         },
@@ -692,7 +719,8 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Liste les POI d’exploration pour une ville (`cityId`). " +
             "Inclut les points **ville seule** et ceux **rattachés à une aventure** (`adventureId` non null dans chaque élément). " +
-            "Pas d’authentification requise (données non secrètes).",
+            "Les POI liés à une aventure **démo** ne sont renvoyés que si la session a le **droit** de voir cette aventure (sinon exclus de la liste). " +
+            "Sans session : uniquement POI ville et POI d’aventures **publiques** actives.",
           parameters: [
             {
               name: "cityId",
@@ -759,7 +787,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Réclamer un badge de point de découverte",
           description:
             "Vérifie la **proximité** (Haversine, rayon `radiusMeters`) et les règles : " +
-            "point sans aventure = tout joueur connecté ; point lié à une aventure = au moins une ligne `UserAdventures` pour cette aventure.\n\n" +
+            "point sans aventure = tout joueur connecté ; point lié à une aventure = au moins une ligne `UserAdventures` pour cette aventure ; " +
+            "si l’aventure est **démo**, le compte doit aussi avoir le **droit** d’y accéder (admin / liste blanche).\n\n" +
             "**Corps** : `userId` (= session), `discoveryPointId`, `latitude`, `longitude` (position client).\n\n" +
             `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
@@ -806,7 +835,10 @@ export function buildGrandEstOpenApiDocument() {
               },
             },
             "401": { description: "Session ou `userId` incohérent." },
-            "404": { description: "Point ou aventure inactive." },
+            "404": {
+              description:
+                "Point introuvable, aventure inactive, ou **démo** sans accès pour ce compte.",
+            },
             "429": { description: "Trop de requêtes." },
           },
         },
@@ -818,6 +850,7 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Valide dans l’ordre (1…n). Enregistre `UserAdventureStepValidation` en cas de succès.\n\n" +
             "**Corps JSON** : `adventureId`, `userId` (doit correspondre à la session), `enigmaNumber` (entier ≥ 1), `submission` (≤ 500 car.).\n\n" +
+            "Aventure **démo** : même contrôle d’accès que le détail (`audience = DEMO`).\n\n" +
             `**Rate limit** : ~80 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           requestBody: {
@@ -853,7 +886,10 @@ export function buildGrandEstOpenApiDocument() {
               },
             },
             "401": { description: "Session absente ou `userId` ≠ utilisateur connecté." },
-            "404": { description: "Aventure ou énigme introuvable / inactive." },
+            "404": {
+              description:
+                "Aventure ou énigme introuvable / inactive, ou aventure **démo** sans accès pour ce compte.",
+            },
             "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
           },
         },
@@ -872,6 +908,7 @@ export function buildGrandEstOpenApiDocument() {
             "Si `phase` est omis, le serveur en déduit une : carte d’abord, puis coffre.\n\n" +
             "**Anciennes parties** (seule clé `treasure`) : une reprise envoie `giftNumber` si la ligne `UserAdventures` n’était pas encore en succès.\n\n" +
             "Chaque aventure prévue avec **trésor** : la finalisation (badges, `UserAdventures`) se fait **uniquement** à l’étape coffre de cette route.\n\n" +
+            "Aventure **démo** : même contrôle d’accès que `validate-enigma`.\n\n" +
             `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           requestBody: {
@@ -922,7 +959,10 @@ export function buildGrandEstOpenApiDocument() {
               },
             },
             "401": { description: "Session ou concordance `userId`." },
-            "404": { description: "Aventure introuvable ou inactive." },
+            "404": {
+              description:
+                "Aventure introuvable, inactive, ou **démo** sans accès pour ce compte.",
+            },
             "429": { description: "Trop de requêtes." },
           },
         },
@@ -941,6 +981,7 @@ export function buildGrandEstOpenApiDocument() {
             "JPEG, PNG ou WebP, max 5 Mo ; l’URL publique est renvoyée côté serveur (`/uploads/reviews/...`). " +
             "Optionnel : **`imageUrl`** si l’image est déjà hébergée ailleurs.\n\n" +
             "Les avis **affichés publiquement** via `GET /api/game/adventure-reviews` le sont uniquement lorsque `moderationStatus` est `APPROVED` (côté base / modération).\n\n" +
+            "Soumission refusée si l’aventure est **démo** et que le compte n’a pas accès.\n\n" +
             `**Rate limit** : selon déploiement. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           requestBody: {
@@ -1002,7 +1043,10 @@ export function buildGrandEstOpenApiDocument() {
               content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
             },
             "401": { description: "Session absente ou `userId` différent de l’utilisateur connecté." },
-            "404": { description: "Aventure introuvable." },
+            "404": {
+              description:
+                "Aventure introuvable, ou **démo** sans accès pour ce compte (même message générique que les autres routes jeu).",
+            },
             "429": { description: "Trop de requêtes." },
           },
         },
@@ -1013,7 +1057,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Liste des avis publics (modérés)",
           description:
             "Retourne uniquement les avis avec **moderationStatus = APPROVED** pour une aventure active. " +
-            "Pas d’identifiant utilisateur brut : `authorDisplayName` est dérivé du prénom / premier mot du nom.",
+            "Pas d’identifiant utilisateur brut : `authorDisplayName` est dérivé du prénom / premier mot du nom. " +
+            "Pour une aventure **démo**, la session doit avoir le **droit** de voir cette aventure ; sinon **404**.",
           parameters: [
             {
               name: "adventureId",
@@ -1042,7 +1087,10 @@ export function buildGrandEstOpenApiDocument() {
               },
             },
             "400": { description: "`adventureId` manquant." },
-            "404": { description: "Aventure introuvable ou inactive." },
+            "404": {
+              description:
+                "Aventure introuvable, inactive, ou **démo** sans accès pour l’appelant.",
+            },
             "429": { description: "Trop de requêtes." },
           },
         },
@@ -1051,7 +1099,9 @@ export function buildGrandEstOpenApiDocument() {
         get: {
           tags: ["Jeu"],
           summary: "Détail d’un avis public",
-          description: "Uniquement si l’avis est **APPROVED** et l’aventure encore active.",
+          description:
+            "Uniquement si l’avis est **APPROVED** et l’aventure encore active. " +
+            "Si l’aventure est **démo**, session + droit d’accès requis ; sinon **404**.",
           parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
           responses: {
             "200": {
@@ -1060,7 +1110,10 @@ export function buildGrandEstOpenApiDocument() {
               },
               description: "Avis publié.",
             },
-            "404": { description: "Avis introuvable, non approuvé ou aventure inactive." },
+            "404": {
+              description:
+                "Avis introuvable, non approuvé, aventure inactive, ou **démo** sans accès.",
+            },
             "429": { description: "Trop de requêtes." },
           },
         },

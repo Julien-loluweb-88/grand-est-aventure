@@ -32,6 +32,7 @@ type Adventure = {
   name: string
   city: string
   status: boolean
+  audience: "PUBLIC" | "DEMO"
 }
 
 type Props = {
@@ -180,6 +181,7 @@ export default function AdventuresTable({
               <TableRow>
                 <TableHead className="text-left">Nom</TableHead>
                 <TableHead className="text-left">Ville</TableHead>
+                <TableHead className="text-left">Visibilité</TableHead>
                 <TableHead className="text-left">Statut</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -189,6 +191,13 @@ export default function AdventuresTable({
                 <TableRow key={adventure.id}>
                   <TableCell className="text-left">{adventure.name}</TableCell>
                   <TableCell className="text-left">{adventure.city}</TableCell>
+                  <TableCell className="text-left">
+                    {adventure.audience === "DEMO" ? (
+                      <span className="text-muted-foreground">Démo</span>
+                    ) : (
+                      <span className="text-muted-foreground">Publique</span>
+                    )}
+                  </TableCell>
                   <TableCell className="text-left">
                     {adventure.status ? (
                       <span className="text-muted-foreground">Active</span>

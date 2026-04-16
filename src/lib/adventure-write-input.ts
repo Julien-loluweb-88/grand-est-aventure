@@ -17,4 +17,6 @@ export type AdventureWriteInput = {
   assignedAdminIds?: string[];
   /** UUID client : images TipTap (`drafts/{id}/editor/`) migrées vers l’aventure créée. */
   descriptionDraftId?: string | null;
+  /** PUBLIC = catalogue joueur ; DEMO = réservé aux admins et à la liste blanche. */
+  audience?: "PUBLIC" | "DEMO";
 };

@@ -1,0 +1,121 @@
+// Parcours joueur : aventure, énigmes, trésor, points de découverte, accès démo.
+
+/// Public = catalogue et app joueur ; démo = réservé aux admins et aux comptes explicitement autorisés.
+enum AdventureAudience {
+  PUBLIC
+  DEMO
+}
+
+model Adventure {
+  id               String                 @id @default(cuid())
+  name             String
+  description      Json
+  cityId           String
+  city             City                   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  latitude         Float
+  longitude        Float
+  distance         Float?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @default(now())
+  /// Image de présentation (liste, fiche aventure).
+  coverImageUrl    String?
+  /// Nombre d’exemplaires physiques numérotés (stock dans `AdventureBadgeInstance`). 0 = pas de suivi stock.
+  physicalBadgeStockCount Int @default(0)
+  /// Aventure visible par tous les joueurs (`PUBLIC`) ou réservée démo (`DEMO`).
+  audience         AdventureAudience      @default(PUBLIC)
+  enigmas          Enigma[]
+  status           Boolean?               @default(true)
+  creatorId        String
+  creator          User                   @relation("CreatedAdventures", fields: [creatorId], references: [id])
+  userAdventures   UserAdventures[]       @relation("AdventureUserAdventures")
+  userAdventureStepValidations UserAdventureStepValidation[]
+  treasure         Treasure?
+  adminAccesses    AdminAdventureAccess[]
+  adventureReviews AdventureReview[]
+  /// Badge virtuel « complétion » (1 par aventure) — visuel dans `BadgeDefinition.imageUrl`.
+  virtualBadge     BadgeDefinition?
+  adventureBadgeInstances AdventureBadgeInstance[]
+  badgeStockEvents AdventureBadgeStockEvent[]
+  adminRequests       AdminRequest[]
+  discoveryPoints     DiscoveryPoint[]
+  demoAccesses        AdventureDemoAccess[]
+
+  @@index([cityId])
+}
+
+/// Comptes joueurs autorisés à voir / jouer une aventure en audience `DEMO` (en plus des admins).
+model AdventureDemoAccess {
+  id          String    @id @default(cuid())
+  adventureId String
+  adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+
+  @@unique([adventureId, userId])
+  @@index([userId])
+}
+
+/// Lieu d’exploration hors fil d’énigmes : badge virtuel à collecter sur place (géofence).
+/// `adventureId` null = ouvert à toute la ville ; renseigné = réservé aux joueurs ayant une partie sur cette aventure.
+model DiscoveryPoint {
+  id           String     @id @default(cuid())
+  cityId       String
+  city         City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  adventureId  String?
+  adventure    Adventure? @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  title        String
+  teaser       String?
+  latitude     Float
+  longitude    Float
+  radiusMeters Int        @default(50)
+  imageUrl     String?
+  sortOrder    Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  badgeDefinition BadgeDefinition?
+
+  @@index([cityId])
+  @@index([adventureId])
+}
+
+model Enigma {
+  id             String    @id @default(cuid())
+  name           String
+  number         Int
+  question       String
+  uniqueResponse Boolean   @default(false)
+  choice         Json?
+  answer         String
+  answerMessage  Json
+  description    Json
+  latitude       Float
+  longitude      Float
+  imageUrl       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now())
+  adventureId    String
+  adventure      Adventure @relation(fields: [adventureId], references: [id])
+
+  @@unique([adventureId, number])
+}
+
+model Treasure {
+  id          String    @id @default(cuid())
+  name        String
+  description Json
+  latitude    Float
+  /// Combinaison / fin d’énigmes : ce que le joueur saisit pour **révéler le trésor sur la carte** (étape `treasure:map`).
+  mapRevealCode     String
+  /// Variante tolérée pour la même saisie (orthographe, etc.). Jamais exposé aux clients publics.
+  mapRevealCodeAlt  String?
+  /// Code **dans le trésor physique** (coffre, étiquette…), validé **après** la révélation sur la carte (étape `treasure`).
+  chestCode         String
+  chestCodeAlt      String?
+  longitude   Float
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now())
+  adventureId String    @unique
+  adventure   Adventure @relation(fields: [adventureId], references: [id])
+}

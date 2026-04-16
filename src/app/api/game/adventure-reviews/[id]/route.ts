@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  getUserRoleForAccess,
+  userCanAccessAdventureForPlay,
+} from "@/lib/adventure-public-access";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 
@@ -51,12 +57,31 @@ export async function GET(_request: NextRequest, context: Ctx) {
           id: true,
           name: true,
           status: true,
+          audience: true,
         },
       },
     },
   });
 
   if (!row || !row.adventure.status) {
+    return NextResponse.json({ error: "Avis introuvable ou non publié." }, { status: 404 });
+  }
+
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const viewerId = session?.user?.id;
+  const viewerRole = viewerId ? await getUserRoleForAccess(viewerId) : null;
+  const canSee = await userCanAccessAdventureForPlay(prisma, {
+    userId: viewerId ?? "__no_session__",
+    role: viewerRole,
+    adventure: {
+      id: row.adventure.id,
+      status: row.adventure.status,
+      audience: row.adventure.audience,
+    },
+  });
+  if (!canSee) {
     return NextResponse.json({ error: "Avis introuvable ou non publié." }, { status: 404 });
   }
 

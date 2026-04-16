@@ -1,0 +1,94 @@
+// Authentification Better Auth (sessions, comptes OAuth, vérifications).
+
+model User {
+  id                        String                     @id
+  email                     String                     @unique
+  name                      String?
+  address                   String?
+  postalCode                String?
+  city                      String?
+  country                   String?
+  phone                     String?
+  emailVerified             Boolean                    @default(false)
+  image                     String?
+  role                      String?                    @default("user")
+  banned                    Boolean?                   @default(false)
+  banReason                 String?
+  banExpires                DateTime?
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  sessions                  Session[]
+  accounts                  Account[]
+  userAdventures            UserAdventures[]
+  /// Étapes d’énigme / trésor validées côté serveur (anti-triche avant fin d’aventure).
+  adventureStepValidations  UserAdventureStepValidation[]
+  adventures                Adventure[]                @relation("CreatedAdventures")
+  /// Avis laissés sur les aventures.
+  adventureReviews          AdventureReview[]
+  adminAdventureAccesses    AdminAdventureAccess[]
+  adminAuditLogsAsActor     AdminAuditLog[]            @relation("AdminAuditActor")
+  adminAuditLogsAsTarget    AdminAuditLog[]            @relation("AdminAuditTarget")
+  adminRequestsCreated      AdminRequest[]                 @relation("AdminRequestRequester")
+  adminRequestsHandled      AdminRequest[]                 @relation("AdminRequestHandler")
+  adminRequestTypesCreated  AdminRequestType[]             @relation("AdminRequestTypeCreator")
+  advertisementEvents       AdvertisementEvent[]
+  userBadges                UserBadge[]
+  claimedAdventureBadgeInstances AdventureBadgeInstance[] @relation("BadgeClaimant")
+  adventureBadgeStockEventsCreated AdventureBadgeStockEvent[]
+  merchantAdvertisementAssignments MerchantAdvertisement[]
+  partnerOfferClaimsAsPlayer      PartnerOfferClaim[]       @relation("PartnerOfferClaimPlayer")
+  partnerOfferClaimsResolved      PartnerOfferClaim[]       @relation("PartnerOfferClaimResolver")
+  advertisementDismissals         UserAdvertisementDismissal[]
+  adventureDemoAccesses           AdventureDemoAccess[]
+
+  @@map("user")
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  ipAddress      String?
+  userAgent      String?
+  impersonatedBy String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}

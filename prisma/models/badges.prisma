@@ -1,0 +1,104 @@
+// Badges (virtuels, paliers, stock physique, journal stock).
+
+enum AdventureBadgeStockEventKind {
+  /// Première mise en stock (création / config).
+  INITIAL_SETUP
+  /// Réapprovisionnement : ajout d’exemplaires disponibles.
+  RESTOCK
+  /// Incident : vol, rupture, trésor vide — perte du stock encore disponible.
+  LOSS_INCIDENT
+}
+
+/// Journal opérationnel du stock physique (réassort, incidents) — motif dans `note`.
+model AdventureBadgeStockEvent {
+  id              String                      @id @default(cuid())
+  adventureId     String
+  adventure       Adventure                   @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  kind            AdventureBadgeStockEventKind
+  /// Variation du nombre d’exemplaires **disponibles** (+ réappro, − perte).
+  availableDelta  Int
+  /// Nombre d’exemplaires encore disponibles après l’opération.
+  availableAfter  Int
+  /// Contexte : pourquoi (réassort, vol signalé, rupture, etc.).
+  note            String
+  createdByUserId String?
+  createdBy       User?                       @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt       DateTime                    @default(now())
+
+  @@index([adventureId, createdAt])
+}
+
+enum BadgeDefinitionKind {
+  /// Badge débloqué en terminant une aventure avec succès.
+  ADVENTURE_COMPLETE
+  /// Nombre minimum d’aventures **distinctes** réussies.
+  MILESTONE_ADVENTURES
+  /// Kilomètres cumulés (parcours `Adventure.distance` des aventures réussies).
+  MILESTONE_KM
+  /// Badge obtenu via validation d’offre partenaire (publicité / commerce).
+  PARTNER_OFFER
+  /// Badge « point de découverte » géolocalisé (ville et/ou aventure).
+  DISCOVERY
+}
+
+enum AdventureBadgeInstanceStatus {
+  AVAILABLE
+  CLAIMED
+  MISSING
+  STOLEN
+}
+
+/// Catalogue de badges (virtuel par aventure, paliers globaux, etc.).
+model BadgeDefinition {
+  id          String              @id @default(cuid())
+  slug        String              @unique
+  title       String
+  imageUrl    String?
+  kind        BadgeDefinitionKind
+  /// Aventure liée (un seul badge virtuel par aventure).
+  adventureId String?             @unique
+  adventure   Adventure?          @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  /// Seuils pour les badges globaux, ex. `{ "minCompletedAdventures": 10 }`, `{ "minKmTotal": 50 }`.
+  criteria    Json?
+  sortOrder   Int                 @default(0)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  userBadges  UserBadge[]
+  /// Une publicité partenaire peut référencer ce badge (au plus une pub par définition).
+  partnerAdvertisement Advertisement?
+  /// Point de découverte (1:1) — `kind` = DISCOVERY.
+  discoveryPointId String?            @unique
+  discoveryPoint   DiscoveryPoint?    @relation(fields: [discoveryPointId], references: [id], onDelete: Cascade)
+
+  @@index([kind])
+}
+
+/// Badge obtenu par un utilisateur (collection app).
+model UserBadge {
+  id                String          @id @default(cuid())
+  userId            String
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeDefinitionId String
+  badgeDefinition   BadgeDefinition @relation(fields: [badgeDefinitionId], references: [id], onDelete: Cascade)
+  earnedAt          DateTime        @default(now())
+
+  @@unique([userId, badgeDefinitionId])
+  @@index([userId])
+  @@index([badgeDefinitionId])
+}
+
+/// Exemplaire physique numéroté dans le trésor (stock).
+model AdventureBadgeInstance {
+  id              String   @id @default(cuid())
+  adventureId     String
+  adventure       Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  giftNumber      Int
+  status          AdventureBadgeInstanceStatus @default(AVAILABLE)
+  claimedByUserId String?
+  claimedAt       DateTime?
+  claimant        User?    @relation("BadgeClaimant", fields: [claimedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([adventureId, giftNumber])
+  @@index([adventureId, status])
+  @@index([claimedByUserId])
+}

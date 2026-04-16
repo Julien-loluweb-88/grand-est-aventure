@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  getUserRoleForAccess,
+  userCanAccessAdventureForPlay,
+} from "@/lib/adventure-public-access";
 import { listDiscoveryPointsPublicByCityId } from "@/lib/game/discovery-points-public-query";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -21,6 +27,7 @@ export async function GET(_request: NextRequest, context: Ctx) {
     select: {
       id: true,
       name: true,
+      audience: true,
       description: true,
       latitude: true,
       longitude: true,
@@ -70,7 +77,31 @@ export async function GET(_request: NextRequest, context: Ctx) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
   }
 
-  const discoveryPoints = await listDiscoveryPointsPublicByCityId(adventure.city.id);
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+  const viewerUserId = session?.user?.id;
+  const viewerRole = viewerUserId
+    ? await getUserRoleForAccess(viewerUserId)
+    : null;
+
+  const canPlay = await userCanAccessAdventureForPlay(prisma, {
+    userId: viewerUserId ?? "__no_session__",
+    role: viewerRole,
+    adventure: {
+      id: adventure.id,
+      status: true,
+      audience: adventure.audience,
+    },
+  });
+  if (!canPlay) {
+    return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
+  }
+
+  const discoveryPoints = await listDiscoveryPointsPublicByCityId(
+    adventure.city.id,
+    viewerUserId ? { userId: viewerUserId, role: viewerRole } : null
+  );
 
   return NextResponse.json({
     id: adventure.id,

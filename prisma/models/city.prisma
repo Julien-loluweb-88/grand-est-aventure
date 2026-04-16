@@ -1,0 +1,19 @@
+// Référentiel ville (INSEE, cartes).
+
+model City {
+  id                   String          @id @default(cuid())
+  name                 String
+  /// Code INSEE à 5 chiffres, optionnel (saisie manuelle).
+  inseeCode            String?         @unique
+  postalCodes          String[]        @default([])
+  latitude             Float?
+  longitude            Float?
+  population           Int?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+  adventures           Adventure[]
+  advertisementTargets Advertisement[] @relation("AdvertisementTargetCities")
+  discoveryPoints      DiscoveryPoint[]
+
+  @@index([name])
+}

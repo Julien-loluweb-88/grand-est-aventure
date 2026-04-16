@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
 
   const adventures = await prisma.adventure.findMany({
     where: {
-      status: true,
+      ...publicCatalogAdventureWhere,
       ...(cityId ? { cityId } : {}),
       ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
     },

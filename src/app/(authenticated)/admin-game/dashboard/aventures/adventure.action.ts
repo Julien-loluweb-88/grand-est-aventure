@@ -47,6 +47,7 @@ export type AdventureListItem = {
   name: string;
   city: string;
   status: boolean;
+  audience: "PUBLIC" | "DEMO";
 };
 
 export async function listAdventuresForAdmin(params: {
@@ -104,6 +105,7 @@ export async function listAdventuresForAdmin(params: {
           id: true,
           name: true,
           status: true,
+          audience: true,
           city: { select: { name: true } },
         },
         orderBy: { name: "asc" },
@@ -120,6 +122,7 @@ export async function listAdventuresForAdmin(params: {
         name: u.name,
         city: u.city.name,
         status: u.status ?? false,
+        audience: u.audience === "DEMO" ? "DEMO" : "PUBLIC",
       })),
       total,
     };

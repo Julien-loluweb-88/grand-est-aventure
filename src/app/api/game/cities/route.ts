@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
 
 /**
  * Référentiel villes pour filtres mobile (autocomplete, sélection de zone).
@@ -14,7 +15,9 @@ export async function GET(request: NextRequest) {
   const cities = await prisma.city.findMany({
     where: {
       ...(q ? { name: { contains: q, mode: "insensitive" } } : {}),
-      ...(activeOnly ? { adventures: { some: { status: true } } } : {}),
+      ...(activeOnly
+        ? { adventures: { some: publicCatalogAdventureWhere } }
+        : {}),
     },
     orderBy: [{ name: "asc" }],
     select: {
@@ -26,7 +29,7 @@ export async function GET(request: NextRequest) {
       longitude: true,
       population: true,
       adventures: {
-        where: { status: true },
+        where: publicCatalogAdventureWhere,
         select: { id: true },
       },
     },

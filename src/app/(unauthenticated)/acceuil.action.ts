@@ -1,6 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/prisma";
+import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
 import type { LocationPickerContextMarker as LocationPickerContextMarkerDef } from "@/components/location/location-picker-types";
 import { AdventureReviewModerationStatus } from "../../../generated/prisma/client";
 
@@ -28,8 +29,7 @@ export type AdventureWithMarkers = {
 
 export async function getSampleAdventures(): Promise<AdventureWithMarkers[]> {
   const adventures = await prisma.adventure.findMany({
-    where: { status: true }
-    ,
+    where: publicCatalogAdventureWhere,
     include: { city: true },
   });
 

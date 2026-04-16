@@ -8,6 +8,7 @@ import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 import { syncPhysicalBadgeInstances } from "@/lib/badges/sync-physical-instances";
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
+import { AdventureAudience } from "../../../../../../../../generated/prisma/client";
 
 /** Action isolée : évite de regrouper toutes les mutations avec la page RSC. */
 export async function updateAdventure(
@@ -46,6 +47,10 @@ export async function updateAdventure(
           longitude: form.longitude,
           coverImageUrl: form.coverImageUrl?.trim() || null,
           physicalBadgeStockCount: stock,
+          audience:
+            form.audience === "DEMO"
+              ? AdventureAudience.DEMO
+              : AdventureAudience.PUBLIC,
         },
       });
 

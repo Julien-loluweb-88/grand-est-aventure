@@ -144,9 +144,14 @@ Connexion sur `/admin-game` ; le dashboard est sous **`/admin-game/dashboard/*`*
 
 | Chemin | Fonctionnalité |
 |--------|----------------|
-| Liste | Parcours, statut, accès |
-| Création | Nouvelle aventure (ville, géoloc, créateur, assignation admins) — **`superadmin`** (matrice) |
-| Fiche `[id]` | Métadonnées, **énigmes**, **trésor**, **points de découverte** (POI / badges hors quête, carte interactive), couverture, **stock badge physique**, badges virtuels liés, **modération avis**, **UserAdventures** |
+| Liste | Parcours, statut, **visibilité** (publique / **démo**), accès |
+| Création | Nouvelle aventure (ville, géoloc, créateur, assignation admins) — **`superadmin`** (matrice) ; choix **Publique** ou **Démo** |
+| Fiche `[id]` | Métadonnées, **énigmes**, **trésor**, **points de découverte** (POI / badges hors quête, carte interactive), couverture, **stock badge physique**, badges virtuels liés, **modération avis**, **UserAdventures** ; si **démo** : carte **comptes invités** (e-mails autorisés à jouer hors catalogue) |
+
+**Visibilité (`Adventure.audience` en base)** :
+
+- **Publique** (`PUBLIC`) : aventure listée dans le **catalogue API** mobile / comptage « ville active », jouable par tout le monde (si `status` actif).
+- **Démo** (`DEMO`) : **pas** dans le catalogue ni dans le comptage de villes actives ; **admins / superadmins** y accèdent toujours ; les **joueurs** uniquement s’ils sont ajoutés sur la fiche (**liste blanche** `AdventureDemoAccess`). Les routes jeu renvoient **404** si l’accès est refusé (voir [OpenAPI](#documentation-openapi) et `src/lib/adventure-public-access.ts`).
 
 ### Villes (référentiel)
 
@@ -244,18 +249,20 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 
 ### Jeu & catalogue (souvent sans session complète pour le catalogue)
 
+**Aventures démo** (`audience = DEMO`) : exclues du **catalogue** (`GET …/adventures`) et du **comptage** des villes actives (`GET …/cities` avec `activeOnly` par défaut). Pour ouvrir une démo dans l’app : **session** + compte **admin / superadmin** ou **liste blanche** (fiche admin). Détail : spec **OpenAPI** (section *Aventures publiques vs démo*) et implémentation `src/lib/adventure-public-access.ts`.
+
 | Méthode | Chemin | Description |
 |---------|--------|-------------|
 | GET | `/api/game/cities` | Référentiel villes |
-| GET | `/api/game/adventures` | Catalogue |
-| GET | `/api/game/adventures/{id}` | Détail public + **`discoveryPoints`** (POI ville, même contenu que `GET …/discovery-points?cityId=` avec `city.id`) |
+| GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) |
+| GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** ; démo → session + droit requis |
 | GET | `/api/game/progress` | Progression joueur (`adventureId`) |
 | POST | `/api/game/validate-enigma` | Validation énigme ordonnée |
 | POST | `/api/game/validate-treasure` | Carte puis coffre ; fin de parcours, badges, stock physique |
 | POST | `/api/game/adventure-review` | Avis fin de partie |
 | GET | `/api/game/adventure-reviews` | Liste avis publics |
 | GET | `/api/game/adventure-reviews/{id}` | Détail avis approuvé |
-| GET | `/api/game/discovery-points` | POI « découverte » d’une ville (`?cityId=`) — **sans auth** |
+| GET | `/api/game/discovery-points` | POI « découverte » d’une ville (`?cityId=`) ; POI liés à une **démo** filtrés selon la session |
 | POST | `/api/game/claim-discovery` | Réclamer le badge d’un POI (session + position GPS) |
 
 **Rate limiting** : plusieurs routes utilisent `src/lib/api/simple-rate-limit.ts` (mémoire par instance).
@@ -323,7 +330,7 @@ Réponse : liste triée ; chaque encart peut inclure `partnerOffer` (`badgeTitle
 ## Parcours joueur (référence mobile)
 
 1. **Auth** — Better Auth (voir `docs/expo-better-auth.md`).  
-2. **Découverte** — `GET /api/game/cities`, `adventures`, **`adventures/{id}`** (inclut **`discoveryPoints`** pour la ville de l’aventure — pas d’appel séparé obligatoire pour la carte des badges « découverte » pendant un parcours).  
+2. **Découverte** — `GET /api/game/cities`, `adventures`, **`adventures/{id}`** (inclut **`discoveryPoints`** pour la ville de l’aventure — pas d’appel séparé obligatoire pour la carte des badges « découverte » pendant un parcours). **Parcours démo** : pas dans le catalogue ; ouvrir l’URL avec un compte autorisé (session).  
 3. **État** — `GET /api/game/progress?adventureId=…`.  
 4. **Énigmes** — `POST /api/game/validate-enigma` (ordre strict).  
 5. **Trésor** — `POST /api/game/validate-treasure` : phase **carte** puis **coffre** ; succès, `giftNumber`, badges, stock physique si configuré.  

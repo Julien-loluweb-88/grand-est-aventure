@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getUserRoleForAccess } from "@/lib/adventure-public-access";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import { claimDiscoveryPointInTransaction } from "@/lib/game/claim-discovery-point";
@@ -71,9 +72,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const userRole = await getUserRoleForAccess(userId);
+
   const result = await prisma.$transaction((tx) =>
     claimDiscoveryPointInTransaction(tx, {
       userId,
+      userRole,
       discoveryPointId,
       clientLatitude: latitude,
       clientLongitude: longitude,

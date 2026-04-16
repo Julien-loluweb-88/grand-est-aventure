@@ -8,6 +8,7 @@ import {
   ReviewValidationError,
 } from "@/lib/game/process-adventure-review";
 import { prisma } from "@/lib/prisma";
+import { getUserRoleForAccess } from "@/lib/adventure-public-access";
 import { saveReviewPhotoFile } from "@/lib/uploads/save-review-photo";
 
 const WINDOW_MS = 60_000;
@@ -186,10 +187,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    const userRole = await getUserRoleForAccess(sessionUserId);
     const result = await prisma.$transaction((tx) =>
       processAdventureReview(tx, {
         adventureId,
         userId: sessionUserId,
+        userRole,
         rating,
         content,
         image,

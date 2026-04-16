@@ -1,6 +1,6 @@
 # Balad'indice — ce qui reste à faire
 
-Document généré à partir du schéma Prisma (`prisma/schema.prisma`), des routes API (`src/app/api/**/route.ts`) et des pages Next (`src/app/**/page.tsx`). Il sert de **backlog indicatif** : à prioriser avec le produit.
+Document généré à partir du schéma Prisma (`prisma/schema.prisma`, `prisma/models/*.prisma`), des routes API (`src/app/api/**/route.ts`) et des pages Next (`src/app/**/page.tsx`). Il sert de **backlog indicatif** : à prioriser avec le produit.
 
 ---
 

@@ -1,0 +1,129 @@
+// Publicités, offres partenaires, événements analytiques.
+
+enum AdvertiserKind {
+  SHOP
+  ASSOCIATION
+  /// Commune / mairie.
+  MAIRIE
+  OTHER
+}
+
+enum AdvertisementEventType {
+  IMPRESSION
+  CLICK
+}
+
+enum PartnerOfferClaimStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+/// Utilisateur `role = merchant` autorisé à valider les demandes pour une publicité donnée.
+model MerchantAdvertisement {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  advertisementId String
+  advertisement   Advertisement @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([userId, advertisementId])
+  @@index([advertisementId])
+}
+
+/// Demande joueur « j’ai profité de l’offre » — le commerçant approuve ou refuse.
+model PartnerOfferClaim {
+  id               String                  @id @default(cuid())
+  userId           String
+  user             User                    @relation("PartnerOfferClaimPlayer", fields: [userId], references: [id], onDelete: Cascade)
+  advertisementId  String
+  advertisement    Advertisement           @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  status           PartnerOfferClaimStatus @default(PENDING)
+  rejectionReason  String?
+  resolvedAt       DateTime?
+  resolvedByUserId String?
+  resolvedBy       User?                   @relation("PartnerOfferClaimResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  @@index([advertisementId, status])
+  @@index([userId, advertisementId])
+  @@index([status, createdAt])
+}
+
+/// Publicité payante ou partenariale : commerces, associations, etc. — pas liée aux aventures.
+/// Géo : une pub n’est pas forcément montrée partout ; côté appli on filtre selon la position / ville du joueur.
+/// — `targetCities` vide : pas de filtre par villes du référentiel (comportement « large » ou autre règle produit).
+/// — `targetCities` non vide : éligible seulement si le joueur est rattaché à l’une de ces villes (GPS, commune, etc.).
+/// — `targetCenterLatitude` + `targetCenterLongitude` + `targetRadiusMeters` : zone circulaire optionnelle (mètres).
+model Advertisement {
+  id                    String               @id @default(cuid())
+  /// Libellé interne pour l’admin.
+  name                  String
+  /// Type d’annonceur (commerce, association, mairie, autre).
+  advertiserKind        AdvertiserKind
+  /// Nom du partenaire tel qu’affiché (enseigne, asso, etc.).
+  advertiserName        String
+  title                 String?
+  body                  String?
+  imageUrl              String?
+  targetUrl             String?
+  /// Zone d’affichage dans l’appli (ex. : home, library).
+  placement             String               @default("home")
+  active                Boolean              @default(true)
+  startsAt              DateTime?
+  endsAt                DateTime?
+  sortOrder             Int                  @default(0)
+  targetCenterLatitude  Float?
+  targetCenterLongitude Float?
+  targetRadiusMeters    Int?
+  targetCities          City[]               @relation("AdvertisementTargetCities")
+  events                AdvertisementEvent[]
+  /// Badge débloqué une fois l’offre validée (type `PARTNER_OFFER`). Au plus une pub par badge.
+  partnerBadgeDefinitionId String?           @unique
+  partnerBadgeDefinition   BadgeDefinition?  @relation(fields: [partnerBadgeDefinitionId], references: [id], onDelete: SetNull)
+  /// Nombre max de validations approuvées par joueur pour cette offre (avantage répétable) ; le badge reste unique.
+  partnerMaxRedemptionsPerUser Int           @default(1)
+  /// Si false : plus de nouvelles demandes ; les badges déjà obtenus restent en collection.
+  partnerClaimsOpen     Boolean              @default(true)
+  merchantAssignments   MerchantAdvertisement[]
+  partnerOfferClaims    PartnerOfferClaim[]
+  userDismissals        UserAdvertisementDismissal[]
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([placement, active])
+  @@index([startsAt, endsAt])
+}
+
+/// Masquage persistant d’une publicité par joueur (liste `GET /api/advertisements` exclut ces ids si session présente).
+model UserAdvertisementDismissal {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  advertisementId String
+  advertisement   Advertisement @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+
+  @@unique([userId, advertisementId])
+  @@index([userId])
+  @@map("user_advertisement_dismissal")
+}
+
+/// Événement analytique pub (impression affichée, clic). Agrégations par jour / utilisateur via requêtes sur `createdAt` et `userId`.
+model AdvertisementEvent {
+  id              String                 @id @default(cuid())
+  advertisementId String
+  advertisement   Advertisement          @relation(fields: [advertisementId], references: [id], onDelete: Cascade)
+  type            AdvertisementEventType
+  /// Joueur connecté ; null si visiteur anonyme.
+  userId          String?
+  user            User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt       DateTime               @default(now())
+
+  @@index([advertisementId, type, createdAt])
+  @@index([advertisementId, createdAt])
+  @@index([userId, createdAt])
+}
