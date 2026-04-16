@@ -7,7 +7,10 @@ import { prisma } from "@/lib/prisma";
 
 type DbClient = Prisma.TransactionClient | typeof prisma;
 
-/** Filtre catalogue / listes visibles par tous les joueurs (sans compte démo). */
+/**
+ * Filtre catalogue / listes visibles par tous les joueurs (sans compte démo).
+ * Exclut les aventures `audience: DEMO` (réservées admins + liste blanche).
+ */
 export const publicCatalogAdventureWhere = {
   status: true,
   audience: AdventureAudience.PUBLIC,

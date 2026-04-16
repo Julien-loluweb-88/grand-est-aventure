@@ -3,7 +3,10 @@
 import { prisma } from "@/lib/prisma";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
 import type { LocationPickerContextMarker as LocationPickerContextMarkerDef } from "@/components/location/location-picker-types";
-import { AdventureReviewModerationStatus } from "../../../generated/prisma/client";
+import {
+  AdventureAudience,
+  AdventureReviewModerationStatus,
+} from "../../../generated/prisma/client";
 
 /** Alias réexporté pour les imports depuis ce module server (évite la perte des `export type { … } from`). */
 export type LocationPickerContextMarker = LocationPickerContextMarkerDef;
@@ -29,12 +32,15 @@ export type AdventureWithMarkers = {
   routePolyline?: [number, number][];
 };
 
+/** Aventures affichées sur la carte d’accueil : catalogue public uniquement (jamais les démos). */
 export async function getSampleAdventures(): Promise<AdventureWithMarkers[]> {
-  const adventures = await prisma.adventure.findMany({
-    where: publicCatalogAdventureWhere,
-    include: { city: true },
-    orderBy: { name: "asc" },
-  });
+  const adventures = (
+    await prisma.adventure.findMany({
+      where: publicCatalogAdventureWhere,
+      include: { city: true },
+      orderBy: { name: "asc" },
+    })
+  ).filter((adv) => adv.audience === AdventureAudience.PUBLIC);
 
   const avgRows =
     adventures.length === 0
