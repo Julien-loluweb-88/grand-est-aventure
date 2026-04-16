@@ -12,7 +12,9 @@ model Adventure {
   description      Json
   cityId           String
   city             City                   @relation(fields: [cityId], references: [id], onDelete: Restrict)
+  /// Point de départ du parcours (WGS84) : carte d’accueil, fiche, éditeur — pas le centre géographique de la ville.
   latitude         Float
+  /// Longitude du même point de départ que `latitude`.
   longitude        Float
   distance         Float?
   createdAt        DateTime               @default(now())

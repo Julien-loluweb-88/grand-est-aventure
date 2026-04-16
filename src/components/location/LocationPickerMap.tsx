@@ -226,6 +226,9 @@ export default function LocationPickerMap({
 }: Props) {
   const mapContextMarkers = useMemo(() => {
     if (editableMarkerKind !== "departure") return contextMarkers
+    /* Édition : on évite le doublon « D » sur le point déplacé (marqueur principal).
+     * Carte multi-départs (omitPrimaryMarker) : pas de marqueur principal → garder tous les départs. */
+    if (omitPrimaryMarker) return contextMarkers
     return contextMarkers.filter((m) => {
       if (m.kind !== "departure") return true
       return !(
@@ -233,7 +236,7 @@ export default function LocationPickerMap({
         coordsNearlyEqual(m.longitude, longitude)
       )
     })
-  }, [contextMarkers, latitude, longitude, editableMarkerKind])
+  }, [contextMarkers, latitude, longitude, editableMarkerKind, omitPrimaryMarker])
 
   const primaryIcon =
     editableMarkerKind === "departure" ? departureRefIcon : markerIcon

@@ -55,6 +55,7 @@ export async function getSampleAdventures(): Promise<AdventureWithMarkers[]> {
 
   return adventures.map((adv) => {
     const avg = avgByAdventure.get(adv.id);
+    /* Marqueurs carte : `Adventure.latitude` / `longitude` = point de départ du parcours (schéma Prisma). */
     const markers: LocationPickerContextMarker[] = [
       {
         kind: "departure",
