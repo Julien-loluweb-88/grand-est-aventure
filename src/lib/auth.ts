@@ -68,6 +68,9 @@ const socialProviders = {
     : {}),
 };
 
+/** Fournisseurs OAuth déclarés : utilisés pour `trustedProviders` (liaison si l’e-mail n’est pas marqué « vérifié » côté fournisseur). */
+const oauthTrustedProviderIds = Object.keys(socialProviders);
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
@@ -75,6 +78,16 @@ export const auth = betterAuth({
   ...(betterAuthBaseUrl ? { baseURL: betterAuthBaseUrl } : {}),
   /** Deep links Expo (`scheme://`) + motifs `exp://` en dev. Voir docs/expo-better-auth.md */
   trustedOrigins: getExpoTrustedOrigins(),
+  ...(oauthTrustedProviderIds.length > 0
+    ? {
+        account: {
+          accountLinking: {
+            enabled: true,
+            trustedProviders: oauthTrustedProviderIds,
+          },
+        },
+      }
+    : {}),
   ...(Object.keys(socialProviders).length > 0 ? { socialProviders } : {}),
   user: {
     changeEmail: {

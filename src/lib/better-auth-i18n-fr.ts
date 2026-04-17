@@ -13,6 +13,8 @@ export const betterAuthFrMessages: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: "Adresse e-mail ou mot de passe incorrect.",
   INVALID_USER: "Utilisateur invalide.",
   SOCIAL_ACCOUNT_ALREADY_LINKED: "Ce compte social est déjà lié à un autre utilisateur.",
+  ACCOUNT_NOT_LINKED:
+    "Ce fournisseur ne peut pas être relié automatiquement à votre compte. Connectez-vous avec la méthode utilisée à l’inscription ou vérifiez que l’e-mail correspond.",
   PROVIDER_NOT_FOUND: "Fournisseur d’identification introuvable.",
   INVALID_TOKEN: "Jeton invalide ou expiré.",
   TOKEN_EXPIRED: "Le jeton a expiré.",

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, type ReactNode } from "react";
+import { Suspense, useState, type ReactNode } from "react";
 import { Facebook, Instagram, Menu } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { HomeSectionLink } from "./home-section-link";
@@ -16,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { publicSocialLinks } from "../_lib/public-social-links";
+import { AuthCallbackQueryToasts } from "@/components/auth-callback-query-toasts";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -298,6 +299,9 @@ function PublicFooter() {
 export function UnauthenticatedChrome({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh w-full flex-col bg-[#fffaeb] text-[#281401]">
+      <Suspense fallback={null}>
+        <AuthCallbackQueryToasts />
+      </Suspense>
       <div className="relative z-10 flex min-h-dvh w-full flex-1 flex-col">
         <LandingHeader />
         {children}
