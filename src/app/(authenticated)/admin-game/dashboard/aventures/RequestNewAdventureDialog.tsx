@@ -17,6 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { PaperPlaneTiltIcon } from "@phosphor-icons/react";
 import { submitAdventureCreationRequest } from "./request-adventure.action";
+import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
+import { useAdminCapabilities } from "../AdminCapabilitiesProvider";
 
 type Props = {
   triggerClassName?: string;
@@ -29,6 +31,7 @@ export function RequestNewAdventureDialog({
   variant = "secondary",
   size = "sm",
 }: Props) {
+  const caps = useAdminCapabilities();
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [pending, setPending] = useState(false);
@@ -70,7 +73,17 @@ export function RequestNewAdventureDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-2">
-          <Label htmlFor="request-message">Message (optionnel)</Label>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Label htmlFor="request-message">Message (optionnel)</Label>
+            {!caps.adventure.create ? (
+              <EditorialRewriteControl
+                scope={{ type: "adventure-creation-request" }}
+                getSourceText={() => message}
+                onApply={(t) => setMessage(t.slice(0, 2000))}
+                dialogTitle="Reformuler le message de demande"
+              />
+            ) : null}
+          </div>
           <Textarea
             id="request-message"
             value={message}

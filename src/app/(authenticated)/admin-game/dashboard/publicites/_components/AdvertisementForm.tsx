@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import type { CitySelectOption } from "@/lib/city-types";
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
+import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import {
   createAdvertisement,
   updateAdvertisement,
@@ -327,7 +328,18 @@ export function AdvertisementForm({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="ad-title">Titre (affichage)</FieldLabel>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor="ad-title">Titre (affichage)</FieldLabel>
+                {caps.adventure.update ? (
+                  <EditorialRewriteControl
+                    scope={{ type: "city-editorial" }}
+                    getSourceText={() => String(field.value ?? "")}
+                    onApply={(t) => field.onChange(t)}
+                    disabled={!caps.adventure.update}
+                    dialogTitle="Reformuler le titre"
+                  />
+                ) : null}
+              </div>
               <Input id="ad-title" {...field} autoComplete="off" />
               {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
             </Field>
@@ -339,7 +351,18 @@ export function AdvertisementForm({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="ad-body">Texte</FieldLabel>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor="ad-body">Texte</FieldLabel>
+                {caps.adventure.update ? (
+                  <EditorialRewriteControl
+                    scope={{ type: "city-editorial" }}
+                    getSourceText={() => String(field.value ?? "")}
+                    onApply={(t) => field.onChange(t)}
+                    disabled={!caps.adventure.update}
+                    dialogTitle="Reformuler le texte"
+                  />
+                ) : null}
+              </div>
               <Textarea id="ad-body" {...field} rows={4} className="min-h-24" />
               {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
             </Field>

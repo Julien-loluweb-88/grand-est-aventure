@@ -1,4 +1,5 @@
 import type { JSONContent } from "@tiptap/core";
+import type { EditorialRewriteScope } from "@/lib/editorial-rewrite-scope";
 
 export type AdventureDescriptionEditorProps = {
   id?: string;
@@ -7,6 +8,8 @@ export type AdventureDescriptionEditorProps = {
   disabled?: boolean;
   "aria-invalid"?: boolean;
   className?: string;
+  /** Assistant Mistral (reformulation) — réservé au dashboard. */
+  editorialRewrite?: { scope: EditorialRewriteScope };
   /**
    * Téléversement vers `uploads/adventures/{id}/editor/` (édition d’une aventure existante).
    */

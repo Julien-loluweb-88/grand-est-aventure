@@ -18,6 +18,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
+import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import type { EnigmaCreateFormValues } from "../_lib/enigma-form-schema";
 
@@ -76,7 +77,18 @@ export function EnigmaFormFields({
         control={control}
         render={({ field, fieldState }) => (
           <Field data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor={field.name}>Nom d&apos;énigme</FieldLabel>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <FieldLabel htmlFor={field.name}>Nom d&apos;énigme</FieldLabel>
+              {canEdit ? (
+                <EditorialRewriteControl
+                  scope={{ type: "adventure", adventureId }}
+                  getSourceText={() => String(field.value ?? "")}
+                  onApply={(t) => field.onChange(t)}
+                  disabled={!canEdit}
+                  dialogTitle="Reformuler le nom d’énigme"
+                />
+              ) : null}
+            </div>
             <Input
               className="w-100!"
               {...field}
@@ -117,7 +129,18 @@ export function EnigmaFormFields({
         control={control}
         render={({ field, fieldState }) => (
           <Field className="md:col-span-2" data-invalid={fieldState.invalid}>
-            <FieldLabel htmlFor={field.name}>Question</FieldLabel>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <FieldLabel htmlFor={field.name}>Question</FieldLabel>
+              {canEdit ? (
+                <EditorialRewriteControl
+                  scope={{ type: "adventure", adventureId }}
+                  getSourceText={() => String(field.value ?? "")}
+                  onApply={(t) => field.onChange(t)}
+                  disabled={!canEdit}
+                  dialogTitle="Reformuler la question"
+                />
+              ) : null}
+            </div>
             <Input
               {...field}
               id={field.name}
@@ -316,6 +339,9 @@ export function EnigmaFormFields({
               disabled={!canEdit}
               aria-invalid={fieldState.invalid}
               richTextImageUploadAdventureId={adventureId}
+              editorialRewrite={
+                canEdit ? { scope: { type: "adventure", adventureId } } : undefined
+              }
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
@@ -389,6 +415,9 @@ export function EnigmaFormFields({
                   disabled={!canEdit}
                   aria-invalid={fieldState.invalid}
                   richTextImageUploadAdventureId={adventureId}
+                  editorialRewrite={
+                    canEdit ? { scope: { type: "adventure", adventureId } } : undefined
+                  }
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>

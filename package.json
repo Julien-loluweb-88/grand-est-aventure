@@ -15,6 +15,7 @@
     "@better-auth/expo": "^1.5.6",
     "@better-auth/i18n": "^1.5.6",
     "@hookform/resolvers": "^5.2.2",
+    "@mistralai/mistralai": "^2.2.0",
     "@phosphor-icons/react": "^2.1.10",
     "@prisma/adapter-pg": "^7.4.2",
     "@prisma/client": "^7.7.0",

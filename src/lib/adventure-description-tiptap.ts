@@ -99,3 +99,37 @@ export function tiptapJsonToPlainText(node: JSONContent | undefined): string {
 export function tiptapStoredValueToPlainText(stored: unknown): string {
   return tiptapJsonToPlainText(adventureDescriptionToTiptapJSON(stored));
 }
+
+/** Construit un document TipTap à partir d’un texte brut (paragraphes séparés par des lignes vides). */
+export function plainTextToTiptapDoc(plain: string): JSONContent {
+  const normalized = plain.replace(/\r\n/g, "\n").trim();
+  if (!normalized) {
+    return EMPTY_TIPTAP_DOCUMENT;
+  }
+  const blocks = normalized.split(/\n\n+/);
+  return {
+    type: "doc",
+    content: blocks.map((block) => {
+      const inline = paragraphInlineContent(block);
+      return {
+        type: "paragraph",
+        ...(inline.length > 0 ? { content: inline } : {}),
+      };
+    }),
+  };
+}
+
+function paragraphInlineContent(text: string): JSONContent[] {
+  const lines = text.split("\n");
+  const out: JSONContent[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.length > 0) {
+      out.push({ type: "text", text: line });
+    }
+    if (i < lines.length - 1) {
+      out.push({ type: "hardBreak" });
+    }
+  }
+  return out;
+}

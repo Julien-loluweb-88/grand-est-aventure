@@ -26,6 +26,7 @@ import { useRouter } from "next/navigation";
 import { updateAdventure } from "../_lib/update-adventure.action";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
+import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import {
   adventureDescriptionToTiptapJSON,
   tiptapStoredValueToPlainText,
@@ -358,9 +359,20 @@ export function AdventureEditForm({
                         control={form.control}
                         render={({ field, fieldState }) => (
                           <Field data-invalid={fieldState.invalid}>
-                            <FieldLabel htmlFor={field.name}>
-                              Nom d&apos;aventure
-                            </FieldLabel>
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <FieldLabel htmlFor={field.name}>
+                                Nom d&apos;aventure
+                              </FieldLabel>
+                              {caps.adventure.update ? (
+                                <EditorialRewriteControl
+                                  scope={{ type: "adventure", adventureId: adventure.id }}
+                                  getSourceText={() => String(field.value ?? "")}
+                                  onApply={(t) => field.onChange(t)}
+                                  disabled={!caps.adventure.update}
+                                  dialogTitle="Reformuler le nom d’aventure"
+                                />
+                              ) : null}
+                            </div>
                             <Input
                               className="w-full"
                               {...field}
@@ -637,6 +649,11 @@ export function AdventureEditForm({
                               disabled={!caps.adventure.update}
                               aria-invalid={fieldState.invalid}
                               richTextImageUploadAdventureId={adventure.id}
+                              editorialRewrite={
+                                caps.adventure.update
+                                  ? { scope: { type: "adventure", adventureId: adventure.id } }
+                                  : undefined
+                              }
                             />
                             {fieldState.invalid && (
                               <FieldError errors={[fieldState.error]} />

@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDescriptionEditor";
+import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { EMPTY_TIPTAP_DOCUMENT } from "@/lib/adventure-description-tiptap";
 import { adventureDescriptionCreateZod } from "@/lib/adventure-description-schema";
 import type { CitySelectOption } from "@/lib/city-types";
@@ -175,7 +176,18 @@ export function CreateAdventureForm({
           control={form.control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor={field.name}>Nom d&apos;aventure</FieldLabel>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor={field.name}>Nom d&apos;aventure</FieldLabel>
+                {caps.adventure.create ? (
+                  <EditorialRewriteControl
+                    scope={{ type: "adventure-create" }}
+                    getSourceText={() => String(field.value ?? "")}
+                    onApply={(t) => field.onChange(t)}
+                    disabled={!caps.adventure.create}
+                    dialogTitle="Reformuler le nom d’aventure"
+                  />
+                ) : null}
+              </div>
               <Input
                 className="w-100!"
                 {...field}
@@ -391,6 +403,11 @@ export function CreateAdventureForm({
                 disabled={!caps.adventure.create}
                 aria-invalid={fieldState.invalid}
                 richTextImageUploadDraftId={descriptionDraftIdRef.current}
+                editorialRewrite={
+                  caps.adventure.create
+                    ? { scope: { type: "adventure-create" } }
+                    : undefined
+                }
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>

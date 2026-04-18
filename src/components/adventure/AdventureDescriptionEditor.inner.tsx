@@ -54,6 +54,11 @@ import { uploadDashboardImage } from "@/lib/actions/upload-dashboard-image";
 import { toast } from "sonner";
 import type { AdventureDescriptionEditorProps } from "./adventure-description-editor.types";
 import { AdventureImage } from "./adventure-image-extension";
+import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
+import {
+  plainTextToTiptapDoc,
+  tiptapJsonToPlainText,
+} from "@/lib/adventure-description-tiptap";
 
 const TEXT_COLORS: { label: string; value: string }[] = [
   { label: "Par défaut", value: "" },
@@ -442,6 +447,7 @@ export function AdventureDescriptionEditorInner({
   className,
   richTextImageUploadAdventureId,
   richTextImageUploadDraftId,
+  editorialRewrite,
 }: AdventureDescriptionEditorProps) {
   const richTextImageInputRef = useRef<HTMLInputElement>(null);
   const canUploadRichTextImage = Boolean(
@@ -589,6 +595,16 @@ export function AdventureDescriptionEditorInner({
 
   return (
     <div className={cn("space-y-2", className)}>
+      {editorialRewrite && !disabled ? (
+        <div className="flex flex-wrap justify-end gap-2">
+          <EditorialRewriteControl
+            scope={editorialRewrite.scope}
+            getSourceText={() => tiptapJsonToPlainText(value)}
+            onApply={(t) => onChange(plainTextToTiptapDoc(t))}
+            disabled={disabled}
+          />
+        </div>
+      ) : null}
       <input
         ref={richTextImageInputRef}
         type="file"

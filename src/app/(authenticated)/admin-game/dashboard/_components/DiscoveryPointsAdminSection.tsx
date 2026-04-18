@@ -27,6 +27,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { GuardedButton } from "@/components/admin/GuardedButton";
+import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import { useAdminCapabilities } from "../AdminCapabilitiesProvider";
 import type { DiscoveryPointAdminRow } from "../_lib/discovery-point-admin-queries";
@@ -217,6 +218,11 @@ export function DiscoveryPointsAdminSection({
   const ctxMarkers = mapContext.contextMarkers ?? [];
   const routeLine = mapContext.routePolyline ?? null;
 
+  const editorialScope =
+    scope.type === "adventure"
+      ? ({ type: "adventure" as const, adventureId: scope.adventureId })
+      : ({ type: "city-editorial" as const });
+
   return (
     <Card className="h-fit">
       <CardHeader className="pb-2">
@@ -271,7 +277,18 @@ export function DiscoveryPointsAdminSection({
           </p>
           <FieldGroup className="max-w-xl space-y-3">
             <Field>
-              <FieldLabel htmlFor="dp-title">Titre</FieldLabel>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor="dp-title">Titre</FieldLabel>
+                {canEdit ? (
+                  <EditorialRewriteControl
+                    scope={editorialScope}
+                    getSourceText={() => form.title}
+                    onApply={(t) => setForm((f) => ({ ...f, title: t }))}
+                    disabled={!canEdit}
+                    dialogTitle="Reformuler le titre"
+                  />
+                ) : null}
+              </div>
               <Input
                 id="dp-title"
                 value={form.title}
@@ -280,7 +297,18 @@ export function DiscoveryPointsAdminSection({
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="dp-teaser">Accroche (optionnel)</FieldLabel>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <FieldLabel htmlFor="dp-teaser">Accroche (optionnel)</FieldLabel>
+                {canEdit ? (
+                  <EditorialRewriteControl
+                    scope={editorialScope}
+                    getSourceText={() => form.teaser}
+                    onApply={(t) => setForm((f) => ({ ...f, teaser: t }))}
+                    disabled={!canEdit}
+                    dialogTitle="Reformuler l’accroche"
+                  />
+                ) : null}
+              </div>
               <Input
                 id="dp-teaser"
                 value={form.teaser}
