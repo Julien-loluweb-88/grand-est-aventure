@@ -34,8 +34,11 @@ const discordOAuthEnabled = Boolean(discordClientId && discordClientSecret);
 /** Doc Better Auth : URL de base pour les callbacks OAuth (évite redirect_uri_mismatch). */
 const betterAuthBaseUrl = process.env.BETTER_AUTH_URL?.trim();
 
-/** Fenêtre pour considérer un utilisateur comme « tout juste créé » après callback OAuth. */
-const OAUTH_NEW_USER_MAX_AGE_MS = 5 * 60_000;
+/**
+ * Fenêtre après création du lien `Account` OAuth : une **nouvelle connexion** recrée une
+ * `Session`, pas un `User` — d’où l’usage de `Account.createdAt` (stable) et pas `User.createdAt`.
+ */
+const OAUTH_NEW_LINKED_ACCOUNT_MAX_AGE_MS = 3 * 60_000;
 
 const OAUTH_PROVIDER_LABELS: Record<string, string> = {
   google: "Google",
@@ -103,17 +106,31 @@ export const auth = betterAuth({
       const userId = newSession?.user?.id;
       if (!userId) return;
 
+      const providerMatch = path.match(/(?:^|\/)callback\/([^/?]+)/);
+      const providerId = providerMatch?.[1]?.toLowerCase() ?? "";
+      if (!providerId) return;
+
+      const oauthAccount = await prisma.account.findFirst({
+        where: { userId, providerId },
+        select: { createdAt: true },
+      });
+      if (!oauthAccount) return;
+
+      const accountAgeMs = Date.now() - oauthAccount.createdAt.getTime();
+      if (
+        !Number.isFinite(accountAgeMs) ||
+        accountAgeMs < 0 ||
+        accountAgeMs > OAUTH_NEW_LINKED_ACCOUNT_MAX_AGE_MS
+      ) {
+        return;
+      }
+
       const dbUser = await prisma.user.findUnique({
         where: { id: userId },
-        select: { createdAt: true, email: true, name: true },
+        select: { email: true, name: true },
       });
       if (!dbUser?.email) return;
 
-      const ageMs = Date.now() - dbUser.createdAt.getTime();
-      if (ageMs < 0 || ageMs > OAUTH_NEW_USER_MAX_AGE_MS) return;
-
-      const providerMatch = path.match(/(?:^|\/)callback\/([^/?]+)/);
-      const providerId = providerMatch?.[1]?.toLowerCase() ?? "";
       const providerLabel =
         OAUTH_PROVIDER_LABELS[providerId] ?? (providerId ? providerId : "un fournisseur");
 
