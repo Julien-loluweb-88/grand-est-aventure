@@ -15,6 +15,10 @@ export type LocationPickerContextMarker =
       distanceKm?: number | null;
       /** Note moyenne (1–5) des avis publics approuvés ; `null` si pas assez de données. */
       averageRating?: number | null;
+      /** Secondes — estimation durée de parcours (héuristique serveur). */
+      estimatedDurationSeconds?: number | null;
+      /** Secondes — moyenne durée réelle joueurs (si assez de données). */
+      averagePlayDurationSeconds?: number | null;
     }
   | {
       kind: "enigma";

@@ -40,6 +40,7 @@ model User {
   partnerOfferClaimsResolved      PartnerOfferClaim[]       @relation("PartnerOfferClaimResolver")
   advertisementDismissals         UserAdvertisementDismissal[]
   adventureDemoAccesses           AdventureDemoAccess[]
+  adventurePlaySessions           UserAdventurePlaySession[]
 
   @@map("user")
 }

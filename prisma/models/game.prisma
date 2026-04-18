@@ -1,5 +1,32 @@
 // Progression joueur, étapes validées, avis fin de parcours.
 
+/// Session de parcours (début → fin) pour statistiques de durée (mise à jour périodique côté cron).
+enum UserAdventurePlaySessionStatus {
+  IN_PROGRESS
+  COMPLETED_SUCCESS
+  COMPLETED_FAILURE
+  /// Partie non terminée après délai (cron) — exclue des moyennes.
+  ABANDONED
+}
+
+model UserAdventurePlaySession {
+  id              String                          @id @default(cuid())
+  userId          String
+  user            User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventureId     String
+  adventure       Adventure                       @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  startedAt       DateTime                        @default(now())
+  endedAt         DateTime?
+  status          UserAdventurePlaySessionStatus    @default(IN_PROGRESS)
+  /// Durée en secondes entre `startedAt` et `endedAt` (rempli à la clôture).
+  durationSeconds Int?
+  createdAt       DateTime                        @default(now())
+  updatedAt       DateTime                        @updatedAt
+
+  @@index([userId, adventureId, status])
+  @@index([adventureId, status])
+}
+
 /// Validation serveur d’une étape de parcours (`enigma:1`, …, `treasure:map`, `treasure`). Requis avant finalisation sur `POST /api/game/validate-treasure` (code coffre).
 model UserAdventureStepValidation {
   id           String    @id @default(cuid())

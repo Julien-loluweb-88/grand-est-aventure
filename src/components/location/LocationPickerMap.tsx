@@ -321,6 +321,16 @@ export default function LocationPickerMap({
                       Note moyenne {m.averageRating.toLocaleString("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}/5
                     </p>
                   ) : null}
+                  {m.estimatedDurationSeconds != null && Number.isFinite(m.estimatedDurationSeconds) ? (
+                    <p className="font-normal opacity-95">
+                      Durée estimée ~{Math.max(1, Math.round(m.estimatedDurationSeconds / 60))} min
+                    </p>
+                  ) : null}
+                  {m.averagePlayDurationSeconds != null && Number.isFinite(m.averagePlayDurationSeconds) ? (
+                    <p className="font-normal opacity-95">
+                      Durée moyenne joueurs ~{Math.max(1, Math.round(m.averagePlayDurationSeconds / 60))} min
+                    </p>
+                  ) : null}
                 </div>
               </Tooltip>
               <Popup>
@@ -334,6 +344,12 @@ export default function LocationPickerMap({
                   ) : (
                     <p className="text-muted-foreground">Pas encore d&apos;avis publié avec note.</p>
                   )}
+                  {m.estimatedDurationSeconds != null && Number.isFinite(m.estimatedDurationSeconds) ? (
+                    <p>Durée estimée (parcours) : ~{Math.max(1, Math.round(m.estimatedDurationSeconds / 60))} min</p>
+                  ) : null}
+                  {m.averagePlayDurationSeconds != null && Number.isFinite(m.averagePlayDurationSeconds) ? (
+                    <p>Durée moyenne (joueurs) : ~{Math.max(1, Math.round(m.averagePlayDurationSeconds / 60))} min</p>
+                  ) : null}
                 </div>
               </Popup>
             </Marker>

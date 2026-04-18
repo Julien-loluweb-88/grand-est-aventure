@@ -40,7 +40,7 @@ export function AdventureAdminModerationAside({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="liste-parties-joueurs">
         <CardHeader>
           <CardTitle>Liste des utilisateurs sur cette aventure</CardTitle>
         </CardHeader>
@@ -49,7 +49,7 @@ export function AdventureAdminModerationAside({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="moderation-avis">
         <CardHeader>
           <CardTitle>Des avis d&apos;utilisateurs sur cette aventure</CardTitle>
         </CardHeader>

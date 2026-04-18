@@ -13,6 +13,13 @@ export type AdventureEditFormPayload = {
   longitude: number
   /** Km (itinéraire OpenRouteService) ou non calculé. */
   distance: number | null
+  /** Secondes — estimation temps de parcours (sync itinéraire). */
+  estimatedPlayDurationSeconds: number | null
+  /** Secondes — moyenne temps réel (≥ 5 parties) ; `null` sinon. */
+  averagePlayDurationSeconds: number | null
+  playDurationSampleCount: number
+  /** Dernière mise à jour des stats temps réel (cron). */
+  playDurationStatsUpdatedAt: string | null
   /** Énigmes + trésor à afficher sur la carte (couleurs / numéros distincts du point départ). */
   mapContextMarkers: AdventureMapContextMarker[]
   /**

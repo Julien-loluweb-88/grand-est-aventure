@@ -1,8 +1,12 @@
-/** Ré-export centralisé des enums Prisma liés aux badges (chemins courts depuis l’admin). */
+/** Ré-export centralisé des enums Prisma (chemins courts depuis l’admin et le jeu). */
 export {
-  BadgeDefinitionKind,
+  AdminRequestStatus,
+  AdventureAudience,
   AdventureBadgeInstanceStatus,
   AdventureBadgeStockEventKind,
-  AdminRequestStatus,
+  AdventureReviewModerationStatus,
+  BadgeDefinitionKind,
+  PartnerOfferClaimStatus,
+  UserAdventurePlaySessionStatus,
 } from "../../../generated/prisma/client";
 

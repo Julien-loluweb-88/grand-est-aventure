@@ -71,6 +71,8 @@ export async function getSampleAdventures(): Promise<AdventureWithMarkers[]> {
         longitude: adv.longitude,
         distanceKm: adv.distance,
         averageRating: avg ?? null,
+        estimatedDurationSeconds: adv.estimatedPlayDurationSeconds ?? null,
+        averagePlayDurationSeconds: adv.averagePlayDurationSeconds ?? null,
       },
     ];
 

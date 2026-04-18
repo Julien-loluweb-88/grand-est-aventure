@@ -36,6 +36,23 @@ import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoi
 import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview";
 import { AdventureMediaFields } from "@/components/adventure/AdventureMediaFields";
 import type { CitySelectOption } from "@/lib/city-types";
+
+function formatDurationFr(seconds: number | null | undefined): string {
+  if (seconds == null || !Number.isFinite(seconds)) {
+    return "—";
+  }
+  const s = Math.round(seconds);
+  if (s < 90) {
+    return `${s} s`;
+  }
+  const minutes = Math.round(s / 60);
+  if (minutes < 120) {
+    return `${minutes} min`;
+  }
+  const h = Math.floor(minutes / 60);
+  const rm = minutes % 60;
+  return rm > 0 ? `${h} h ${rm} min` : `${h} h`;
+}
 import {
   Select,
   SelectContent,
@@ -245,6 +262,32 @@ export function AdventureEditForm({
                     maximumFractionDigits: 2,
                   })} km`
                   : "Non calculée"}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                Durée estimée (parcours)
+              </p>
+              <p className="font-medium text-foreground">{formatDurationFr(adventure.estimatedPlayDurationSeconds)}</p>
+              <p className="text-[10px] text-muted-foreground/90">Heuristique (marche + énigmes + trésor)</p>
+            </div>
+            <div>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                Durée moyenne (joueurs)
+              </p>
+              <p className="font-medium text-foreground">
+                {formatDurationFr(adventure.averagePlayDurationSeconds)}
+              </p>
+              <p className="text-[10px] text-muted-foreground/90">
+                {adventure.playDurationSampleCount > 0
+                  ? `${adventure.playDurationSampleCount} partie(s) — moyenne affichée à partir de 5 succès`
+                  : "Pas encore de données"}
+                {adventure.playDurationStatsUpdatedAt
+                  ? ` · MAJ ${new Date(adventure.playDurationStatsUpdatedAt).toLocaleString("fr-FR", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}`
+                  : ""}
               </p>
             </div>
           </div>

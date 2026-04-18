@@ -33,6 +33,16 @@ type Adventure = {
   city: string
   status: boolean
   audience: "PUBLIC" | "DEMO"
+  estimatedPlayDurationSeconds: number | null
+  averagePlayDurationSeconds: number | null
+  playDurationSampleCount: number
+}
+
+function formatMinutesShort(seconds: number | null): string {
+  if (seconds == null || !Number.isFinite(seconds)) {
+    return "—"
+  }
+  return `${Math.max(1, Math.round(seconds / 60))} min`
 }
 
 type Props = {
@@ -183,6 +193,8 @@ export default function AdventuresTable({
                 <TableHead className="text-left">Ville</TableHead>
                 <TableHead className="text-left">Visibilité</TableHead>
                 <TableHead className="text-left">Statut</TableHead>
+                <TableHead className="text-left whitespace-normal">Durée estim.</TableHead>
+                <TableHead className="text-left whitespace-normal">Moy. joueurs</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -204,6 +216,15 @@ export default function AdventuresTable({
                     ) : (
                       <span className="text-destructive">Pause</span>
                     )}
+                  </TableCell>
+                  <TableCell className="max-w-[7rem] text-left text-xs tabular-nums text-muted-foreground">
+                    {formatMinutesShort(adventure.estimatedPlayDurationSeconds)}
+                  </TableCell>
+                  <TableCell className="max-w-[8rem] text-left text-xs tabular-nums text-muted-foreground">
+                    <span>{formatMinutesShort(adventure.averagePlayDurationSeconds)}</span>
+                    {adventure.playDurationSampleCount > 0 ? (
+                      <span className="block text-[10px] opacity-90">n = {adventure.playDurationSampleCount}</span>
+                    ) : null}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>

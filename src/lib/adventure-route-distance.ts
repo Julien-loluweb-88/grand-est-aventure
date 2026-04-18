@@ -2,6 +2,10 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import {
+  estimatePlayDurationSeconds,
+  straightLinePathKmFromLonLat,
+} from "@/lib/adventure-estimated-play-duration";
+import {
   fetchOpenRouteServiceRouteAsLatLngPath,
   fetchOpenRouteServiceRouteDistanceKm,
 } from "@/lib/openrouteservice";
@@ -75,16 +79,36 @@ export async function syncAdventureRouteDistance(
     if (wp.reason === "too_few_points") {
       await prisma.adventure.update({
         where: { id: adventureId },
-        data: { distance: null },
+        data: { distance: null, estimatedPlayDurationSeconds: null },
       });
     }
     return;
   }
 
   const km = await fetchOpenRouteServiceRouteDistanceKm(wp.coords);
+  const routeKm = km ?? straightLinePathKmFromLonLat(wp.coords);
+
+  const counts = await prisma.adventure.findUnique({
+    where: { id: adventureId },
+    select: {
+      _count: { select: { enigmas: true } },
+      treasure: { select: { id: true } },
+    },
+  });
+  const enigmaCount = counts?._count.enigmas ?? 0;
+  const hasTreasure = Boolean(counts?.treasure);
+  const estimatedPlayDurationSeconds = estimatePlayDurationSeconds({
+    routeKm,
+    enigmaCount,
+    hasTreasure,
+  });
+
   await prisma.adventure.update({
     where: { id: adventureId },
-    data: { distance: km },
+    data: {
+      distance: km,
+      estimatedPlayDurationSeconds,
+    },
   });
 }
 

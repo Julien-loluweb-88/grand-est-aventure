@@ -4,6 +4,7 @@ import {
   TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
 } from "./adventure-step-keys";
+import { ensureActivePlaySession } from "./user-adventure-play-session";
 
 type Tx = Prisma.TransactionClient;
 
@@ -107,4 +108,5 @@ export async function recordStepValidated(
     create: { userId, adventureId, stepKey },
     update: {},
   });
+  await ensureActivePlaySession(tx, userId, adventureId);
 }

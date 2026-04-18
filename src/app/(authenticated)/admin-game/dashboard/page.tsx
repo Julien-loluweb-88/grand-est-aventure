@@ -1,24 +1,31 @@
-import React from "react";
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/auth/auth-user";
+import { getSession, getUser } from "@/lib/auth/auth-user";
+import { getAdminSessionCapabilities } from "@/lib/admin-session-capabilities";
+import { getDashboardOverview } from "./_lib/dashboard-overview";
+import { AdminDashboardHomeView } from "./_components/AdminDashboardHomeView";
 
 export default async function Page() {
   const session = await getSession();
   if (!session) {
-  redirect("/unauthorized");
-}
+    redirect("/unauthorized");
+  }
+
+  const [user, capabilities] = await Promise.all([getUser(), getAdminSessionCapabilities()]);
+  if (!user || !capabilities) {
+    redirect("/admin-game");
+  }
+
+  const overview = await getDashboardOverview({
+    userId: user.id,
+    capabilities,
+  });
 
   return (
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-            <div className="aspect-video rounded-xl bg-muted/50" />
-          </div>
-          <div className="min-h-[100vh] flex-1 rounded-xl bg-muted/50 md:min-h-min" />
-        </div>
- 
+    <AdminDashboardHomeView
+      displayName={user.name}
+      email={user.email}
+      overview={overview}
+      capabilities={capabilities}
+    />
   );
 }
-
-

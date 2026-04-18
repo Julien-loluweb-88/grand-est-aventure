@@ -4,6 +4,7 @@ import {
   BadgeDefinitionKind,
 } from "../../../generated/prisma/client";
 import { assertCanFinishWithSuccess } from "@/lib/game/server-adventure-progress";
+import { closeActivePlaySession } from "@/lib/game/user-adventure-play-session";
 
 type Tx = Prisma.TransactionClient;
 
@@ -119,6 +120,8 @@ export async function processGameFinish(
       data: { adventureId, userId, success, giftNumber },
     });
   }
+
+  await closeActivePlaySession(tx, userId, adventureId, { success });
 
   const awardedUserBadgeIds: string[] = [];
 

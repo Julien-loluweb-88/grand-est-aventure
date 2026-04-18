@@ -58,6 +58,12 @@ export function adventurePayloadForEditForm(
       latitude: adventure.latitude,
       longitude: adventure.longitude,
       distance: adventure.distance,
+      estimatedPlayDurationSeconds: adventure.estimatedPlayDurationSeconds ?? null,
+      averagePlayDurationSeconds: adventure.averagePlayDurationSeconds ?? null,
+      playDurationSampleCount: adventure.playDurationSampleCount ?? 0,
+      playDurationStatsUpdatedAt: adventure.playDurationStatsUpdatedAt
+        ? adventure.playDurationStatsUpdatedAt.toISOString()
+        : null,
       mapContextMarkers,
       routePolyline,
       coverImageUrl: adventure.coverImageUrl ?? null,

@@ -79,6 +79,9 @@ export async function GET(request: NextRequest) {
       latitude: true,
       longitude: true,
       distance: true,
+      estimatedPlayDurationSeconds: true,
+      averagePlayDurationSeconds: true,
+      playDurationSampleCount: true,
       coverImageUrl: true,
       updatedAt: true,
       city: {
@@ -120,6 +123,9 @@ export async function GET(request: NextRequest) {
       distanceFromUserKm: a.distanceFromUserKm,
       enigmaCount: a.enigmas.length,
       hasTreasure: Boolean(a.treasure),
+      estimatedDurationSeconds: a.estimatedPlayDurationSeconds,
+      averagePlayDurationSeconds: a.averagePlayDurationSeconds,
+      playDurationSampleCount: a.playDurationSampleCount,
       updatedAt: a.updatedAt.toISOString(),
     })),
   });

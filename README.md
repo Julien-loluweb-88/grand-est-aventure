@@ -101,6 +101,7 @@ Ce script exécute `prisma generate` et `prisma db push`. En équipe, préférez
 | `npm run build` | Build production |
 | `npm run start` | Lance le build |
 | `npm run lint` | ESLint |
+| `npm run test` | Vitest (ex. heuristique durée de parcours — `src/lib/adventure-estimated-play-duration.test.ts`) |
 | `npm run generate` | Prisma generate + db push |
 
 ---
@@ -316,6 +317,7 @@ Réponse : liste triée ; chaque encart peut inclure `partnerOffer` (`badgeTitle
 | Méthode | Chemin | Description |
 |---------|--------|-------------|
 | GET | `/api/cron/expire-partner-claims` | Passe en `EXPIRED` les `PENDING` > **24 h** ; **`Authorization: Bearer $CRON_SECRET`** |
+| GET | `/api/cron/recompute-adventure-durations` | Ferme les sessions **`IN_PROGRESS`** de plus de **30 jours** (`ABANDONED`), remet à zéro puis recalcule **`averagePlayDurationSeconds`** / **`playDurationSampleCount`** / **`playDurationStatsUpdatedAt`** pour chaque aventure (moyenne affichée à partir de **5** succès) ; **`Authorization: Bearer $CRON_SECRET`** — réponse `{ ok, stalePlaySessionsClosed, adventuresUpdated }` |
 
 ### Dashboard / technique
 
@@ -330,7 +332,7 @@ Réponse : liste triée ; chaque encart peut inclure `partnerOffer` (`badgeTitle
 ## Parcours joueur (référence mobile)
 
 1. **Auth** — Better Auth (voir `docs/expo-better-auth.md`).  
-2. **Découverte** — `GET /api/game/cities`, `adventures`, **`adventures/{id}`** (inclut **`discoveryPoints`** pour la ville de l’aventure — pas d’appel séparé obligatoire pour la carte des badges « découverte » pendant un parcours). **Parcours démo** : pas dans le catalogue ; ouvrir l’URL avec un compte autorisé (session).  
+2. **Découverte** — `GET /api/game/cities`, `adventures`, **`adventures/{id}`** (inclut **`discoveryPoints`** pour la ville de l’aventure — pas d’appel séparé obligatoire pour la carte des badges « découverte » pendant un parcours ; champs **`estimatedDurationSeconds`**, **`averagePlayDurationSeconds`**, **`playDurationSampleCount`** pour afficher une durée indicative / moyenne réelle). **Parcours démo** : pas dans le catalogue ; ouvrir l’URL avec un compte autorisé (session).  
 3. **État** — `GET /api/game/progress?adventureId=…`.  
 4. **Énigmes** — `POST /api/game/validate-enigma` (ordre strict).  
 5. **Trésor** — `POST /api/game/validate-treasure` : phase **carte** puis **coffre** ; succès, `giftNumber`, badges, stock physique si configuré.  
@@ -551,8 +553,17 @@ ou, si le joueur avait déjà le badge :
 
 ## Tâches planifiées (cron)
 
-**`vercel.json`** : appel périodique à **`GET /api/cron/expire-partner-claims`**.  
-Configurer **`CRON_SECRET`** côté hébergeur et en **`Authorization: Bearer …`**.
+**`vercel.json`** :  
+- **`GET /api/cron/expire-partner-claims`** (toutes les heures) — expiration des demandes partenaires.  
+- **`GET /api/cron/recompute-adventure-durations`** (tous les jours à 03:00 UTC) — mises à jour des **durées moyennes de jeu** par aventure (sessions `UserAdventurePlaySession` terminées avec succès).
+
+Configurer **`CRON_SECRET`** côté hébergeur et en **`Authorization: Bearer …`** pour chaque route cron.
+
+### Durées côté aventure (résumé)
+
+- **`estimatedPlayDurationSeconds`** (API : `estimatedDurationSeconds`) : **estimation éditoriale** recalculée à chaque **sync d’itinéraire** (création / édition des points départ → énigmes → trésor) : temps de marche (distance ORS ou, à défaut de clé API, **ligne droite** entre les points / vitesse de marche supposée), + temps par énigme, + marge trésor si présent. Voir `src/lib/adventure-estimated-play-duration.ts` et `syncAdventureRouteDistance`.
+- **`averagePlayDurationSeconds`** : **moyenne temps réel** une fois assez de parties en base (alimentée par le cron ci-dessus ; seuil **5** sessions dans `src/lib/game/recompute-adventure-play-duration-stats.ts`). Chaque passage cron **réinitialise** d’abord les compteurs sur toutes les aventures puis réécrit depuis les données (évite une moyenne obsolète si les sessions disparaissent).
+- **Sessions joueur** : première validation d’étape ouvre une ligne `UserAdventurePlaySession` ; la fin d’aventure (`processGameFinish`) la clôture et enregistre la durée. Les sessions restées **`IN_PROGRESS`** plus de **30 jours** passent en **`ABANDONED`** au cron (`src/lib/game/expire-stale-adventure-play-sessions.ts`).
 
 ---
 

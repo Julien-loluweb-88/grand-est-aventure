@@ -17,6 +17,13 @@ model Adventure {
   /// Longitude du même point de départ que `latitude`.
   longitude        Float
   distance         Float?
+  /// Durée moyenne de jeu (secondes), dérivée des sessions terminées avec succès — alimentée par le cron.
+  averagePlayDurationSeconds Int?
+  /// Nombre de sessions terminées avec succès prises en compte pour la moyenne.
+  playDurationSampleCount    Int                @default(0)
+  playDurationStatsUpdatedAt DateTime?
+  /// Estimation « temps de parcours » (secondes) : recalculée à chaque sync d’itinéraire (distance ORS ou repli ligne droite, nombre d’énigmes, trésor).
+  estimatedPlayDurationSeconds Int?
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @default(now())
   /// Image de présentation (liste, fiche aventure).
@@ -41,6 +48,7 @@ model Adventure {
   adminRequests       AdminRequest[]
   discoveryPoints     DiscoveryPoint[]
   demoAccesses        AdventureDemoAccess[]
+  playSessions        UserAdventurePlaySession[]
 
   @@index([cityId])
 }

@@ -48,6 +48,11 @@ export type AdventureListItem = {
   city: string;
   status: boolean;
   audience: "PUBLIC" | "DEMO";
+  /** Secondes — estimation temps de parcours (sync itinéraire). */
+  estimatedPlayDurationSeconds: number | null;
+  /** Secondes — moyenne temps réel (≥ 5 succès) ; `null` sinon. */
+  averagePlayDurationSeconds: number | null;
+  playDurationSampleCount: number;
 };
 
 export async function listAdventuresForAdmin(params: {
@@ -106,6 +111,9 @@ export async function listAdventuresForAdmin(params: {
           name: true,
           status: true,
           audience: true,
+          estimatedPlayDurationSeconds: true,
+          averagePlayDurationSeconds: true,
+          playDurationSampleCount: true,
           city: { select: { name: true } },
         },
         orderBy: { name: "asc" },
@@ -123,6 +131,9 @@ export async function listAdventuresForAdmin(params: {
         city: u.city.name,
         status: u.status ?? false,
         audience: u.audience === "DEMO" ? "DEMO" : "PUBLIC",
+        estimatedPlayDurationSeconds: u.estimatedPlayDurationSeconds ?? null,
+        averagePlayDurationSeconds: u.averagePlayDurationSeconds ?? null,
+        playDurationSampleCount: u.playDurationSampleCount ?? 0,
       })),
       total,
     };

@@ -468,7 +468,9 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Liste publique \"safe\" pour app mobile (sans réponses d’énigmes ni codes trésor). " +
             "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination. " +
-            "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**." +
+            "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**. " +
+            "Chaque entrée peut inclure **`estimatedDurationSeconds`** (heuristique admin : marche + énigmes + trésor), " +
+            "**`averagePlayDurationSeconds`** et **`playDurationSampleCount`** (moyenne temps réel après assez de parties — alimentées par le cron). " +
             ADVENTURE_AUDIENCE_DEMO,
           parameters: [
             { name: "cityId", in: "query", required: false, schema: { type: "string" } },
@@ -531,6 +533,20 @@ export function buildGrandEstOpenApiDocument() {
                             distanceFromUserKm: { type: ["number", "null"] },
                             enigmaCount: { type: "integer" },
                             hasTreasure: { type: "boolean" },
+                            estimatedDurationSeconds: {
+                              type: ["integer", "null"],
+                              description:
+                                "Secondes — estimation éditoriale (itinéraire + énigmes + trésor), recalculée côté serveur au sync parcours.",
+                            },
+                            averagePlayDurationSeconds: {
+                              type: ["integer", "null"],
+                              description:
+                                "Secondes — moyenne des durées de sessions joueurs terminées avec succès (≥ 5 parties) ; null sinon.",
+                            },
+                            playDurationSampleCount: {
+                              type: "integer",
+                              description: "Nombre de sessions terminées avec succès prises en compte pour la moyenne.",
+                            },
                             updatedAt: { type: "string", format: "date-time" },
                           },
                         },
@@ -554,6 +570,7 @@ export function buildGrandEstOpenApiDocument() {
             "(`mapRevealCode`, `chestCode`, variantes — validés uniquement via POST `/api/game/validate-treasure`). " +
             "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +
             "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`). " +
+            "**Durées** : `estimatedDurationSeconds` (heuristique), `averagePlayDurationSeconds` / `playDurationSampleCount` (stats réelles via cron). " +
             "Pour une aventure **`DEMO`**, session requise + droit d’accès ; sinon **404**." +
             ADVENTURE_AUDIENCE_DEMO,
           parameters: [
@@ -576,6 +593,18 @@ export function buildGrandEstOpenApiDocument() {
                       latitude: { type: "number" },
                       longitude: { type: "number" },
                       distanceKm: { type: ["number", "null"] },
+                      estimatedDurationSeconds: {
+                        type: ["integer", "null"],
+                        description: "Estimation durée de parcours (secondes), même règle que le catalogue.",
+                      },
+                      averagePlayDurationSeconds: {
+                        type: ["integer", "null"],
+                        description: "Moyenne durée réelle (secondes) si assez de données.",
+                      },
+                      playDurationSampleCount: {
+                        type: "integer",
+                        description: "Nombre de parties terminées avec succès dans le calcul moyenne.",
+                      },
                       physicalBadgeStockCount: { type: "integer" },
                       enigmas: { type: "array", items: { type: "object", additionalProperties: true } },
                       treasure: { type: ["object", "null"], additionalProperties: true },
@@ -1302,6 +1331,27 @@ export function buildGrandEstOpenApiDocument() {
           parameters: [],
           responses: {
             "200": { description: "`{ expired: number }`" },
+            "401": { description: "Secret incorrect." },
+            "503": { description: "CRON_SECRET non configuré." },
+          },
+        },
+      },
+      "/api/cron/recompute-adventure-durations": {
+        get: {
+          tags: ["Cron"],
+          summary: "Recalcule les durées moyennes de jeu par aventure",
+          description:
+            "Agrège les sessions `UserAdventurePlaySession` terminées avec succès et met à jour " +
+            "`Adventure.averagePlayDurationSeconds`, `playDurationSampleCount`, `playDurationStatsUpdatedAt` " +
+            "(moyenne publiée seulement à partir de 5 parties). " +
+            "En-tête `Authorization: Bearer $CRON_SECRET`.",
+          parameters: [],
+          responses: {
+            "200": {
+              description:
+                "`{ ok: true, stalePlaySessionsClosed: number, adventuresUpdated: number }` — " +
+                "fermeture des sessions abandonnées, remise à zéro des agrégats puis réécriture depuis les sessions terminées avec succès.",
+            },
             "401": { description: "Secret incorrect." },
             "503": { description: "CRON_SECRET non configuré." },
           },
