@@ -26,6 +26,7 @@ import { createEnigma } from "../_lib/enigma.action";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
 import { EMPTY_TIPTAP_DOCUMENT } from "@/lib/adventure-description-tiptap";
 import {
+  computeEnigmaCorrectAnswersFromForm,
   enigmaCreateFormSchema,
   type EnigmaCreateFormValues,
 } from "../_lib/enigma-form-schema";
@@ -59,7 +60,9 @@ export function CreateEnigmaForm({
       name: "",
       question: "",
       uniqueResponse: false,
+      multiSelect: false,
       choices: ["", "", "", ""],
+      correctChoiceFlags: [false, false, false, false],
       answer: "",
       answerMessage: EMPTY_TIPTAP_DOCUMENT,
       description: EMPTY_TIPTAP_DOCUMENT,
@@ -102,6 +105,13 @@ export function CreateEnigmaForm({
     liveRoutePreview != null ? liveRoutePreview.polyline : routePolyline;
 
   const syncChoices = (next: string[]) => {
+    const prevFlags = form.getValues("correctChoiceFlags") ?? [];
+    const nextFlags = next.map((_, i) => prevFlags[i] ?? false);
+    form.setValue("correctChoiceFlags", nextFlags, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
     const currentAnswer = form.getValues("answer");
     const selectedIndex =
       typeof currentAnswer === "string" ? choiceInputs.findIndex((c) => c === currentAnswer) : -1;
@@ -128,6 +138,8 @@ export function CreateEnigmaForm({
         name: plain.name,
         question: plain.question,
         uniqueResponse: plain.uniqueResponse ?? false,
+        multiSelect: plain.multiSelect ?? false,
+        correctAnswers: computeEnigmaCorrectAnswersFromForm(plain),
         answer: plain.answer ?? "",
         answerMessage: plain.answerMessage,
         description: plain.description,

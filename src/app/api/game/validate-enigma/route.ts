@@ -18,10 +18,24 @@ import {
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 80;
 const MAX_SUBMISSION_LEN = 500;
+const MAX_MULTI_SELECT = 30;
+
+function parseSubmissions(raw: unknown): string[] | null {
+  if (raw === undefined || raw === null) return null;
+  if (!Array.isArray(raw)) return null;
+  const out: string[] = [];
+  for (const x of raw) {
+    if (typeof x !== "string") return null;
+    if (x.length > MAX_SUBMISSION_LEN) return null;
+    out.push(x);
+  }
+  if (out.length > MAX_MULTI_SELECT) return null;
+  return out;
+}
 
 /**
  * Valide une réponse d’énigme côté serveur et enregistre l’étape (ordre 1…n obligatoire).
- * Corps : `{ adventureId, userId, enigmaNumber, submission }`
+ * Corps : `{ adventureId, userId, enigmaNumber, submission }` ou, si QCM multi-sélection, `submissions` (tableau de chaînes).
  */
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -63,6 +77,7 @@ export async function POST(request: NextRequest) {
   const adventureId = typeof b.adventureId === "string" ? b.adventureId.trim() : "";
   const userId = typeof b.userId === "string" ? b.userId.trim() : "";
   const submission = typeof b.submission === "string" ? b.submission : "";
+  const submissions = parseSubmissions(b.submissions);
   const enigmaNumberRaw = b.enigmaNumber;
 
   const enigmaNumber =
@@ -114,14 +129,36 @@ export async function POST(request: NextRequest) {
     },
     select: {
       number: true,
-      uniqueResponse: true,
+      multiSelect: true,
       answer: true,
       choice: true,
+      correctAnswers: true,
     },
   });
 
   if (!enigma) {
     return NextResponse.json({ error: "Énigme introuvable." }, { status: 404 });
+  }
+
+  if (enigma.multiSelect) {
+    if (submissions === null) {
+      return NextResponse.json(
+        {
+          error:
+            "Pour cette énigme, envoyez un tableau `submissions` avec les choix sélectionnés.",
+          code: "SUBMISSIONS_ARRAY_REQUIRED",
+        },
+        { status: 400 }
+      );
+    }
+  } else if (b.submissions !== undefined && b.submissions !== null) {
+    return NextResponse.json(
+      {
+        error: "Utilisez le champ `submission` (chaîne) pour cette énigme.",
+        code: "SUBMISSION_STRING_REQUIRED",
+      },
+      { status: 400 }
+    );
   }
 
   const stepKey = enigmaStepKey(enigmaNumber);
@@ -144,7 +181,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!enigmaSubmissionIsCorrect(enigma, submission)) {
+    if (
+      !enigmaSubmissionIsCorrect(enigma, {
+        submission,
+        submissions,
+      })
+    ) {
       return {
         ok: false as const,
         status: 400,

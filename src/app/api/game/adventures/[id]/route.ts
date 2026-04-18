@@ -60,6 +60,7 @@ export async function GET(_request: NextRequest, context: Ctx) {
           longitude: true,
           imageUrl: true,
           uniqueResponse: true,
+          multiSelect: true,
           choice: true,
         },
       },

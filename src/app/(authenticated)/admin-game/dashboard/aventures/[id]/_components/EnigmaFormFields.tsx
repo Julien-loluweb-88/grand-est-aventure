@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { Control, UseFormReturn } from "react-hook-form";
-import { Controller } from "react-hook-form";
+import { Controller, useWatch } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -13,6 +13,7 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
@@ -66,6 +67,8 @@ export function EnigmaFormFields({
   wrapFirstBlockInFieldSet,
   fieldSetIntro,
 }: EnigmaFormFieldsProps) {
+  const multiSelect = useWatch({ control, name: "multiSelect", defaultValue: false }) ?? false;
+
   const nameQuestionGrid = (
     <div className="grid gap-3 md:grid-cols-2">
       <Controller
@@ -130,85 +133,157 @@ export function EnigmaFormFields({
     </div>
   );
 
-  const answerBlock = (
-    <Controller
-      name="answer"
-      control={control}
-      render={({ field, fieldState }) => {
-        const selectedIndex = choiceInputs.findIndex((c) => c === field.value);
-        const selectedRadioValue = selectedIndex >= 0 ? String(selectedIndex) : "none";
-
+  const choiceRows = (opts: {
+    leading: (index: number, isEmpty: boolean) => ReactNode;
+  }) => (
+    <div className="space-y-2">
+      {choiceInputs.map((value, index) => {
+        const isEmpty = value.trim() === "";
         return (
-          <Field data-invalid={fieldState.invalid}>
-            <FieldLabel>Choix de la réponse</FieldLabel>
-
-            <RadioGroup
-              value={selectedRadioValue}
-              onValueChange={(v) => {
-                const idx = Number(v);
-                field.onChange(choiceInputs[idx] ?? "");
+          <div key={index} className="flex items-center gap-2">
+            {opts.leading(index, isEmpty)}
+            <Input
+              value={value}
+              className="flex-1"
+              aria-label={`Choix ${index + 1}`}
+              autoComplete="off"
+              placeholder={`Choix ${index + 1}`}
+              onChange={(e) => {
+                const next = choiceInputs.map((c, i) =>
+                  i === index ? e.target.value : c
+                );
+                syncChoices(next);
               }}
-              className="mt-2"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const next = choiceInputs.filter((_, i) => i !== index);
+                syncChoices(next.length > 0 ? next : [""]);
+              }}
+              disabled={choiceInputs.length <= 1}
             >
-              <div className="space-y-2">
-                {choiceInputs.map((value, index) => {
-                  const isEmpty = value.trim() === "";
-                  return (
-                    <div key={index} className="flex items-center gap-2">
+              Retirer
+            </Button>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  const answerBlock = (
+    <>
+      <Controller
+        name="multiSelect"
+        control={control}
+        render={({ field }) => (
+          <Field className="md:col-span-2">
+            <div className="flex items-start gap-3">
+              <Checkbox
+                id="enigma-multi-select"
+                checked={field.value === true}
+                onCheckedChange={(c) => field.onChange(c === true)}
+                className="mt-1"
+              />
+              <div className="space-y-1">
+                <FieldLabel htmlFor="enigma-multi-select" className="font-medium">
+                  Plusieurs bonnes réponses
+                </FieldLabel>
+                <FieldDescription>
+                  Le joueur peut cocher plusieurs choix ; sa sélection doit correspondre exactement à
+                  l’ensemble des réponses que vous cochez ci-dessous.
+                </FieldDescription>
+              </div>
+            </div>
+          </Field>
+        )}
+      />
+
+      {multiSelect ? (
+        <Controller
+          name="correctChoiceFlags"
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel>Cochez chaque bonne réponse</FieldLabel>
+              {choiceRows({
+                leading: (index) => (
+                  <Checkbox
+                    checked={field.value?.[index] ?? false}
+                    onCheckedChange={(c) => {
+                      const next = [...(field.value ?? [])];
+                      while (next.length < choiceInputs.length) {
+                        next.push(false);
+                      }
+                      next[index] = c === true;
+                      field.onChange(next);
+                    }}
+                    aria-label={`Bonne réponse ${index + 1}`}
+                  />
+                ),
+              })}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              <div className="mt-3">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => syncChoices([...choiceInputs, ""])}
+                >
+                  Ajouter un choix
+                </Button>
+              </div>
+            </Field>
+          )}
+        />
+      ) : (
+        <Controller
+          name="answer"
+          control={control}
+          render={({ field, fieldState }) => {
+            const selectedIndex = choiceInputs.findIndex((c) => c === field.value);
+            const selectedRadioValue = selectedIndex >= 0 ? String(selectedIndex) : "none";
+
+            return (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>Une seule bonne réponse</FieldLabel>
+                <RadioGroup
+                  value={selectedRadioValue}
+                  onValueChange={(v) => {
+                    const idx = Number(v);
+                    field.onChange(choiceInputs[idx] ?? "");
+                  }}
+                  className="mt-2"
+                >
+                  {choiceRows({
+                    leading: (index, isEmpty) => (
                       <RadioGroupItem
                         value={String(index)}
                         disabled={isEmpty}
                         aria-label={`Réponse ${index + 1}`}
                       />
-
-                      <Input
-                        value={value}
-                        className="flex-1"
-                        aria-label={`Choix ${index + 1}`}
-                        autoComplete="off"
-                        placeholder={`Choix ${index + 1}`}
-                        onChange={(e) => {
-                          const next = choiceInputs.map((c, i) =>
-                            i === index ? e.target.value : c
-                          );
-                          syncChoices(next);
-                        }}
-                      />
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const next = choiceInputs.filter((_, i) => i !== index);
-                          syncChoices(next.length > 0 ? next : [""]);
-                        }}
-                        disabled={choiceInputs.length <= 1}
-                      >
-                        Retirer
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </RadioGroup>
-
-            {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-
-            <div className="mt-3">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => syncChoices([...choiceInputs, ""])}
-              >
-                Ajouter un choix
-              </Button>
-            </div>
-          </Field>
-        );
-      }}
-    />
+                    ),
+                  })}
+                </RadioGroup>
+                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => syncChoices([...choiceInputs, ""])}
+                  >
+                    Ajouter un choix
+                  </Button>
+                </div>
+              </Field>
+            );
+          }}
+        />
+      )}
+    </>
   );
 
   const firstBlock = wrapFirstBlockInFieldSet ? (

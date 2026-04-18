@@ -12,8 +12,10 @@ export type EnigmaListItem = {
   number: number;
   question: string;
   uniqueResponse: boolean;
+  multiSelect: boolean;
   choices: string[];
   answer: string;
+  correctAnswers: string[];
   answerMessage: unknown;
   description: unknown;
   latitude: number;
@@ -64,8 +66,10 @@ export async function listEnigmaForAdmin(params: {
           number: true,
           question: true,
           uniqueResponse: true,
+          multiSelect: true,
           choice: true,
           answer: true,
+          correctAnswers: true,
           answerMessage: true,
           description: true,
           latitude: true,
@@ -88,10 +92,14 @@ export async function listEnigmaForAdmin(params: {
         number: u.number,
         question: u.question,
         uniqueResponse: u.uniqueResponse,
+        multiSelect: u.multiSelect ?? false,
         choices: Array.isArray(u.choice)
           ? u.choice.filter((c): c is string => typeof c === "string")
           : [],
         answer: u.answer ?? "",
+        correctAnswers: Array.isArray(u.correctAnswers)
+          ? u.correctAnswers.filter((x): x is string => typeof x === "string")
+          : [],
         answerMessage: u.answerMessage,
         description: u.description,
         latitude: u.latitude,

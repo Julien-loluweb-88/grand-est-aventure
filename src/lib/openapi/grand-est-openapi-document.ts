@@ -566,8 +566,10 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Détail mobile \"safe\" d’une aventure",
           description:
             "Détail public d’une aventure active, incluant énigmes et trésor " +
-            "sans exposer les champs sensibles : réponses d’énigmes (`answer`), ni les codes trésor " +
-            "(`mapRevealCode`, `chestCode`, variantes — validés uniquement via POST `/api/game/validate-treasure`). " +
+            "sans exposer les champs sensibles : pas de `answer` / `correctAnswers` ; les codes trésor " +
+            "(`mapRevealCode`, `chestCode`, variantes) ne sont jamais renvoyés — validés uniquement via POST `/api/game/validate-treasure`. " +
+            "Chaque énigme inclut notamment **`choice`** (libellés QCM), **`uniqueResponse`**, **`multiSelect`** : si `multiSelect` est true, " +
+            "le joueur envoie **`submissions`** (tableau) à POST `/api/game/validate-enigma` ; sinon **`submission`** (chaîne). " +
             "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +
             "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`). " +
             "**Durées** : `estimatedDurationSeconds` (heuristique), `averagePlayDurationSeconds` / `playDurationSampleCount` (stats réelles via cron). " +
@@ -741,6 +743,68 @@ export function buildGrandEstOpenApiDocument() {
           },
         },
       },
+      "/api/game/start-adventure": {
+        post: {
+          tags: ["Jeu"],
+          summary: "Démarrer une partie (session de jeu)",
+          description:
+            "Crée une session `UserAdventurePlaySession` en **IN_PROGRESS** si aucune n’existe encore — à appeler au clic « Commencer » **avant** la première `validate-enigma`.\n\n" +
+            "Idempotent : si une session est déjà ouverte, **200** avec `sessionCreated: false`, `alreadyInProgress: true`.\n\n" +
+            "**Corps** : `adventureId`, `userId` (= session).\n\n" +
+            "Refusé (**400** `EMPTY_ADVENTURE`) si l’aventure n’a **ni** énigme **ni** trésor.\n\n" +
+            "Aventure **démo** : même contrôle d’accès que `validate-enigma`.\n\n" +
+            `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["adventureId", "userId"],
+                  properties: {
+                    adventureId: { type: "string" },
+                    userId: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "`sessionCreated` : nouvelle ligne créée ; `alreadyInProgress` : session déjà en cours.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["ok", "sessionCreated", "alreadyInProgress"],
+                    properties: {
+                      ok: { type: "boolean", const: true },
+                      sessionCreated: { type: "boolean" },
+                      alreadyInProgress: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Corps invalide ou aventure vide (`EMPTY_ADVENTURE`).",
+              content: {
+                "application/json": {
+                  schema: { oneOf: [{ $ref: "#/components/schemas/ErrorMessage" }, { $ref: "#/components/schemas/ErrorWithCode" }] },
+                },
+              },
+            },
+            "401": { description: "Session absente ou `userId` ≠ utilisateur connecté." },
+            "404": {
+              description:
+                "Aventure introuvable / inactive, ou aventure **démo** sans accès pour ce compte.",
+            },
+            "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
+          },
+        },
+      },
       "/api/game/discovery-points": {
         get: {
           tags: ["Jeu"],
@@ -878,7 +942,9 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Valider une réponse d’énigme",
           description:
             "Valide dans l’ordre (1…n). Enregistre `UserAdventureStepValidation` en cas de succès.\n\n" +
-            "**Corps JSON** : `adventureId`, `userId` (doit correspondre à la session), `enigmaNumber` (entier ≥ 1), `submission` (≤ 500 car.).\n\n" +
+            "Si l’énigme a **`multiSelect: true`** (QCM à cases à cocher) : corps avec **`submissions`** (tableau de libellés de choix sélectionnés) ; l’ensemble doit coïncider avec les bonnes réponses (ordre indifférent, normalisation casse / espaces).\n\n" +
+            "Sinon : **`submission`** (chaîne, ≤ 500 car.) — une bonne réponse ou saisie libre.\n\n" +
+            "**Corps JSON** : `adventureId`, `userId` (session), `enigmaNumber` (entier ≥ 1), puis `submission` **ou** `submissions` selon `GET …/adventures/{id}` → `enigmas[].multiSelect`.\n\n" +
             "Aventure **démo** : même contrôle d’accès que le détail (`audience = DEMO`).\n\n" +
             `**Rate limit** : ~80 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
@@ -888,14 +954,24 @@ export function buildGrandEstOpenApiDocument() {
               "application/json": {
                 schema: {
                   type: "object",
-                  required: ["adventureId", "userId", "enigmaNumber", "submission"],
+                  required: ["adventureId", "userId", "enigmaNumber"],
                   properties: {
                     adventureId: { type: "string" },
                     userId: { type: "string" },
                     enigmaNumber: {
                       oneOf: [{ type: "integer", minimum: 1 }, { type: "string", description: "Entier parsable" }],
                     },
-                    submission: { type: "string", maxLength: 500 },
+                    submission: {
+                      type: "string",
+                      maxLength: 500,
+                      description: "Réponse simple (QCM une option ou texte libre).",
+                    },
+                    submissions: {
+                      type: "array",
+                      maxItems: 30,
+                      items: { type: "string", maxLength: 500 },
+                      description: "Obligatoire si `multiSelect` sur l’énigme : libellés exacts des choix cochés.",
+                    },
                   },
                 },
               },
@@ -907,7 +983,8 @@ export function buildGrandEstOpenApiDocument() {
               content: { "application/json": { schema: { $ref: "#/components/schemas/ValidateEnigmaOk" } } },
             },
             "400": {
-              description: "Corps invalide, ordre des énigmes, réponse incorrecte, soumission trop longue.",
+              description:
+                "Corps invalide, ordre des énigmes, mauvais champ `submission` / `submissions`, réponse incorrecte (`WRONG_ANSWER`), codes `SUBMISSIONS_ARRAY_REQUIRED` / `SUBMISSION_STRING_REQUIRED`.",
               content: {
                 "application/json": {
                   schema: { oneOf: [{ $ref: "#/components/schemas/ErrorMessage" }, { $ref: "#/components/schemas/ErrorWithCode" }] },
@@ -918,6 +995,74 @@ export function buildGrandEstOpenApiDocument() {
             "404": {
               description:
                 "Aventure ou énigme introuvable / inactive, ou aventure **démo** sans accès pour ce compte.",
+            },
+            "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
+          },
+        },
+      },
+      "/api/game/validate-finish": {
+        post: {
+          tags: ["Jeu"],
+          summary: "Finaliser une aventure sans trésor",
+          description:
+            "À appeler **après** la dernière énigme validée lorsque l’aventure **n’a pas** de trésor.\n\n" +
+            "**Corps JSON** : `adventureId`, `userId` (= session).\n\n" +
+            "Exécute `processGameFinish` (badges, `UserAdventures`, durée de session) comme le code coffre de `validate-treasure`.\n\n" +
+            "Si l’aventure a un trésor : **400** `TREASURE_REQUIRED` — utiliser `validate-treasure`.\n\n" +
+            "Si la partie est déjà en succès : **200** avec `alreadyFinished: true`.\n\n" +
+            "Aventure **démo** : même contrôle d’accès que `validate-enigma`.\n\n" +
+            `**Rate limit** : ~30 req/min. ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["adventureId", "userId"],
+                  properties: {
+                    adventureId: { type: "string" },
+                    userId: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description:
+                "Succès : `stepKey` : `finish`, `awardedUserBadgeIds` si première finalisation, `alreadyFinished` si déjà terminé.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      ok: { type: "boolean" },
+                      stepKey: { type: "string" },
+                      alreadyFinished: { type: "boolean" },
+                      awardedUserBadgeIds: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      message: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "Corps invalide, aventure vide (`EMPTY_ADVENTURE`), progression incomplète (`INCOMPLETE_SERVER_PROGRESS`), ou trésor présent (`TREASURE_REQUIRED`).",
+              content: {
+                "application/json": {
+                  schema: { oneOf: [{ $ref: "#/components/schemas/ErrorMessage" }, { $ref: "#/components/schemas/ErrorWithCode" }] },
+                },
+              },
+            },
+            "401": { description: "Session absente ou `userId` ≠ utilisateur connecté." },
+            "404": {
+              description:
+                "Aventure introuvable / inactive, ou aventure **démo** sans accès pour ce compte.",
             },
             "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
           },

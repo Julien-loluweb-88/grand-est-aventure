@@ -5,12 +5,12 @@ import { UserAdventurePlaySessionStatus } from "../../../generated/prisma/client
 
 type Tx = Prisma.TransactionClient;
 
-/** Crée une session « en cours » si aucune n’existe pour ce joueur et cette aventure. */
+/** Crée une session « en cours » si aucune n’existe pour ce joueur et cette aventure. @returns true si une ligne a été créée. */
 export async function ensureActivePlaySession(
   tx: Tx,
   userId: string,
   adventureId: string
-): Promise<void> {
+): Promise<boolean> {
   const open = await tx.userAdventurePlaySession.findFirst({
     where: {
       userId,
@@ -20,7 +20,7 @@ export async function ensureActivePlaySession(
     select: { id: true },
   });
   if (open) {
-    return;
+    return false;
   }
   await tx.userAdventurePlaySession.create({
     data: {
@@ -29,6 +29,7 @@ export async function ensureActivePlaySession(
       status: UserAdventurePlaySessionStatus.IN_PROGRESS,
     },
   });
+  return true;
 }
 
 /** Clôture la session active (succès ou échec) et enregistre la durée en secondes. */

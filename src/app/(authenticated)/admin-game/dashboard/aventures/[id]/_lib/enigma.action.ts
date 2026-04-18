@@ -21,6 +21,10 @@ export type EnigmaMutationFields = {
   question: string;
   uniqueResponse: boolean;
   choice: Prisma.InputJsonValue;
+  /** QCM : le joueur peut cocher plusieurs réponses. */
+  multiSelect: boolean;
+  /** Libellés des choix corrects (si `multiSelect`). */
+  correctAnswers: string[];
   answer: string;
   answerMessage: Prisma.InputJsonValue;
   description: Prisma.InputJsonValue;
@@ -56,6 +60,15 @@ export async function createEnigma(
   const nextNumber = (maxRow._max.number ?? 0) + 1;
 
   try {
+    const choiceJson = form.choice;
+    const choicesStr = Array.isArray(choiceJson)
+      ? choiceJson.filter((c): c is string => typeof c === "string" && c.trim() !== "")
+      : [];
+    const hasChoices = choicesStr.length > 0;
+    const correctJson =
+      form.multiSelect && form.correctAnswers.length > 0
+        ? form.correctAnswers
+        : Prisma.DbNull;
     const result = await prisma.enigma.create({
       data: {
         name: form.name,
@@ -63,7 +76,9 @@ export async function createEnigma(
         question: form.question,
         uniqueResponse: form.uniqueResponse,
         choice: form.choice,
-        answer: form.answer,
+        multiSelect: form.multiSelect,
+        correctAnswers: correctJson,
+        answer: form.multiSelect && hasChoices ? "" : form.answer,
         answerMessage: form.answerMessage,
         description: form.description,
         latitude: form.latitude,
@@ -166,6 +181,15 @@ export async function updateEnigma(
       select: { imageUrl: true },
     });
 
+    const choiceJson = form.choice;
+    const choicesStr = Array.isArray(choiceJson)
+      ? choiceJson.filter((c): c is string => typeof c === "string" && c.trim() !== "")
+      : [];
+    const hasChoices = choicesStr.length > 0;
+    const correctJson =
+      form.multiSelect && form.correctAnswers.length > 0
+        ? form.correctAnswers
+        : Prisma.DbNull;
     const result = await prisma.enigma.update({
       where: { id },
       data: {
@@ -174,7 +198,9 @@ export async function updateEnigma(
         question: form.question,
         uniqueResponse: form.uniqueResponse,
         choice: form.choice,
-        answer: form.answer,
+        multiSelect: form.multiSelect,
+        correctAnswers: correctJson,
+        answer: form.multiSelect && hasChoices ? "" : form.answer,
         answerMessage: form.answerMessage,
         description: form.description,
         latitude: form.latitude,

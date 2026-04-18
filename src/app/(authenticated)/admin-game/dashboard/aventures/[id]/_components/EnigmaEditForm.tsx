@@ -27,6 +27,8 @@ import { updateEnigma } from "../_lib/enigma.action";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
 import { adventureDescriptionToTiptapJSON } from "@/lib/adventure-description-tiptap";
 import {
+  buildCorrectChoiceFlagsForEdit,
+  computeEnigmaCorrectAnswersFromForm,
   enigmaEditFormSchema,
   type EnigmaEditFormValues,
 } from "../_lib/enigma-form-schema";
@@ -43,8 +45,10 @@ export type EnigmaEditRow = {
   number: number;
   question: string;
   uniqueResponse: boolean;
+  multiSelect: boolean;
   choices: string[];
   answer: string;
+  correctAnswers: string[];
   answerMessage: unknown;
   description: unknown;
   latitude: number;
@@ -79,7 +83,12 @@ export function EditenigmaForm({
       number: enigma.number,
       question: enigma.question,
       uniqueResponse: enigma.uniqueResponse ?? false,
+      multiSelect: enigma.multiSelect ?? false,
       choices: defaultChoices,
+      correctChoiceFlags: buildCorrectChoiceFlagsForEdit(
+        defaultChoices,
+        enigma.correctAnswers ?? []
+      ),
       answer: enigma.answer,
       answerMessage: adventureDescriptionToTiptapJSON(enigma.answerMessage),
       description: adventureDescriptionToTiptapJSON(enigma.description),
@@ -150,6 +159,13 @@ export function EditenigmaForm({
   }, [choiceInputs, form]);
 
   const syncChoices = (next: string[]) => {
+    const prevFlags = form.getValues("correctChoiceFlags") ?? [];
+    const nextFlags = next.map((_, i) => prevFlags[i] ?? false);
+    form.setValue("correctChoiceFlags", nextFlags, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+
     const currentAnswer = form.getValues("answer");
     setChoiceInputs(next);
 
@@ -169,6 +185,8 @@ export function EditenigmaForm({
       number: Number(plain.number),
       question: plain.question,
       uniqueResponse: plain.uniqueResponse ?? false,
+      multiSelect: plain.multiSelect ?? false,
+      correctAnswers: computeEnigmaCorrectAnswersFromForm(plain),
       answer: plain.answer ?? "",
       answerMessage: plain.answerMessage,
       description: plain.description,

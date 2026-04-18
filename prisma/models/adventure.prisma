@@ -97,6 +97,10 @@ model Enigma {
   uniqueResponse Boolean   @default(false)
   choice         Json?
   answer         String
+  /// Si `true` avec des `choice` : plusieurs réponses correctes ; le joueur envoie `submissions[]` (ordre libre).
+  multiSelect    Boolean   @default(false)
+  /// Libellés des choix corrects (sous-ensemble de `choice`) lorsque `multiSelect` est true.
+  correctAnswers Json?
   answerMessage  Json
   description    Json
   latitude       Float
