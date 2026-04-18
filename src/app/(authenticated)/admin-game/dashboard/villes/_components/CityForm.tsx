@@ -30,14 +30,41 @@ import {
   fetchCommuneByInseeFromGeoApi,
   type GeoCommuneDto,
 } from "@/lib/geo-api-gouv-fr";
+import {
+  CITY_COORDINATE_STRING_MAX_CHARS,
+  CITY_INSEE_CODE_MAX_CHARS,
+  CITY_NAME_MAX_CHARS,
+  CITY_POPULATION_STRING_MAX_CHARS,
+  CITY_POSTAL_CODES_RAW_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
 
 const schema = z.object({
-  name: z.string().min(2, "Au moins 2 caractères").max(120),
-  inseeCode: z.string().max(5),
-  postalCodesRaw: z.string().max(2000).optional().default(""),
-  latitude: z.string().max(32).optional().default(""),
-  longitude: z.string().max(32).optional().default(""),
-  population: z.string().max(16).optional().default(""),
+  name: z
+    .string()
+    .min(2, "Au moins 2 caractères")
+    .max(CITY_NAME_MAX_CHARS, `${CITY_NAME_MAX_CHARS} caractères maximum`),
+  inseeCode: z.string().max(CITY_INSEE_CODE_MAX_CHARS),
+  postalCodesRaw: z
+    .string()
+    .max(CITY_POSTAL_CODES_RAW_MAX_CHARS, `${CITY_POSTAL_CODES_RAW_MAX_CHARS} caractères maximum`)
+    .optional()
+    .default(""),
+  latitude: z
+    .string()
+    .max(CITY_COORDINATE_STRING_MAX_CHARS)
+    .optional()
+    .default(""),
+  longitude: z
+    .string()
+    .max(CITY_COORDINATE_STRING_MAX_CHARS)
+    .optional()
+    .default(""),
+  population: z
+    .string()
+    .max(CITY_POPULATION_STRING_MAX_CHARS)
+    .optional()
+    .default(""),
 });
 
 export type CityFormProps = {
@@ -274,11 +301,15 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
               <Input
                 id={`${geoBlockId}-insee`}
                 value={inseeLookup}
-                onChange={(e) => setInseeLookup(e.target.value.replace(/\D/g, "").slice(0, 5))}
+                onChange={(e) =>
+                  setInseeLookup(
+                    e.target.value.replace(/\D/g, "").slice(0, CITY_INSEE_CODE_MAX_CHARS)
+                  )
+                }
                 autoComplete="off"
                 placeholder="54000"
                 className="w-28 font-mono"
-                maxLength={5}
+                maxLength={CITY_INSEE_CODE_MAX_CHARS}
               />
             </div>
             <Button
@@ -306,7 +337,19 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Nom</FieldLabel>
-              <Input {...field} id={field.name} autoComplete="off" className="max-w-md" />
+              <Input
+                {...field}
+                id={field.name}
+                autoComplete="off"
+                className="max-w-md"
+                maxLength={CITY_NAME_MAX_CHARS}
+              />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={field.value?.length ?? 0}
+                  max={CITY_NAME_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -317,7 +360,19 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Code INSEE (optionnel, 5 chiffres)</FieldLabel>
-              <Input {...field} id={field.name} autoComplete="off" className="max-w-xs font-mono" />
+              <Input
+                {...field}
+                id={field.name}
+                autoComplete="off"
+                className="max-w-xs font-mono"
+                maxLength={CITY_INSEE_CODE_MAX_CHARS}
+              />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={field.value?.length ?? 0}
+                  max={CITY_INSEE_CODE_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -328,7 +383,19 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Codes postaux (séparés par virgule ou espace)</FieldLabel>
-              <Input {...field} id={field.name} autoComplete="off" className="max-w-md" />
+              <Input
+                {...field}
+                id={field.name}
+                autoComplete="off"
+                className="max-w-md"
+                maxLength={CITY_POSTAL_CODES_RAW_MAX_CHARS}
+              />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={field.value?.length ?? 0}
+                  max={CITY_POSTAL_CODES_RAW_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -340,7 +407,18 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={field.name}>Latitude (optionnel)</FieldLabel>
-                <Input {...field} id={field.name} autoComplete="off" />
+                <Input
+                  {...field}
+                  id={field.name}
+                  autoComplete="off"
+                  maxLength={CITY_COORDINATE_STRING_MAX_CHARS}
+                />
+                <div className="flex justify-end pt-0.5">
+                  <FieldCharacterCount
+                    length={field.value?.length ?? 0}
+                    max={CITY_COORDINATE_STRING_MAX_CHARS}
+                  />
+                </div>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
@@ -351,7 +429,18 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor={field.name}>Longitude (optionnel)</FieldLabel>
-                <Input {...field} id={field.name} autoComplete="off" />
+                <Input
+                  {...field}
+                  id={field.name}
+                  autoComplete="off"
+                  maxLength={CITY_COORDINATE_STRING_MAX_CHARS}
+                />
+                <div className="flex justify-end pt-0.5">
+                  <FieldCharacterCount
+                    length={field.value?.length ?? 0}
+                    max={CITY_COORDINATE_STRING_MAX_CHARS}
+                  />
+                </div>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
@@ -363,7 +452,19 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Population (optionnel)</FieldLabel>
-              <Input {...field} id={field.name} autoComplete="off" className="max-w-xs" />
+              <Input
+                {...field}
+                id={field.name}
+                autoComplete="off"
+                className="max-w-xs"
+                maxLength={CITY_POPULATION_STRING_MAX_CHARS}
+              />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={field.value?.length ?? 0}
+                  max={CITY_POPULATION_STRING_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}

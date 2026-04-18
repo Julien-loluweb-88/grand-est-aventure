@@ -9,6 +9,10 @@ import {
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
 import { allocateUniqueMilestoneBadgeSlug } from "@/lib/badges/slugify-milestone-badge";
+import {
+  DISCOVERY_POINT_TEASER_MAX_CHARS,
+  DISCOVERY_POINT_TITLE_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 
 async function assertCanMutateCityScopedDiscovery(): Promise<boolean> {
   const actor = await getAdminActorForAuthorization();
@@ -45,10 +49,20 @@ export async function createDiscoveryPoint(input: {
   imageUrl: string;
 }): Promise<{ success: true; id: string } | { success: false; error: string }> {
   const title = input.title.trim();
-  if (title.length < 1 || title.length > 200) {
-    return { success: false, error: "Titre invalide (1–200 caractères)." };
+  if (title.length < 1 || title.length > DISCOVERY_POINT_TITLE_MAX_CHARS) {
+    return {
+      success: false,
+      error: `Titre invalide (1–${DISCOVERY_POINT_TITLE_MAX_CHARS} caractères).`,
+    };
   }
-  const teaser = input.teaser.trim() || null;
+  const teaserTrimmed = input.teaser.trim();
+  if (teaserTrimmed.length > DISCOVERY_POINT_TEASER_MAX_CHARS) {
+    return {
+      success: false,
+      error: `Accroche trop longue (${DISCOVERY_POINT_TEASER_MAX_CHARS} caractères maximum).`,
+    };
+  }
+  const teaser = teaserTrimmed.length > 0 ? teaserTrimmed : null;
   const lat = Number(input.latitude);
   const lon = Number(input.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
@@ -149,10 +163,20 @@ export async function updateDiscoveryPoint(
   }
 
   const title = input.title.trim();
-  if (title.length < 1 || title.length > 200) {
-    return { success: false, error: "Titre invalide (1–200 caractères)." };
+  if (title.length < 1 || title.length > DISCOVERY_POINT_TITLE_MAX_CHARS) {
+    return {
+      success: false,
+      error: `Titre invalide (1–${DISCOVERY_POINT_TITLE_MAX_CHARS} caractères).`,
+    };
   }
-  const teaser = input.teaser.trim() || null;
+  const teaserTrimmed = input.teaser.trim();
+  if (teaserTrimmed.length > DISCOVERY_POINT_TEASER_MAX_CHARS) {
+    return {
+      success: false,
+      error: `Accroche trop longue (${DISCOVERY_POINT_TEASER_MAX_CHARS} caractères maximum).`,
+    };
+  }
+  const teaser = teaserTrimmed.length > 0 ? teaserTrimmed : null;
   const lat = Number(input.latitude);
   const lon = Number(input.longitude);
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) {

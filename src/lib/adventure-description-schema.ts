@@ -1,6 +1,10 @@
 import type { JSONContent } from "@tiptap/core";
 import * as z from "zod";
 import { tiptapJsonPlainTextLength } from "@/lib/adventure-description-tiptap";
+import {
+  ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS,
+  RICH_TEXT_PLAIN_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 
 const tiptapDoc = z.custom<JSONContent>(
   (v): v is JSONContent =>
@@ -19,10 +23,10 @@ export const adventureDescriptionCreateZod = tiptapDoc.superRefine((doc, ctx) =>
       message: "La description doit contenir au moins 20 caractères.",
     });
   }
-  if (len > 50000) {
+  if (len > RICH_TEXT_PLAIN_MAX_CHARS) {
     ctx.addIssue({
       code: "custom",
-      message: "La description est trop longue (50 000 caractères maximum).",
+      message: `La description est trop longue (${RICH_TEXT_PLAIN_MAX_CHARS.toLocaleString("fr-FR")} caractères maximum).`,
     });
   }
 });
@@ -36,10 +40,10 @@ export const adventureDescriptionEditZod = tiptapDoc.superRefine((doc, ctx) => {
       message: "La description ne peut pas être vide.",
     });
   }
-  if (len > 50000) {
+  if (len > RICH_TEXT_PLAIN_MAX_CHARS) {
     ctx.addIssue({
       code: "custom",
-      message: "La description est trop longue (50 000 caractères maximum).",
+      message: `La description est trop longue (${RICH_TEXT_PLAIN_MAX_CHARS.toLocaleString("fr-FR")} caractères maximum).`,
     });
   }
 });
@@ -53,10 +57,10 @@ export const enigmaAnswerMessageCreateZod = tiptapDoc.superRefine((doc, ctx) => 
       message: "Le message doit contenir au moins 3 caractères.",
     });
   }
-  if (len > 250) {
+  if (len > ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS) {
     ctx.addIssue({
       code: "custom",
-      message: "Le message ne doit pas dépasser 250 caractères.",
+      message: `Le message ne doit pas dépasser ${ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS} caractères.`,
     });
   }
 });
@@ -69,10 +73,10 @@ export const enigmaAnswerMessageEditZod = tiptapDoc.superRefine((doc, ctx) => {
       message: "Le message ne peut pas être vide.",
     });
   }
-  if (len > 250) {
+  if (len > ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS) {
     ctx.addIssue({
       code: "custom",
-      message: "Le message ne doit pas dépasser 250 caractères.",
+      message: `Le message ne doit pas dépasser ${ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS} caractères.`,
     });
   }
 });

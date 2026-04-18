@@ -23,4 +23,7 @@ export function AdventureDescriptionEditor(props: AdventureDescriptionEditorProp
   return <AdventureDescriptionEditorInner {...props} />;
 }
 
-export type { AdventureDescriptionEditorProps } from "./adventure-description-editor.types";
+export type {
+  AdventureDescriptionEditorProps,
+  AdventureDescriptionEditorialRewriteConfig,
+} from "./adventure-description-editor.types";

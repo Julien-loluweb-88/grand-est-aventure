@@ -3,6 +3,7 @@ import {
   adventureDescriptionCreateZod,
   adventureDescriptionEditZod,
 } from "@/lib/adventure-description-schema";
+import { TREASURE_NAME_MAX_CHARS } from "@/lib/dashboard-text-limits";
 
 const optionalAlt = z
   .string()
@@ -14,7 +15,10 @@ const treasureSharedFields = {
   name: z
     .string()
     .min(2, "Le nom doit contenir au moins 2 caractères")
-    .max(30, "Le nom ne doit pas dépasser 30 caractères"),
+    .max(
+      TREASURE_NAME_MAX_CHARS,
+      `Le nom ne doit pas dépasser ${TREASURE_NAME_MAX_CHARS} caractères.`
+    ),
   mapRevealCode: z
     .string()
     .min(2, "Le code de révélation carte doit contenir au moins 2 caractères")

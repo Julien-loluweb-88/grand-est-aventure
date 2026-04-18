@@ -14,6 +14,7 @@ import {
   FieldLabel,
   FieldError
 } from "@/components/ui/field"
+import { FieldCharacterCount } from "@/components/ui/field-character-count"
 
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
@@ -23,6 +24,10 @@ import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDesc
 import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { EMPTY_TIPTAP_DOCUMENT } from "@/lib/adventure-description-tiptap";
 import { adventureDescriptionCreateZod } from "@/lib/adventure-description-schema";
+import {
+  ADVENTURE_NAME_MAX_CHARS,
+  RICH_TEXT_PLAIN_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 import type { CitySelectOption } from "@/lib/city-types";
 import { createAdventure } from "@/lib/actions/create-adventure";
 import {
@@ -37,7 +42,10 @@ const formSchema = z.object({
   name: z
     .string()
     .min(2, "Le nom doit contenir au moins 2 caractères")
-    .max(30, "Le nom ne doit pas dépasser 30 caractères"),
+    .max(
+      ADVENTURE_NAME_MAX_CHARS,
+      `Le nom ne doit pas dépasser ${ADVENTURE_NAME_MAX_CHARS} caractères.`
+    ),
   description: adventureDescriptionCreateZod,
   cityId: z.string().min(1, "Choisissez une ville dans la liste."),
   latitude: z
@@ -139,6 +147,7 @@ export function CreateAdventureForm({
   })
   const latitudeValue = useWatch({ control: form.control, name: "latitude" })
   const longitudeValue = useWatch({ control: form.control, name: "longitude" })
+  const nameValue = useWatch({ control: form.control, name: "name" })
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     try {
       const payload: CreateAdventurePayload = {
@@ -185,6 +194,10 @@ export function CreateAdventureForm({
                     onApply={(t) => field.onChange(t)}
                     disabled={!caps.adventure.create}
                     dialogTitle="Reformuler le nom d’aventure"
+                    warnIfPlainLengthExceeds={{
+                      max: ADVENTURE_NAME_MAX_CHARS,
+                      label: "Le nom d’aventure",
+                    }}
                   />
                 ) : null}
               </div>
@@ -195,6 +208,12 @@ export function CreateAdventureForm({
                 aria-invalid={fieldState.invalid}
                 autoComplete="off"
                 placeholder="Nouvelle aventure" />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={String(nameValue ?? "").length}
+                  max={ADVENTURE_NAME_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
@@ -405,7 +424,10 @@ export function CreateAdventureForm({
                 richTextImageUploadDraftId={descriptionDraftIdRef.current}
                 editorialRewrite={
                   caps.adventure.create
-                    ? { scope: { type: "adventure-create" } }
+                    ? {
+                        scope: { type: "adventure-create" },
+                        plainCharacterCountMax: RICH_TEXT_PLAIN_MAX_CHARS,
+                      }
                     : undefined
                 }
               />

@@ -19,6 +19,8 @@ import { PaperPlaneTiltIcon } from "@phosphor-icons/react";
 import { submitAdventureCreationRequest } from "./request-adventure.action";
 import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { useAdminCapabilities } from "../AdminCapabilitiesProvider";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
+import { ADVENTURE_REQUEST_MESSAGE_MAX_CHARS } from "@/lib/dashboard-text-limits";
 
 type Props = {
   triggerClassName?: string;
@@ -79,8 +81,14 @@ export function RequestNewAdventureDialog({
               <EditorialRewriteControl
                 scope={{ type: "adventure-creation-request" }}
                 getSourceText={() => message}
-                onApply={(t) => setMessage(t.slice(0, 2000))}
+                onApply={(t) =>
+                  setMessage(t.slice(0, ADVENTURE_REQUEST_MESSAGE_MAX_CHARS))
+                }
                 dialogTitle="Reformuler le message de demande"
+                warnIfPlainLengthExceeds={{
+                  max: ADVENTURE_REQUEST_MESSAGE_MAX_CHARS,
+                  label: "Le message",
+                }}
               />
             ) : null}
           </div>
@@ -90,12 +98,15 @@ export function RequestNewAdventureDialog({
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Ex. : nouvelle chasse pour la commune de …"
             rows={5}
-            maxLength={2000}
+            maxLength={ADVENTURE_REQUEST_MESSAGE_MAX_CHARS}
             className="resize-none"
           />
-          <p className="text-xs text-muted-foreground">
-            {message.length} / 2000 caractères
-          </p>
+          <div className="flex justify-end">
+            <FieldCharacterCount
+              length={message.length}
+              max={ADVENTURE_REQUEST_MESSAGE_MAX_CHARS}
+            />
+          </div>
         </div>
         <DialogFooter className="gap-2 sm:justify-end">
           <DialogClose asChild>

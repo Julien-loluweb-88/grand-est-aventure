@@ -16,6 +16,7 @@ import {
   FieldLabel,
   FieldError,
 } from "@/components/ui/field";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
 import { GuardedButton } from "@/components/admin/GuardedButton";
 import { useAdminCapabilities } from "../../AdminCapabilitiesProvider";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +28,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { CitySelectOption } from "@/lib/city-types";
+import {
+  ADVERTISEMENT_BODY_MAX_CHARS,
+  ADVERTISEMENT_INTERNAL_NAME_MAX_CHARS,
+  ADVERTISEMENT_PARTNER_BADGE_TITLE_MAX_CHARS,
+  ADVERTISEMENT_PARTNER_NAME_MAX_CHARS,
+  ADVERTISEMENT_TITLE_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import {
@@ -55,11 +63,17 @@ const advertiserKindSchema = z.enum([
 ]);
 
 const schema = z.object({
-  name: z.string().min(1, "Libellé interne requis.").max(200),
+  name: z
+    .string()
+    .min(1, "Libellé interne requis.")
+    .max(ADVERTISEMENT_INTERNAL_NAME_MAX_CHARS),
   advertiserKind: advertiserKindSchema,
-  advertiserName: z.string().min(1, "Nom partenaire requis.").max(200),
-  title: z.string().max(500).optional().default(""),
-  body: z.string().max(10000).optional().default(""),
+  advertiserName: z
+    .string()
+    .min(1, "Nom partenaire requis.")
+    .max(ADVERTISEMENT_PARTNER_NAME_MAX_CHARS),
+  title: z.string().max(ADVERTISEMENT_TITLE_MAX_CHARS).optional().default(""),
+  body: z.string().max(ADVERTISEMENT_BODY_MAX_CHARS).optional().default(""),
   imageUrl: z.string().max(2048).optional().default(""),
   targetUrl: z.string().max(2048).optional().default(""),
   placement: z.string().min(1, "Placement requis.").max(64),
@@ -70,7 +84,11 @@ const schema = z.object({
   targetCenterLatitude: z.string().max(32).optional().default(""),
   targetCenterLongitude: z.string().max(32).optional().default(""),
   targetRadiusMeters: z.string().max(16).optional().default(""),
-  partnerBadgeTitle: z.string().max(200).optional().default(""),
+  partnerBadgeTitle: z
+    .string()
+    .max(ADVERTISEMENT_PARTNER_BADGE_TITLE_MAX_CHARS)
+    .optional()
+    .default(""),
   partnerBadgeImageUrl: z.string().max(2048).optional().default(""),
   partnerMaxRedemptionsPerUser: z.coerce.number().int().min(1).max(100),
   partnerClaimsOpen: z.boolean(),
@@ -176,6 +194,11 @@ export function AdvertisementForm({
   const latStr = useWatch({ control: form.control, name: "targetCenterLatitude" });
   const lngStr = useWatch({ control: form.control, name: "targetCenterLongitude" });
   const radStr = useWatch({ control: form.control, name: "targetRadiusMeters" });
+  const internalNameW = useWatch({ control: form.control, name: "name" });
+  const advertiserNameW = useWatch({ control: form.control, name: "advertiserName" });
+  const adTitleW = useWatch({ control: form.control, name: "title" });
+  const adBodyW = useWatch({ control: form.control, name: "body" });
+  const partnerBadgeTitleW = useWatch({ control: form.control, name: "partnerBadgeTitle" });
 
   const latNum = parseCoord(latStr);
   const lngNum = parseCoord(lngStr);
@@ -283,6 +306,12 @@ export function AdvertisementForm({
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor="ad-name">Libellé interne</FieldLabel>
               <Input id="ad-name" {...field} autoComplete="off" />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={String(internalNameW ?? "").length}
+                  max={ADVERTISEMENT_INTERNAL_NAME_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
             </Field>
           )}
@@ -317,6 +346,12 @@ export function AdvertisementForm({
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor="ad-advertiser-name">Nom du partenaire</FieldLabel>
                 <Input id="ad-advertiser-name" {...field} autoComplete="off" />
+                <div className="flex justify-end pt-0.5">
+                  <FieldCharacterCount
+                    length={String(advertiserNameW ?? "").length}
+                    max={ADVERTISEMENT_PARTNER_NAME_MAX_CHARS}
+                  />
+                </div>
                 {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
               </Field>
             )}
@@ -337,10 +372,20 @@ export function AdvertisementForm({
                     onApply={(t) => field.onChange(t)}
                     disabled={!caps.adventure.update}
                     dialogTitle="Reformuler le titre"
+                    warnIfPlainLengthExceeds={{
+                      max: ADVERTISEMENT_TITLE_MAX_CHARS,
+                      label: "Le titre",
+                    }}
                   />
                 ) : null}
               </div>
               <Input id="ad-title" {...field} autoComplete="off" />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={String(adTitleW ?? "").length}
+                  max={ADVERTISEMENT_TITLE_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
             </Field>
           )}
@@ -360,10 +405,20 @@ export function AdvertisementForm({
                     onApply={(t) => field.onChange(t)}
                     disabled={!caps.adventure.update}
                     dialogTitle="Reformuler le texte"
+                    warnIfPlainLengthExceeds={{
+                      max: ADVERTISEMENT_BODY_MAX_CHARS,
+                      label: "Le texte",
+                    }}
                   />
                 ) : null}
               </div>
               <Textarea id="ad-body" {...field} rows={4} className="min-h-24" />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={String(adBodyW ?? "").length}
+                  max={ADVERTISEMENT_BODY_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
             </Field>
           )}
@@ -523,6 +578,12 @@ export function AdvertisementForm({
                     placeholder="Ex. Fidèle chez …"
                     autoComplete="off"
                   />
+                  <div className="flex justify-end pt-0.5">
+                    <FieldCharacterCount
+                      length={String(partnerBadgeTitleW ?? "").length}
+                      max={ADVERTISEMENT_PARTNER_BADGE_TITLE_MAX_CHARS}
+                    />
+                  </div>
                   {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
                 </Field>
               )}

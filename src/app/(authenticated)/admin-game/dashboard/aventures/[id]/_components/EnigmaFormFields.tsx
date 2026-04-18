@@ -12,6 +12,7 @@ import {
   FieldSet,
   FieldError,
 } from "@/components/ui/field";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -21,6 +22,12 @@ import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDesc
 import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import type { EnigmaCreateFormValues } from "../_lib/enigma-form-schema";
+import {
+  ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS,
+  ENIGMA_NAME_MAX_CHARS,
+  ENIGMA_QUESTION_MAX_CHARS,
+  RICH_TEXT_PLAIN_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 
 /** Modèle des champs pour `Control` (soumis aux schémas Zod create / edit). */
 export type EnigmaFormUiModel = EnigmaCreateFormValues & { number?: number };
@@ -86,6 +93,10 @@ export function EnigmaFormFields({
                   onApply={(t) => field.onChange(t)}
                   disabled={!canEdit}
                   dialogTitle="Reformuler le nom d’énigme"
+                  warnIfPlainLengthExceeds={{
+                    max: ENIGMA_NAME_MAX_CHARS,
+                    label: "Le nom d’énigme",
+                  }}
                 />
               ) : null}
             </div>
@@ -97,6 +108,12 @@ export function EnigmaFormFields({
               autoComplete="off"
               placeholder={"Ex. : nom de l'énigme"}
             />
+            <div className="flex justify-end pt-0.5">
+              <FieldCharacterCount
+                length={String(field.value ?? "").length}
+                max={ENIGMA_NAME_MAX_CHARS}
+              />
+            </div>
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}
@@ -138,6 +155,10 @@ export function EnigmaFormFields({
                   onApply={(t) => field.onChange(t)}
                   disabled={!canEdit}
                   dialogTitle="Reformuler la question"
+                  warnIfPlainLengthExceeds={{
+                    max: ENIGMA_QUESTION_MAX_CHARS,
+                    label: "La question",
+                  }}
                 />
               ) : null}
             </div>
@@ -149,6 +170,12 @@ export function EnigmaFormFields({
               value={String(field.value ?? "")}
               placeholder="Quel est un fruit rouge et rond?"
             />
+            <div className="flex justify-end pt-0.5">
+              <FieldCharacterCount
+                length={String(field.value ?? "").length}
+                max={ENIGMA_QUESTION_MAX_CHARS}
+              />
+            </div>
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
           </Field>
         )}
@@ -340,7 +367,16 @@ export function EnigmaFormFields({
               aria-invalid={fieldState.invalid}
               richTextImageUploadAdventureId={adventureId}
               editorialRewrite={
-                canEdit ? { scope: { type: "adventure", adventureId } } : undefined
+                canEdit
+                  ? {
+                      scope: { type: "adventure", adventureId },
+                      warnIfPlainLengthExceeds: {
+                        max: ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS,
+                        label: "Le message (texte brut)",
+                      },
+                      plainCharacterCountMax: ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS,
+                    }
+                  : undefined
               }
             />
             {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -416,7 +452,12 @@ export function EnigmaFormFields({
                   aria-invalid={fieldState.invalid}
                   richTextImageUploadAdventureId={adventureId}
                   editorialRewrite={
-                    canEdit ? { scope: { type: "adventure", adventureId } } : undefined
+                    canEdit
+                      ? {
+                          scope: { type: "adventure", adventureId },
+                          plainCharacterCountMax: RICH_TEXT_PLAIN_MAX_CHARS,
+                        }
+                      : undefined
                   }
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

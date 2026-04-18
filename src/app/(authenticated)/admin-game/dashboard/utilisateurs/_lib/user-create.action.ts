@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { bridgeCreateUser } from "@/lib/better-auth-admin-bridge";
+import { queueWelcomeAdminCreatedUserEmail } from "@/lib/user-lifecycle-emails";
 import { requireRoutePermission } from "../[id]/_lib/user-admin-guard";
 
 export async function createUserAsAdmin(input: {
@@ -31,6 +32,10 @@ export async function createUserAsAdmin(input: {
       return { ok: false, message: "Utilisateur créé mais identifiant manquant." };
     }
     revalidatePath("/admin-game/dashboard/utilisateurs");
+    queueWelcomeAdminCreatedUserEmail({
+      to: input.email.trim().toLowerCase(),
+      displayName: input.name.trim(),
+    });
     return { ok: true, userId };
   } catch (e) {
     return {

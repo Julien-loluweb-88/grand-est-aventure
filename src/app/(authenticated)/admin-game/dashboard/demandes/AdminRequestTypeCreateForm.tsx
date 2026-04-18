@@ -7,6 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
+import {
+  ADMIN_REQUEST_TYPE_DESCRIPTION_MAX_CHARS,
+  ADMIN_REQUEST_TYPE_KEY_MAX_CHARS,
+  ADMIN_REQUEST_TYPE_LABEL_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 import { createAdminRequestType } from "../aventures/request-adventure.action";
 
 export function AdminRequestTypeCreateForm() {
@@ -47,9 +53,12 @@ export function AdminRequestTypeCreateForm() {
           placeholder="ex: campaign_asset_request"
           required
           minLength={3}
-          maxLength={64}
+          maxLength={ADMIN_REQUEST_TYPE_KEY_MAX_CHARS}
           disabled={pending}
         />
+        <div className="flex justify-end">
+          <FieldCharacterCount length={keyValue.length} max={ADMIN_REQUEST_TYPE_KEY_MAX_CHARS} />
+        </div>
         <p className="text-xs text-muted-foreground">
           Utilisez uniquement des lettres minuscules, chiffres et underscores. La key doit
           rester stable dans le temps.
@@ -64,9 +73,12 @@ export function AdminRequestTypeCreateForm() {
           placeholder="ex: Demande de supports campagne"
           required
           minLength={3}
-          maxLength={120}
+          maxLength={ADMIN_REQUEST_TYPE_LABEL_MAX_CHARS}
           disabled={pending}
         />
+        <div className="flex justify-end">
+          <FieldCharacterCount length={label.length} max={ADMIN_REQUEST_TYPE_LABEL_MAX_CHARS} />
+        </div>
       </div>
       <div className="grid gap-2">
         <Label htmlFor="request-type-description">Description (optionnel)</Label>
@@ -75,9 +87,15 @@ export function AdminRequestTypeCreateForm() {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          maxLength={500}
+          maxLength={ADMIN_REQUEST_TYPE_DESCRIPTION_MAX_CHARS}
           disabled={pending}
         />
+        <div className="flex justify-end">
+          <FieldCharacterCount
+            length={description.length}
+            max={ADMIN_REQUEST_TYPE_DESCRIPTION_MAX_CHARS}
+          />
+        </div>
       </div>
       <Button type="submit" disabled={pending}>
         {pending ? "Création..." : "Créer le type"}

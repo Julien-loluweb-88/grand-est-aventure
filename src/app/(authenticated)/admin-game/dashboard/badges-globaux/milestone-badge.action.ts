@@ -6,6 +6,7 @@ import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
 import { allocateUniqueMilestoneBadgeSlug } from "@/lib/badges/slugify-milestone-badge";
+import { MILESTONE_BADGE_TITLE_MAX_CHARS } from "@/lib/dashboard-text-limits";
 
 const MILESTONE_KINDS: BadgeDefinitionKind[] = [
   BadgeDefinitionKind.MILESTONE_ADVENTURES,
@@ -44,8 +45,11 @@ export async function createMilestoneBadge(input: {
   if (!gate.ok) return { success: false, error: gate.error };
 
   const title = input.title.trim();
-  if (title.length < 1 || title.length > 200) {
-    return { success: false, error: "Libellé invalide (1–200 caractères)." };
+  if (title.length < 1 || title.length > MILESTONE_BADGE_TITLE_MAX_CHARS) {
+    return {
+      success: false,
+      error: `Libellé invalide (1–${MILESTONE_BADGE_TITLE_MAX_CHARS} caractères).`,
+    };
   }
   if (!MILESTONE_KINDS.includes(input.kind)) {
     return { success: false, error: "Type de palier invalide." };
@@ -97,8 +101,11 @@ export async function updateMilestoneBadge(
   if (!gate.ok) return { success: false, error: gate.error };
 
   const title = input.title.trim();
-  if (title.length < 1 || title.length > 200) {
-    return { success: false, error: "Libellé invalide (1–200 caractères)." };
+  if (title.length < 1 || title.length > MILESTONE_BADGE_TITLE_MAX_CHARS) {
+    return {
+      success: false,
+      error: `Libellé invalide (1–${MILESTONE_BADGE_TITLE_MAX_CHARS} caractères).`,
+    };
   }
   if (!MILESTONE_KINDS.includes(input.kind)) {
     return { success: false, error: "Type de palier invalide." };

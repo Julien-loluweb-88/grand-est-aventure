@@ -1,6 +1,13 @@
 import type { JSONContent } from "@tiptap/core";
 import type { EditorialRewriteScope } from "@/lib/editorial-rewrite-scope";
 
+export type AdventureDescriptionEditorialRewriteConfig = {
+  scope: EditorialRewriteScope;
+  warnIfPlainLengthExceeds?: { max: number; label?: string };
+  /** Compteur texte brut affiché sous les boutons Mistral (défaut : limite description riche). */
+  plainCharacterCountMax?: number;
+};
+
 export type AdventureDescriptionEditorProps = {
   id?: string;
   value: JSONContent;
@@ -9,7 +16,7 @@ export type AdventureDescriptionEditorProps = {
   "aria-invalid"?: boolean;
   className?: string;
   /** Assistant Mistral (reformulation) — réservé au dashboard. */
-  editorialRewrite?: { scope: EditorialRewriteScope };
+  editorialRewrite?: AdventureDescriptionEditorialRewriteConfig;
   /**
    * Téléversement vers `uploads/adventures/{id}/editor/` (édition d’une aventure existante).
    */

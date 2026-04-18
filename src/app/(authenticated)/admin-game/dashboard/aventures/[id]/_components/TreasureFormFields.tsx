@@ -10,6 +10,7 @@ import {
   FieldSet,
   FieldError,
 } from "@/components/ui/field";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
 import { Input } from "@/components/ui/input";
 import { LocationPicker } from "@/components/location/LocationPicker";
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
@@ -17,6 +18,7 @@ import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDesc
 import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import type { TreasureCreateFormValues } from "../_lib/treasure-form-schema";
+import { RICH_TEXT_PLAIN_MAX_CHARS, TREASURE_NAME_MAX_CHARS } from "@/lib/dashboard-text-limits";
 
 export type TreasureFormUiModel = TreasureCreateFormValues;
 
@@ -69,6 +71,10 @@ export function TreasureFormFields({
                       onApply={(t) => field.onChange(t)}
                       disabled={!canEdit}
                       dialogTitle="Reformuler le nom du trésor"
+                      warnIfPlainLengthExceeds={{
+                        max: TREASURE_NAME_MAX_CHARS,
+                        label: "Le nom du trésor",
+                      }}
                     />
                   ) : null}
                 </div>
@@ -80,6 +86,12 @@ export function TreasureFormFields({
                   autoComplete="off"
                   placeholder="Ex. : nom du trésor"
                 />
+                <div className="flex justify-end pt-0.5">
+                  <FieldCharacterCount
+                    length={String(field.value ?? "").length}
+                    max={TREASURE_NAME_MAX_CHARS}
+                  />
+                </div>
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             )}
@@ -255,7 +267,12 @@ export function TreasureFormFields({
                   aria-invalid={fieldState.invalid}
                   richTextImageUploadAdventureId={adventureId}
                   editorialRewrite={
-                    canEdit ? { scope: { type: "adventure", adventureId } } : undefined
+                    canEdit
+                      ? {
+                          scope: { type: "adventure", adventureId },
+                          plainCharacterCountMax: RICH_TEXT_PLAIN_MAX_CHARS,
+                        }
+                      : undefined
                   }
                 />
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

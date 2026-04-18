@@ -10,6 +10,7 @@ import { MapPin, Route } from "lucide-react";
 import { GuardedButton } from "@/components/admin/GuardedButton";
 import { useAdminCapabilities } from "../../../AdminCapabilitiesProvider";
 import { Field, FieldGroup, FieldLabel, FieldError } from "@/components/ui/field";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,6 +33,10 @@ import {
   tiptapStoredValueToPlainText,
 } from "@/lib/adventure-description-tiptap";
 import { adventureDescriptionEditZod } from "@/lib/adventure-description-schema";
+import {
+  ADVENTURE_NAME_MAX_CHARS,
+  RICH_TEXT_PLAIN_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 import type { AdventureEditFormPayload } from "../_lib/adventure-edit-payload";
 import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoints";
 import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview";
@@ -79,7 +84,10 @@ const formSchema = z.object({
   name: z
     .string()
     .min(2, "Le nom doit contenir au moins 2 caractères")
-    .max(30, "Le nom ne doit pas dépasser 30 caractères"),
+    .max(
+      ADVENTURE_NAME_MAX_CHARS,
+      `Le nom ne doit pas dépasser ${ADVENTURE_NAME_MAX_CHARS} caractères.`
+    ),
   description: adventureDescriptionEditZod,
   cityId: z.string().min(1, "Choisissez une ville dans la liste."),
   latitude: z
@@ -133,6 +141,7 @@ export function AdventureEditForm({
   const longitudeValue = useWatch({ control: form.control, name: "longitude" });
   const coverImageUrlValue = useWatch({ control: form.control, name: "coverImageUrl" });
   const badgeImageUrlValue = useWatch({ control: form.control, name: "badgeImageUrl" });
+  const nameValue = useWatch({ control: form.control, name: "name" });
 
   const adventureRef = useRef(adventure);
   adventureRef.current = adventure;
@@ -370,6 +379,10 @@ export function AdventureEditForm({
                                   onApply={(t) => field.onChange(t)}
                                   disabled={!caps.adventure.update}
                                   dialogTitle="Reformuler le nom d’aventure"
+                                  warnIfPlainLengthExceeds={{
+                                    max: ADVENTURE_NAME_MAX_CHARS,
+                                    label: "Le nom d’aventure",
+                                  }}
                                 />
                               ) : null}
                             </div>
@@ -381,6 +394,12 @@ export function AdventureEditForm({
                               autoComplete="off"
                               placeholder="Nouvelle aventure"
                             />
+                            <div className="flex justify-end pt-0.5">
+                              <FieldCharacterCount
+                                length={String(nameValue ?? "").length}
+                                max={ADVENTURE_NAME_MAX_CHARS}
+                              />
+                            </div>
                             {fieldState.invalid && (
                               <FieldError errors={[fieldState.error]} />
                             )}
@@ -651,7 +670,13 @@ export function AdventureEditForm({
                               richTextImageUploadAdventureId={adventure.id}
                               editorialRewrite={
                                 caps.adventure.update
-                                  ? { scope: { type: "adventure", adventureId: adventure.id } }
+                                  ? {
+                                      scope: {
+                                        type: "adventure",
+                                        adventureId: adventure.id,
+                                      },
+                                      plainCharacterCountMax: RICH_TEXT_PLAIN_MAX_CHARS,
+                                    }
                                   : undefined
                               }
                             />

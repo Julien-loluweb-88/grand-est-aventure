@@ -30,11 +30,16 @@ import {
   deleteMilestoneBadge,
 } from "../milestone-badge.action";
 import type { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
+import { MILESTONE_BADGE_TITLE_MAX_CHARS } from "@/lib/dashboard-text-limits";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
 
 const kindSchema = z.enum(["MILESTONE_ADVENTURES", "MILESTONE_KM"]);
 
 const schema = z.object({
-  title: z.string().min(1, "Libellé requis.").max(200),
+  title: z
+    .string()
+    .min(1, "Libellé requis.")
+    .max(MILESTONE_BADGE_TITLE_MAX_CHARS, `${MILESTONE_BADGE_TITLE_MAX_CHARS} caractères maximum`),
   kind: kindSchema,
   threshold: z.coerce.number().int().min(1).max(1_000_000),
   sortOrder: z.coerce.number().int().min(0).max(999_999),
@@ -143,7 +148,18 @@ export function MilestoneBadgeForm({
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor="mb-title">Libellé</FieldLabel>
-              <Input id="mb-title" {...field} placeholder="Ex. 10 aventures terminées" />
+              <Input
+                id="mb-title"
+                {...field}
+                maxLength={MILESTONE_BADGE_TITLE_MAX_CHARS}
+                placeholder="Ex. 10 aventures terminées"
+              />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={field.value?.length ?? 0}
+                  max={MILESTONE_BADGE_TITLE_MAX_CHARS}
+                />
+              </div>
               {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
             </Field>
           )}

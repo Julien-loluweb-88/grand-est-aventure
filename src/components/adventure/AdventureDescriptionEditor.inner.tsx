@@ -57,8 +57,11 @@ import { AdventureImage } from "./adventure-image-extension";
 import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import {
   plainTextToTiptapDoc,
+  tiptapJsonPlainTextLength,
   tiptapJsonToPlainText,
 } from "@/lib/adventure-description-tiptap";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
+import { RICH_TEXT_PLAIN_MAX_CHARS } from "@/lib/dashboard-text-limits";
 
 const TEXT_COLORS: { label: string; value: string }[] = [
   { label: "Par défaut", value: "" },
@@ -596,13 +599,45 @@ export function AdventureDescriptionEditorInner({
   return (
     <div className={cn("space-y-2", className)}>
       {editorialRewrite && !disabled ? (
-        <div className="flex flex-wrap justify-end gap-2">
-          <EditorialRewriteControl
-            scope={editorialRewrite.scope}
-            getSourceText={() => tiptapJsonToPlainText(value)}
-            onApply={(t) => onChange(plainTextToTiptapDoc(t))}
-            disabled={disabled}
-          />
+        <div className="space-y-1">
+          <div className="flex flex-wrap justify-end gap-2">
+            <EditorialRewriteControl
+              scope={editorialRewrite.scope}
+              getSourceText={() => tiptapJsonToPlainText(value)}
+              onApply={(t) => onChange(plainTextToTiptapDoc(t))}
+              disabled={disabled}
+              warnIfPlainLengthExceeds={editorialRewrite.warnIfPlainLengthExceeds}
+              selectionRewrite={{
+              getBoundsAndDraft: () => {
+                const { from, to, empty } = editor.state.selection;
+                if (empty) return null;
+                const draft = editor.state.doc.textBetween(from, to, "\n\n");
+                if (!draft.trim()) return null;
+                return { from, to, draft };
+              },
+              apply: (bounds, plain) => {
+                const blocks = plainTextToTiptapDoc(plain).content ?? [];
+                const chain = editor
+                  .chain()
+                  .focus()
+                  .deleteRange({ from: bounds.from, to: bounds.to });
+                if (blocks.length > 0) {
+                  chain.insertContent(blocks).run();
+                } else {
+                  chain.run();
+                }
+              },
+            }}
+            />
+          </div>
+          <div className="flex justify-end">
+            <FieldCharacterCount
+              length={tiptapJsonPlainTextLength(value)}
+              max={
+                editorialRewrite.plainCharacterCountMax ?? RICH_TEXT_PLAIN_MAX_CHARS
+              }
+            />
+          </div>
         </div>
       ) : null}
       <input

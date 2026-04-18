@@ -2,7 +2,16 @@
 
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
+import {
+  CONTACT_EMAIL_MAX_CHARS,
+  CONTACT_MESSAGE_MAX_CHARS,
+  CONTACT_NAME_MAX_CHARS,
+} from "@/lib/contact-text-limits";
+import { buildBrandEmailHtml, escapeHtmlForBrandEmail } from "@/lib/email-brand-template";
 import { getAppMailTransport } from "@/lib/smtp-transport";
+
+const CONTACT_MAIL_TO =
+  process.env.CONTACT_MAIL_TO?.trim() || "developpement@raonletape.fr";
 
 const CONTACT_WINDOW_MS = 10 * 60_000;
 const CONTACT_MAX_PER_WINDOW = 3;
@@ -12,17 +21,20 @@ const contactSchema = z.object({
     .string()
     .trim()
     .min(2, "Le nom est requis.")
-    .max(120, "Le nom est trop long."),
+    .max(CONTACT_NAME_MAX_CHARS, `Le nom ne peut pas dépasser ${CONTACT_NAME_MAX_CHARS} caractères.`),
   email: z
     .string()
     .trim()
     .email("Adresse e-mail invalide.")
-    .max(254, "Adresse e-mail invalide."),
+    .max(CONTACT_EMAIL_MAX_CHARS, "Adresse e-mail invalide."),
   message: z
     .string()
     .trim()
     .min(10, "Le message est trop court.")
-    .max(4000, "Le message est trop long."),
+    .max(
+      CONTACT_MESSAGE_MAX_CHARS,
+      `Le message ne peut pas dépasser ${CONTACT_MESSAGE_MAX_CHARS} caractères.`
+    ),
 });
 
 export async function contactForm(formData: FormData) {
@@ -52,12 +64,31 @@ export async function contactForm(formData: FormData) {
       return { error: "Service d'envoi indisponible." };
     }
 
+    const text = `Nom: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
+    const html = buildBrandEmailHtml({
+      preheader: `Message de ${name} — formulaire contact`,
+      headline: "Nouveau message (formulaire contact)",
+      blocks: [
+        {
+          type: "highlight",
+          title: "Coordonnées",
+          text: `${name}\n${email}`,
+        },
+        { type: "highlight", title: "Message", text: message },
+        {
+          type: "html",
+          html: `<p style="margin:0;font-size:13px;color:#281401;opacity:0.85;">Répondre à : <a href="mailto:${escapeHtmlForBrandEmail(email)}" style="color:#68a618;font-weight:600;">${escapeHtmlForBrandEmail(email)}</a></p>`,
+        },
+      ],
+    });
+
     await transporter.sendMail({
-      from: `"Contact Form" <${process.env.NODEMAILER_USER}>`,
-      to: "developpement@raonletape.fr",
+      from: `"Contact — Balad'indice" <${process.env.NODEMAILER_USER}>`,
+      to: CONTACT_MAIL_TO,
       replyTo: email,
-      subject: `Nouveau message de ${name}`,
-      text: `Nom: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
+      subject: `[Contact] Message de ${name}`,
+      text,
+      html,
     });
 
     return { success: true };

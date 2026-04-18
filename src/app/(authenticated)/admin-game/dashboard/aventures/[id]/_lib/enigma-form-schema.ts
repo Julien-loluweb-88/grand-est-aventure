@@ -5,17 +5,24 @@ import {
   enigmaAnswerMessageCreateZod,
   enigmaAnswerMessageEditZod,
 } from "@/lib/adventure-description-schema";
+import {
+  ENIGMA_NAME_MAX_CHARS,
+  ENIGMA_QUESTION_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 import { normalizeGameSubmission } from "@/lib/game/normalize-game-submission";
 
 const enigmaSharedFields = {
   name: z
     .string()
     .min(2, "Le nom doit contenir au moins 2 caractères")
-    .max(30, "Le nom ne doit pas dépasser 30 caractères"),
+    .max(ENIGMA_NAME_MAX_CHARS, `Le nom ne doit pas dépasser ${ENIGMA_NAME_MAX_CHARS} caractères.`),
   question: z
     .string()
     .min(10, "La question doit comporter au moins 10 caractères")
-    .max(250, "La question ne doit pas dépasser 250 caractères"),
+    .max(
+      ENIGMA_QUESTION_MAX_CHARS,
+      `La question ne doit pas dépasser ${ENIGMA_QUESTION_MAX_CHARS} caractères.`
+    ),
   uniqueResponse: z.boolean().optional(),
   /** Plusieurs réponses correctes (QCM cases à cocher côté joueur). */
   multiSelect: z.boolean().optional(),

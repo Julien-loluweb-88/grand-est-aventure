@@ -15,6 +15,10 @@ import {
   bridgeSetUserPassword,
   bridgeUnbanUser,
 } from "@/lib/better-auth-admin-bridge";
+import {
+  queueUserBannedEmail,
+  queueUserUnbannedEmail,
+} from "@/lib/user-lifecycle-emails";
 import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import {
   requireRoutePermission,
@@ -61,6 +65,23 @@ export async function banUser(
     banReason: motif,
     ...(banExpiresIn && { banExpiresIn }),
   });
+  const afterBan = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      email: true,
+      name: true,
+      banReason: true,
+      banExpires: true,
+    },
+  });
+  if (afterBan?.email) {
+    queueUserBannedEmail({
+      to: afterBan.email,
+      displayName: afterBan.name?.trim() ?? "",
+      reason: afterBan.banReason ?? motif,
+      banExpires: afterBan.banExpires,
+    });
+  }
   revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`);
   revalidatePath("/admin-game/dashboard/utilisateurs");
 }
@@ -68,7 +89,18 @@ export async function banUser(
 export async function unBanUser(userId: string) {
   await requireUserPermission("ban");
 
+  const before = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, name: true },
+  });
+
   await bridgeUnbanUser({ userId });
+  if (before?.email) {
+    queueUserUnbannedEmail({
+      to: before.email,
+      displayName: before.name?.trim() ?? "",
+    });
+  }
   revalidatePath(`/admin-game/dashboard/utilisateurs/${userId}`);
   revalidatePath("/admin-game/dashboard/utilisateurs");
 }

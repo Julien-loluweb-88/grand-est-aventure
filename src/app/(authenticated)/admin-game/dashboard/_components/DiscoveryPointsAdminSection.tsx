@@ -11,6 +11,7 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
+import { FieldCharacterCount } from "@/components/ui/field-character-count";
 import {
   Table,
   TableBody,
@@ -31,6 +32,10 @@ import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteCont
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import { useAdminCapabilities } from "../AdminCapabilitiesProvider";
 import type { DiscoveryPointAdminRow } from "../_lib/discovery-point-admin-queries";
+import {
+  DISCOVERY_POINT_TEASER_MAX_CHARS,
+  DISCOVERY_POINT_TITLE_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 import {
   createDiscoveryPoint,
   updateDiscoveryPoint,
@@ -286,6 +291,10 @@ export function DiscoveryPointsAdminSection({
                     onApply={(t) => setForm((f) => ({ ...f, title: t }))}
                     disabled={!canEdit}
                     dialogTitle="Reformuler le titre"
+                    warnIfPlainLengthExceeds={{
+                      max: DISCOVERY_POINT_TITLE_MAX_CHARS,
+                      label: "Le titre",
+                    }}
                   />
                 ) : null}
               </div>
@@ -295,6 +304,12 @@ export function DiscoveryPointsAdminSection({
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
                 disabled={!canEdit}
               />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={form.title.length}
+                  max={DISCOVERY_POINT_TITLE_MAX_CHARS}
+                />
+              </div>
             </Field>
             <Field>
               <div className="flex flex-wrap items-center justify-between gap-2">
@@ -306,6 +321,10 @@ export function DiscoveryPointsAdminSection({
                     onApply={(t) => setForm((f) => ({ ...f, teaser: t }))}
                     disabled={!canEdit}
                     dialogTitle="Reformuler l’accroche"
+                    warnIfPlainLengthExceeds={{
+                      max: DISCOVERY_POINT_TEASER_MAX_CHARS,
+                      label: "L’accroche",
+                    }}
                   />
                 ) : null}
               </div>
@@ -316,6 +335,12 @@ export function DiscoveryPointsAdminSection({
                 disabled={!canEdit}
                 placeholder="Ex. Monte voir la vue sur…"
               />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={form.teaser.length}
+                  max={DISCOVERY_POINT_TEASER_MAX_CHARS}
+                />
+              </div>
             </Field>
             <Field className="max-w-3xl">
               <FieldLabel>Position sur la carte</FieldLabel>

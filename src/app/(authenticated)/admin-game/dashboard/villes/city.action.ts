@@ -5,6 +5,13 @@ import { prisma } from "@/lib/prisma";
 import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import { getManagedAdventureIds, isSuperadmin } from "@/lib/admin-access";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
+import {
+  CITY_COORDINATE_STRING_MAX_CHARS,
+  CITY_INSEE_CODE_MAX_CHARS,
+  CITY_NAME_MAX_CHARS,
+  CITY_POPULATION_STRING_MAX_CHARS,
+  CITY_POSTAL_CODES_RAW_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 
 export type CityFormInput = {
   name: string;
@@ -104,6 +111,28 @@ function normalizeInsee(raw: string): string | null {
   return t;
 }
 
+function validateCityFieldLengths(form: CityFormInput): string | null {
+  if (form.name.trim().length > CITY_NAME_MAX_CHARS) {
+    return `Le nom ne peut pas dépasser ${CITY_NAME_MAX_CHARS} caractères.`;
+  }
+  if ((form.inseeCode ?? "").length > CITY_INSEE_CODE_MAX_CHARS) {
+    return "Code INSEE : au plus 5 caractères.";
+  }
+  if ((form.postalCodesRaw ?? "").length > CITY_POSTAL_CODES_RAW_MAX_CHARS) {
+    return `Les codes postaux (texte brut) ne peuvent pas dépasser ${CITY_POSTAL_CODES_RAW_MAX_CHARS} caractères.`;
+  }
+  if ((form.latitude ?? "").length > CITY_COORDINATE_STRING_MAX_CHARS) {
+    return "Latitude : trop long.";
+  }
+  if ((form.longitude ?? "").length > CITY_COORDINATE_STRING_MAX_CHARS) {
+    return "Longitude : trop long.";
+  }
+  if ((form.population ?? "").length > CITY_POPULATION_STRING_MAX_CHARS) {
+    return "Population : trop long.";
+  }
+  return null;
+}
+
 export async function createCity(
   form: CityFormInput
 ): Promise<{ success: true; id: string } | { success: false; error: string }> {
@@ -116,6 +145,10 @@ export async function createCity(
   const name = form.name.trim();
   if (name.length < 2) {
     return { success: false, error: "Le nom doit contenir au moins 2 caractères." };
+  }
+  const lengthErr = validateCityFieldLengths(form);
+  if (lengthErr) {
+    return { success: false, error: lengthErr };
   }
 
   try {
@@ -173,6 +206,10 @@ export async function updateCity(
   const name = form.name.trim();
   if (name.length < 2) {
     return { success: false, error: "Le nom doit contenir au moins 2 caractères." };
+  }
+  const lengthErr = validateCityFieldLengths(form);
+  if (lengthErr) {
+    return { success: false, error: lengthErr };
   }
 
   try {

@@ -7,19 +7,27 @@ function logMailError(err: unknown) {
   console.error("[mail] envoi transactionnel:", err);
 }
 
+export type TransactionalEmailParams = {
+  /** Un ou plusieurs destinataires (un envoi séparé par adresse, pas de fuite d’adresses en copie). */
+  to: string | string[];
+  subject: string;
+  text: string;
+  html: string;
+  replyTo?: string;
+};
+
 /**
  * Envoie l’e-mail sans bloquer la réponse HTTP (recommandation Better Auth contre les fuites de timing).
  * Sous App Router, la promesse est enregistrée via `after` (équivalent pratique à `waitUntil` serverless :
  * la plateforme garde la fonction vivante jusqu’à la fin de l’envoi). Hors contexte requête (tests, scripts),
  * repli sur fire-and-forget.
  */
-export function queueTransactionalEmail(params: {
-  to: string;
-  subject: string;
-  text: string;
-  html: string;
-}): void {
-  const delivery = sendTransactionalEmail(params).catch(logMailError);
+export function queueTransactionalEmail(params: TransactionalEmailParams): void {
+  const { to, ...rest } = params;
+  const recipients = Array.isArray(to) ? to : [to];
+  const delivery = Promise.all(
+    recipients.map((addr) => sendTransactionalEmail({ ...rest, to: addr }))
+  ).catch(logMailError);
   try {
     after(delivery);
   } catch {
@@ -33,6 +41,7 @@ export async function sendTransactionalEmail(params: {
   subject: string;
   text: string;
   html: string;
+  replyTo?: string;
 }): Promise<void> {
   const transporter = getAppMailTransport();
   if (!transporter) {
@@ -50,5 +59,6 @@ export async function sendTransactionalEmail(params: {
     subject: params.subject,
     text: params.text,
     html: params.html,
+    ...(params.replyTo ? { replyTo: params.replyTo } : {}),
   });
 }

@@ -5,6 +5,7 @@ import { admin as adminPlugin } from "better-auth/plugins";
 import { i18n } from "@better-auth/i18n";
 import { ac, admin, user, myCustomRole, superadmin, merchant } from "@/lib/permissions";
 import { nextCookies } from "better-auth/next-js";
+import { buildBrandEmailHtml } from "@/lib/email-brand-template";
 import { prisma } from "@/lib/prisma";
 import { queueTransactionalEmail } from "@/lib/send-transactional-email";
 import { betterAuthFrMessages } from "@/lib/better-auth-i18n-fr";
@@ -15,14 +16,6 @@ import {
   DEFAULT_MIN_PASSWORD_LENGTH,
   RESET_PASSWORD_TOKEN_EXPIRES_IN_SEC,
 } from "@/lib/better-auth-shared-constants";
-
-function escapeHtmlForEmail(text: string) {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
@@ -93,12 +86,27 @@ export const auth = betterAuth({
     changeEmail: {
       enabled: true,
       sendChangeEmailConfirmation: async ({ user: u, newEmail, url }) => {
-        const safeNew = escapeHtmlForEmail(newEmail);
         queueTransactionalEmail({
           to: u.email,
           subject: "Confirmez le changement d’adresse e-mail",
           text: `Bonjour,\n\nUne demande a été faite pour utiliser cette nouvelle adresse sur votre compte : ${newEmail}\n\nSi c’est bien vous, ouvrez ce lien depuis la boîte de l’adresse actuelle (${u.email}) :\n${url}\n\nSans confirmation, l’adresse ne sera pas modifiée.`,
-          html: `<p>Bonjour,</p><p>Une demande a été faite pour utiliser cette nouvelle adresse : <strong>${safeNew}</strong>.</p><p>Si c’est bien vous, <a href="${url}">confirmez le changement</a> (e-mail actuel : ${escapeHtmlForEmail(u.email)}).</p><p>Sans action de votre part, l’adresse ne sera pas modifiée.</p>`,
+          html: buildBrandEmailHtml({
+            preheader: "Validez votre nouvelle adresse e-mail sur Balad'indice.",
+            headline: "Changement d’adresse e-mail",
+            blocks: [
+              {
+                type: "p",
+                text: "Une demande a été faite pour associer une nouvelle adresse à votre compte Balad'indice.",
+              },
+              { type: "highlight", title: "Nouvelle adresse demandée", text: newEmail },
+              { type: "highlight", title: "Adresse actuelle du compte", text: u.email },
+              { type: "cta", label: "Confirmer le changement", href: url },
+              {
+                type: "p",
+                text: "Sans confirmation depuis cette boîte, votre adresse ne sera pas modifiée.",
+              },
+            ],
+          }),
         });
       },
     },
@@ -119,7 +127,25 @@ export const auth = betterAuth({
         to: u.email,
         subject: "Confirmez votre adresse e-mail",
         text: `Bonjour${u.name ? ` ${u.name}` : ""},\n\nPour activer votre compte, ouvrez ce lien :\n${url}\n\nLe lien expire après un délai limité. Si vous n’êtes pas à l’origine de cette inscription, ignorez ce message.`,
-        html: `<p>Bonjour${u.name ? ` ${escapeHtmlForEmail(u.name)}` : ""},</p><p>Pour activer votre compte, <a href="${url}">confirmez votre adresse e-mail</a>.</p><p>Le lien expire après un délai limité. Si vous n’êtes pas à l’origine de cette inscription, ignorez ce message.</p>`,
+        html: buildBrandEmailHtml({
+          preheader: "Activez votre compte Balad'indice.",
+          headline: "Bienvenue — confirmez votre e-mail",
+          blocks: [
+            {
+              type: "p",
+              text: u.name?.trim() ? `Bonjour ${u.name.trim()},` : "Bonjour,",
+            },
+            {
+              type: "p",
+              text: "Pour activer votre compte et rejoindre les parcours, confirmez votre adresse e-mail.",
+            },
+            { type: "cta", label: "Confirmer mon adresse e-mail", href: url },
+            {
+              type: "p",
+              text: "Le lien expire après un délai limité. Si vous n’êtes pas à l’origine de cette inscription, ignorez ce message.",
+            },
+          ],
+        }),
       });
     },
   },
@@ -140,15 +166,44 @@ export const auth = betterAuth({
         to: u.email,
         subject: "Tentative d’inscription sur Balad'indice",
         text: `Bonjour,\n\nUne tentative d’inscription a été effectuée avec votre adresse e-mail. Si c’était vous, connectez-vous ou utilisez « mot de passe oublié ». Sinon, vous pouvez ignorer ce message.`,
-        html: `<p>Bonjour,</p><p>Une tentative d’inscription a été effectuée avec votre adresse e-mail. Si c’était vous, connectez-vous ou utilisez la réinitialisation du mot de passe. Sinon, vous pouvez ignorer ce message.</p>`,
+        html: buildBrandEmailHtml({
+          preheader: "Cette adresse e-mail a déjà un compte.",
+          headline: "Déjà inscrit ?",
+          blocks: [
+            {
+              type: "p",
+              text: "Une tentative d’inscription a été effectuée avec votre adresse e-mail.",
+            },
+            {
+              type: "highlight",
+              title: "Que faire ?",
+              text: "Si c’était vous : connectez-vous, ou utilisez « mot de passe oublié » sur l’écran de connexion. Sinon, ignorez ce message.",
+            },
+          ],
+        }),
       });
     },
-    sendResetPassword: async ({ user: u, url }) => {
+    sendResetPassword: async ({ user, url }) => {
       queueTransactionalEmail({
-        to: u.email,
+        to: user.email,
         subject: "Réinitialisation de votre mot de passe",
         text: `Bonjour,\n\nPour choisir un nouveau mot de passe, ouvrez ce lien :\n${url}\n\nSi vous n’êtes pas à l’origine de cette demande, ignorez ce message.`,
-        html: `<p>Bonjour,</p><p>Pour choisir un nouveau mot de passe, <a href="${url}">cliquez sur ce lien</a>.</p><p>Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.</p>`,
+        html: buildBrandEmailHtml({
+          preheader: "Réinitialisez votre mot de passe Balad'indice.",
+          headline: "Mot de passe oublié",
+          blocks: [
+            { type: "p", text: "Bonjour," },
+            {
+              type: "p",
+              text: "Vous avez demandé un lien pour choisir un nouveau mot de passe. Utilisez le bouton ci-dessous — il est valable pour une durée limitée.",
+            },
+            { type: "cta", label: "Définir un nouveau mot de passe", href: url },
+            {
+              type: "p",
+              text: "Si vous n’êtes pas à l’origine de cette demande, vous pouvez ignorer ce message en toute sécurité.",
+            },
+          ],
+        }),
       });
     },
     onPasswordReset: async () => {},

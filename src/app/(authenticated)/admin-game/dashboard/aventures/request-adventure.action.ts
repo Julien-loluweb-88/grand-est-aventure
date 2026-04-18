@@ -10,6 +10,13 @@ import {
 import { isSuperadmin } from "@/lib/admin-access";
 import { AdminRequestStatus } from "@/lib/badges/prisma-enums";
 import { notifySuperadminsNewAdventureRequest } from "@/lib/notify-superadmins-adventure-request";
+import { queueAdminRequestClosedEmail } from "@/lib/user-lifecycle-emails";
+import {
+  ADMIN_REQUEST_TYPE_DESCRIPTION_MAX_CHARS,
+  ADMIN_REQUEST_TYPE_KEY_MAX_CHARS,
+  ADMIN_REQUEST_TYPE_LABEL_MAX_CHARS,
+  ADVENTURE_REQUEST_MESSAGE_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 
 const ADVENTURE_CREATION_KEY = "adventure_creation";
 const DEFAULT_REQUEST_TYPES = [
@@ -62,8 +69,11 @@ export async function submitAdventureCreationRequest(message: string) {
   await ensureDefaultAdminRequestTypes(user.id);
 
   const trimmed = message.trim();
-  if (trimmed.length > 2000) {
-    return { success: false as const, error: "Message trop long (2000 caractères maximum)." };
+  if (trimmed.length > ADVENTURE_REQUEST_MESSAGE_MAX_CHARS) {
+    return {
+      success: false as const,
+      error: `Message trop long (${ADVENTURE_REQUEST_MESSAGE_MAX_CHARS} caractères maximum).`,
+    };
   }
 
   const requestType = await prisma.adminRequestType.findUnique({
@@ -188,18 +198,25 @@ export async function createAdminRequestType(input: {
     .replace(/[^a-z0-9_]+/g, "_")
     .replace(/^_+|_+$/g, "");
   const label = input.label.trim();
-  const description = input.description?.trim() || null;
+  const descriptionRaw = input.description?.trim() ?? "";
+  const description = descriptionRaw.length > 0 ? descriptionRaw : null;
 
-  if (key.length < 3 || key.length > 64) {
+  if (key.length < 3 || key.length > ADMIN_REQUEST_TYPE_KEY_MAX_CHARS) {
     return {
       success: false as const,
-      error: "La key doit contenir entre 3 et 64 caractères (a-z, 0-9, _).",
+      error: `La key doit contenir entre 3 et ${ADMIN_REQUEST_TYPE_KEY_MAX_CHARS} caractères (a-z, 0-9, _).`,
     };
   }
-  if (label.length < 3 || label.length > 120) {
+  if (label.length < 3 || label.length > ADMIN_REQUEST_TYPE_LABEL_MAX_CHARS) {
     return {
       success: false as const,
-      error: "Le libellé doit contenir entre 3 et 120 caractères.",
+      error: `Le libellé doit contenir entre 3 et ${ADMIN_REQUEST_TYPE_LABEL_MAX_CHARS} caractères.`,
+    };
+  }
+  if (description && description.length > ADMIN_REQUEST_TYPE_DESCRIPTION_MAX_CHARS) {
+    return {
+      success: false as const,
+      error: `La description ne peut pas dépasser ${ADMIN_REQUEST_TYPE_DESCRIPTION_MAX_CHARS} caractères.`,
     };
   }
 
@@ -235,7 +252,11 @@ export async function markAdminRequestClosed(id: string) {
 
   const existing = await prisma.adminRequest.findFirst({
     where: { id, status: AdminRequestStatus.PENDING },
-    select: { id: true, requestType: { select: { key: true } } },
+    select: {
+      id: true,
+      requestType: { select: { key: true, label: true } },
+      requester: { select: { email: true, name: true } },
+    },
   });
   if (!existing) {
     return { success: false as const, error: "Demande introuvable ou déjà traitée." };
@@ -249,6 +270,15 @@ export async function markAdminRequestClosed(id: string) {
       closedByUserId: actor.id,
     },
   });
+
+  if (existing.requester.email) {
+    queueAdminRequestClosedEmail({
+      to: existing.requester.email,
+      displayName: existing.requester.name?.trim() ?? "",
+      requestLabel: existing.requestType.label,
+      requestId: id,
+    });
+  }
 
   await prisma.adminAuditLog.create({
     data: {
