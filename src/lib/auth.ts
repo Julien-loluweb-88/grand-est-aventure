@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { expo } from "@better-auth/expo";
 import { admin as adminPlugin } from "better-auth/plugins";
@@ -8,6 +9,7 @@ import { nextCookies } from "better-auth/next-js";
 import { buildBrandEmailHtml } from "@/lib/email-brand-template";
 import { prisma } from "@/lib/prisma";
 import { queueTransactionalEmail } from "@/lib/send-transactional-email";
+import { queueOAuthWelcomeEmail } from "@/lib/user-lifecycle-emails";
 import { betterAuthFrMessages } from "@/lib/better-auth-i18n-fr";
 import { getExpoTrustedOrigins } from "@/lib/better-auth-expo-trusted-origins";
 import {
@@ -31,6 +33,15 @@ const discordOAuthEnabled = Boolean(discordClientId && discordClientSecret);
 
 /** Doc Better Auth : URL de base pour les callbacks OAuth (évite redirect_uri_mismatch). */
 const betterAuthBaseUrl = process.env.BETTER_AUTH_URL?.trim();
+
+/** Fenêtre pour considérer un utilisateur comme « tout juste créé » après callback OAuth. */
+const OAUTH_NEW_USER_MAX_AGE_MS = 5 * 60_000;
+
+const OAUTH_PROVIDER_LABELS: Record<string, string> = {
+  google: "Google",
+  facebook: "Facebook",
+  discord: "Discord",
+};
 
 const socialProviders = {
   ...(googleOAuthEnabled
@@ -82,6 +93,37 @@ export const auth = betterAuth({
       }
     : {}),
   ...(Object.keys(socialProviders).length > 0 ? { socialProviders } : {}),
+  hooks: {
+    after: createAuthMiddleware(async (ctx) => {
+      const path = ctx.path ?? "";
+      if (!path.includes("/callback/")) return;
+      const newSession = ctx.context.newSession as
+        | { user?: { id?: string; email?: string | null; name?: string | null } }
+        | undefined;
+      const userId = newSession?.user?.id;
+      if (!userId) return;
+
+      const dbUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { createdAt: true, email: true, name: true },
+      });
+      if (!dbUser?.email) return;
+
+      const ageMs = Date.now() - dbUser.createdAt.getTime();
+      if (ageMs < 0 || ageMs > OAUTH_NEW_USER_MAX_AGE_MS) return;
+
+      const providerMatch = path.match(/(?:^|\/)callback\/([^/?]+)/);
+      const providerId = providerMatch?.[1]?.toLowerCase() ?? "";
+      const providerLabel =
+        OAUTH_PROVIDER_LABELS[providerId] ?? (providerId ? providerId : "un fournisseur");
+
+      queueOAuthWelcomeEmail({
+        to: dbUser.email,
+        displayName: dbUser.name?.trim() ?? "",
+        providerLabel,
+      });
+    }),
+  },
   user: {
     changeEmail: {
       enabled: true,

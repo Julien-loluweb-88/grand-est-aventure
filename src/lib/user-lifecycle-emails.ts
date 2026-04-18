@@ -217,3 +217,56 @@ ${origin ? `Détail : ${listUrl}` : "Connectez-vous au tableau de bord pour cons
     html,
   });
 }
+
+/**
+ * Bienvenue après première connexion OAuth (Google, etc.) : Better Auth n’envoie pas le mail de vérif
+ * quand le fournisseur marque l’e-mail comme déjà vérifié — d’où ce message complémentaire.
+ */
+export function queueOAuthWelcomeEmail(params: {
+  to: string;
+  displayName: string;
+  providerLabel: string;
+}): void {
+  const origin = getPublicAppOrigin();
+  const greet = params.displayName
+    ? `Bonjour ${params.displayName},`
+    : "Bonjour,";
+  const text = `${greet}
+
+Votre compte Balad'indice vient d’être créé avec ${params.providerLabel}.
+
+${origin ? `Vous pouvez ouvrir l’application ou le site : ${origin}` : "Vous pouvez ouvrir l’application Balad'indice."}
+
+— L’équipe Balad'indice`;
+
+  const blocks: BrandEmailBlock[] = [
+    {
+      type: "html",
+      html: `<p style="margin:0 0 16px;color:#281401;font-size:16px;line-height:1.55;">${escapeHtmlForBrandEmail(greet)}</p>`,
+    },
+    {
+      type: "html",
+      html: `<p style="margin:0 0 16px;color:#281401;font-size:16px;line-height:1.55;">Votre compte <strong>Balad'indice</strong> est prêt. Vous vous êtes inscrit avec <strong>${escapeHtmlForBrandEmail(params.providerLabel)}</strong>.</p>`,
+    },
+    {
+      type: "p",
+      text: "Vous pouvez explorer les parcours et suivre les indices depuis l’app mobile.",
+    },
+  ];
+  if (origin) {
+    blocks.push({ type: "cta", label: "Ouvrir le site", href: origin });
+  }
+
+  const html = buildBrandEmailHtml({
+    preheader: `Compte créé avec ${params.providerLabel}.`,
+    headline: "Bienvenue sur Balad'indice",
+    blocks,
+  });
+
+  queueTransactionalEmail({
+    to: params.to,
+    subject: `[Balad'indice] Bienvenue — compte ${params.providerLabel}`,
+    text,
+    html,
+  });
+}
