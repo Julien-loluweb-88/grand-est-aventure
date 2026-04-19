@@ -290,6 +290,15 @@ function PublicFooter() {
             </span>
             &copy; {new Date().getFullYear()} — Tous droits réservés
           </p>
+          <p className="mt-3">
+            <Link
+              href="/admin-game"
+              className="text-[0.65rem] font-normal tracking-wide text-[#281401]/30 underline-offset-4 transition-colors hover:text-[#281401]/55 hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#68a618]/40 focus-visible:ring-offset-2"
+              title="Connexion administration"
+            >
+              Espace équipe
+            </Link>
+          </p>
         </div>
       </div>
     </footer>
