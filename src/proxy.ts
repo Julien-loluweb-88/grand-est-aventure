@@ -146,6 +146,26 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Avatars compagnons (liste = adventure.read, création / édition = adventure.update)
+  if (pathname.startsWith("/admin-game/dashboard/avatars")) {
+    if (pathname.startsWith("/admin-game/dashboard/avatars/create")) {
+      if (!roleHasRoutePermission(role, "adventure", "update")) {
+        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+      }
+      return NextResponse.next();
+    }
+    if (/^\/admin-game\/dashboard\/avatars\/[^/]+$/.test(pathname)) {
+      if (!roleHasRoutePermission(role, "adventure", "update")) {
+        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+      }
+      return NextResponse.next();
+    }
+    if (!roleHasRoutePermission(role, "adventure", "read")) {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
+
   // Superadmin : boîte de réception des demandes admin (tous types)
   if (pathname.startsWith("/admin-game/dashboard/demandes")) {
     if (role !== "superadmin") {

@@ -115,3 +115,8 @@ export async function gateMilestoneBadgeImageUpload(): Promise<
   }
   return { ok: true, actor };
 }
+
+/** Téléversement vignette / modèle 3D pour les avatars compagnons (dashboard). */
+export async function gateAvatarAssetsUpload(): Promise<AdventureGateOk | AdventureGateFail> {
+  return gateMilestoneBadgeImageUpload();
+}

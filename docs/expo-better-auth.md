@@ -37,8 +37,8 @@ Le plugin Expo côté app :
 Pour tes **routes API métier** (jeu, profil, etc.), la doc Expo Better Auth recommande de passer le header **`Cookie`** obtenu via `authClient.getCookie()` sur tes `fetch`, avec `credentials: "omit"` pour éviter les conflits.
 
 **Routes jeu (parcours)** — même session (cookies) :  
-`POST /api/game/start-adventure`, `validate-enigma`, `validate-finish`, `validate-treasure`, `claim-discovery`, etc.  
-Détail des corps, codes d’erreur et ordre d’appel : **`README.md`** (section *Parcours joueur* + *Checklist intégration mobile*) et **`GET /api/openapi`** (spec OpenAPI).
+`POST /api/game/start-adventure`, `validate-enigma`, `validate-finish`, `validate-treasure`, `GET/POST …/adventure-partner-lots` (état, `spin`, `redeem`), `claim-discovery`, etc.  
+Détail des corps, codes d’erreur et ordre d’appel : **`README.md`** (section *Parcours joueur* + *Checklist intégration mobile*), **`docs/integration-app-mobile-checklist.md`** (phases détaillées) et **`GET /api/openapi`** (spec OpenAPI).
 
 ---
 

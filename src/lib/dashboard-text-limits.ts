@@ -30,6 +30,9 @@ export const ADVERTISEMENT_PARTNER_BADGE_TITLE_MAX_CHARS = 200;
 /** Badge palier global (admin). */
 export const MILESTONE_BADGE_TITLE_MAX_CHARS = 200;
 
+/** Règlement roue partenaires (aventure ou ville) : texte libre. */
+export const PARTNER_WHEEL_TERMS_MAX_CHARS = 50_000;
+
 /** Ville (admin). */
 export const CITY_NAME_MAX_CHARS = 120;
 export const CITY_INSEE_CODE_MAX_CHARS = 5;

@@ -47,7 +47,8 @@ export type RoutePermissionResource = "adventure" | "user" | "session";
  *
  * Le fichier `proxy.ts` applique en plus une **liste blanche** des chemins dashboard : toute nouvelle
  * section sous `/admin-game/dashboard/` doit y être autorisée (préfixe dédié + rôles, ou page d’accueil /
- * `acces-refuse` / `parametres`). Ex. : `demandes`, `journal-admin` (superadmin).
+ * `acces-refuse` / `parametres`). Ex. : `demandes`, `journal-admin` (superadmin), `avatars` (même matrice
+ * que villes / badges-globaux : `adventure.read` / `update`).
  */
 export const routePermissionsByRole = {
   admin: {

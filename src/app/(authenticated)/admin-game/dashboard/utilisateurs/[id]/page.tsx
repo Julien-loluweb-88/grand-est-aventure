@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import {
   getAdminAdventureRights,
   getUserById,
+  getUserSelectedAvatarForAdmin,
   getUserSessionsForAdminPage,
 } from "./_lib/user-queries";
 import { AddressEditForm } from "./_components/AddressEditForm";
@@ -13,6 +14,7 @@ import { RemoveUserForm } from "./_components/RemoveUser";
 import { AdminAdventureRightsForm } from "./_components/AdminAdventureRightsForm";
 import { SetUserPasswordForm } from "./_components/SetUserPasswordForm";
 import { UserSessionsPanel } from "./_components/UserSessionsPanel";
+import { UserGameAvatarCard } from "./_components/UserGameAvatarCard";
 import { ImpersonateUserButton } from "./_components/ImpersonateUserButton";
 import {
   Card,
@@ -42,9 +44,10 @@ export default async function UserPage({
 
   const displayName = user.name ?? user.email ?? "cet utilisateur";
   const canManageAdminScopes = currentUser?.role === "superadmin" && user.role === "admin";
-  const [rightsData, sessionRows] = await Promise.all([
+  const [rightsData, sessionRows, avatarPref] = await Promise.all([
     canManageAdminScopes ? getAdminAdventureRights(user.id) : Promise.resolve(null),
     getUserSessionsForAdminPage(user.id),
+    getUserSelectedAvatarForAdmin(user.id),
   ]);
 
   return (
@@ -67,15 +70,18 @@ export default async function UserPage({
       </Card>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_auto] lg:gap-8">
-        <Card className="h-fit">
-          <CardHeader>
-            <CardTitle>Adresse & contact</CardTitle>
-            <CardDescription>Adresse postale et numéro de téléphone</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <AddressEditForm user={user as User} />
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          {avatarPref && <UserGameAvatarCard data={avatarPref} />}
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle>Adresse & contact</CardTitle>
+              <CardDescription>Adresse postale et numéro de téléphone</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AddressEditForm user={user as User} />
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="flex flex-col gap-4">
           <Card>

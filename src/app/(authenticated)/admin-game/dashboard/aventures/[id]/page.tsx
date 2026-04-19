@@ -35,6 +35,11 @@ import { DiscoveryPointsAdminSection } from "../../_components/DiscoveryPointsAd
 import { AdventureAudience } from "../../../../../../../generated/prisma/client";
 import { listAdventureDemoAccess } from "./_lib/demo-access.action";
 import { AdventureDemoAccessCard } from "./_components/AdventureDemoAccessCard";
+import {
+  getPartnerWheelStatsForAdventureAdmin,
+  listPartnerLotsForAdventureAdmin,
+} from "./_lib/partner-lots-queries";
+import { AdventureAdminPartnerLotsSection } from "./_components/AdventureAdminPartnerLotsSection";
 
 export default async function AdventurePage({
   params,
@@ -113,6 +118,27 @@ export default async function AdventurePage({
       ? await listAdventureDemoAccess(id)
       : null;
 
+  const partnerLotRows = await listPartnerLotsForAdventureAdmin(id);
+  const partnerWheelStats =
+    (await getPartnerWheelStatsForAdventureAdmin(id)) ?? { spinsTotal: 0, rows: [] };
+  const partnerLotsClient =
+    partnerLotRows?.map((r) => ({
+      id: r.id,
+      partnerName: r.partnerName,
+      title: r.title,
+      description: r.description,
+      redemptionHint: r.redemptionHint,
+      weight: r.weight,
+      quantityRemaining: r.quantityRemaining,
+      active: r.active,
+      validFrom: r.validFrom ? r.validFrom.toISOString() : null,
+      validUntil: r.validUntil ? r.validUntil.toISOString() : null,
+      adventureId: r.adventureId,
+      cityId: r.cityId,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    })) ?? [];
+
   return (
     <div className="space-y-8 p-4 md:p-6">
       <Link
@@ -174,6 +200,14 @@ export default async function AdventurePage({
             treasurePayload={treasurePayload}
             mapReferenceMarkers={mapReferenceMarkersNoTreasure}
             routePolyline={routePolyline}
+          />
+          <AdventureAdminPartnerLotsSection
+            adventureId={adventure.id}
+            cityId={adventure.cityId}
+            cityName={adventure.city.name}
+            initialLots={partnerLotsClient}
+            initialWheelTerms={adventure.partnerWheelTerms ?? null}
+            initialStats={partnerWheelStats}
           />
           {adventureDiscoveryPoints !== null ? (
             <DiscoveryPointsAdminSection

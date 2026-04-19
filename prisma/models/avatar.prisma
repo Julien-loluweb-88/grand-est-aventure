@@ -1,0 +1,19 @@
+// Avatars 3D « compagnons » : métadonnées en base ; vignette / .glb optionnels via admin (`uploads/avatars/{id}/`).
+
+model Avatar {
+  id           String   @id @default(cuid())
+  /// Clé stable côté app (ex. fichier `assets/avatars/{slug}.glb`).
+  slug         String   @unique
+  name         String
+  thumbnailUrl String?
+  /// Modèle 3D servi depuis `/uploads/avatars/{id}/…` (téléversement admin) ; l’app peut retomber sur le bundle via `slug` si absent.
+  modelUrl     String?
+  sortOrder    Int      @default(0)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  usersWithThisAvatarSelected User[]
+
+  @@map("avatar")
+}

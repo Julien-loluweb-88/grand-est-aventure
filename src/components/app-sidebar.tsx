@@ -28,6 +28,7 @@ import {
   TrophyIcon,
   HouseIcon,
   StorefrontIcon,
+  UserCircleIcon,
 } from "@phosphor-icons/react"
 import { BrandMark } from "@/components/brand-mark"
 
@@ -180,6 +181,30 @@ function buildNavMain(caps: AdminSessionCapabilities) {
           disabled: !caps.adventure.update,
           disabledReason: !caps.adventure.update
             ? "Vous ne pouvez pas gérer les villes."
+            : DEFAULT_DENY_MESSAGE,
+        },
+      ],
+    },
+    {
+      title: "Avatars",
+      url: "/admin-game/dashboard/avatars",
+      icon: <UserCircleIcon />,
+      isActive: false,
+      items: [
+        {
+          title: "Liste",
+          url: "/admin-game/dashboard/avatars",
+          disabled: !caps.adventure.read,
+          disabledReason: !caps.adventure.read
+            ? "Vous ne pouvez pas consulter les avatars."
+            : undefined,
+        },
+        {
+          title: "Nouvel avatar",
+          url: "/admin-game/dashboard/avatars/create",
+          disabled: !caps.adventure.update,
+          disabledReason: !caps.adventure.update
+            ? "Vous ne pouvez pas gérer les avatars."
             : DEFAULT_DENY_MESSAGE,
         },
       ],

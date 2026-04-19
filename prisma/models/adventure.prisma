@@ -32,6 +32,8 @@ model Adventure {
   physicalBadgeStockCount Int @default(0)
   /// Aventure visible par tous les joueurs (`PUBLIC`) ou réservée démo (`DEMO`).
   audience         AdventureAudience      @default(PUBLIC)
+  /// Règlement / mentions légales roue partenaires (texte brut ou markdown) ; affiché aux joueurs si renseigné.
+  partnerWheelTerms String?
   enigmas          Enigma[]
   status           Boolean?               @default(true)
   creatorId        String
@@ -49,6 +51,8 @@ model Adventure {
   discoveryPoints     DiscoveryPoint[]
   demoAccesses        AdventureDemoAccess[]
   playSessions        UserAdventurePlaySession[]
+  partnerLots         AdventurePartnerLot[]
+  partnerLotWins      UserAdventurePartnerLotWin[]
 
   @@index([cityId])
 }

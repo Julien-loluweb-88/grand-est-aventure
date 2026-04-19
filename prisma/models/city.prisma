@@ -9,11 +9,14 @@ model City {
   latitude             Float?
   longitude            Float?
   population           Int?
+  /// Règlement roue partenaires pour les lots « toute la ville » (repli si l’aventure n’a pas de texte dédié).
+  partnerWheelTerms    String?
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
   adventures           Adventure[]
   advertisementTargets Advertisement[] @relation("AdvertisementTargetCities")
   discoveryPoints      DiscoveryPoint[]
+  adventurePartnerLots AdventurePartnerLot[]
 
   @@index([name])
 }

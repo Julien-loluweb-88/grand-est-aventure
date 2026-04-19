@@ -11,6 +11,7 @@ import {
   CITY_NAME_MAX_CHARS,
   CITY_POPULATION_STRING_MAX_CHARS,
   CITY_POSTAL_CODES_RAW_MAX_CHARS,
+  PARTNER_WHEEL_TERMS_MAX_CHARS,
 } from "@/lib/dashboard-text-limits";
 
 export type CityFormInput = {
@@ -20,6 +21,8 @@ export type CityFormInput = {
   latitude: string;
   longitude: string;
   population: string;
+  /** Règlement roue partenaires (lots « toute la ville ») ; vide = aucun. */
+  partnerWheelTerms?: string;
 };
 
 function parsePostalCodes(raw: string): string[] {
@@ -130,7 +133,15 @@ function validateCityFieldLengths(form: CityFormInput): string | null {
   if ((form.population ?? "").length > CITY_POPULATION_STRING_MAX_CHARS) {
     return "Population : trop long.";
   }
+  if ((form.partnerWheelTerms ?? "").length > PARTNER_WHEEL_TERMS_MAX_CHARS) {
+    return `Règlement roue : au plus ${PARTNER_WHEEL_TERMS_MAX_CHARS} caractères.`;
+  }
   return null;
+}
+
+function normalizePartnerWheelTerms(raw: string | undefined): string | null {
+  const t = (raw ?? "").trim();
+  return t === "" ? null : t;
 }
 
 export async function createCity(
@@ -180,6 +191,7 @@ export async function createCity(
         latitude: optionalFloat(form.latitude),
         longitude: optionalFloat(form.longitude),
         population: optionalInt(form.population),
+        partnerWheelTerms: normalizePartnerWheelTerms(form.partnerWheelTerms),
       },
     });
     revalidatePath("/admin-game/dashboard/villes");
@@ -242,11 +254,19 @@ export async function updateCity(
         latitude: optionalFloat(form.latitude),
         longitude: optionalFloat(form.longitude),
         population: optionalInt(form.population),
+        partnerWheelTerms: normalizePartnerWheelTerms(form.partnerWheelTerms),
       },
     });
     revalidatePath("/admin-game/dashboard/villes");
     revalidatePath(`/admin-game/dashboard/villes/${id}`);
     revalidatePath("/admin-game/dashboard/aventures/create");
+    const adventuresInCity = await prisma.adventure.findMany({
+      where: { cityId: id },
+      select: { id: true },
+    });
+    for (const a of adventuresInCity) {
+      revalidatePath(`/admin-game/dashboard/aventures/${a.id}`);
+    }
     return { success: true };
   } catch (e) {
     return {

@@ -25,6 +25,50 @@ export async function getUserById(id: string) {
   return bridgeGetUser({ id });
 }
 
+export type UserSelectedAvatarSummary = {
+  selectedAvatarId: string | null;
+  avatar: {
+    id: string;
+    slug: string;
+    name: string;
+    thumbnailUrl: string | null;
+    modelUrl: string | null;
+  } | null;
+};
+
+/** Préférence avatar jeu (Prisma) — complément à `bridgeGetUser` qui n’expose pas cette relation. */
+export async function getUserSelectedAvatarForAdmin(
+  userId: string
+): Promise<UserSelectedAvatarSummary | null> {
+  try {
+    await requireUserPermission("get");
+  } catch {
+    return null;
+  }
+  const row = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      selectedAvatarId: true,
+      selectedAvatar: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          thumbnailUrl: true,
+          modelUrl: true,
+        },
+      },
+    },
+  });
+  if (!row) {
+    return null;
+  }
+  return {
+    selectedAvatarId: row.selectedAvatarId,
+    avatar: row.selectedAvatar,
+  };
+}
+
 export async function getAdminAdventureRights(userId: string) {
   await requireSuperadmin();
 

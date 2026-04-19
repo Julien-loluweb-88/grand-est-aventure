@@ -7,6 +7,7 @@ const MIME: Record<string, string> = {
   ".jpeg": "image/jpeg",
   ".png": "image/png",
   ".webp": "image/webp",
+  ".glb": "model/gltf-binary",
 };
 
 /** Sert les fichiers du dossier `uploads/` à la racine du dépôt (URL publique `/uploads/…` via rewrite). */

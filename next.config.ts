@@ -23,9 +23,11 @@ const nextConfig: NextConfig = {
     ];
   },
   experimental: {
+    /** Requis avec `src/proxy.ts` : sans cela, les POST > 10 Mo sont tronqués (ex. .glb avatars admin). */
+    proxyClientMaxBodySize: "100mb",
     serverActions: {
-    bodySizeLimit: "50mb",
-    },   
+      bodySizeLimit: "100mb",
+    },
   },
   async rewrites() {
     return [

@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Field,
   FieldGroup,
@@ -36,6 +37,7 @@ import {
   CITY_NAME_MAX_CHARS,
   CITY_POPULATION_STRING_MAX_CHARS,
   CITY_POSTAL_CODES_RAW_MAX_CHARS,
+  PARTNER_WHEEL_TERMS_MAX_CHARS,
 } from "@/lib/dashboard-text-limits";
 import { FieldCharacterCount } from "@/components/ui/field-character-count";
 
@@ -63,6 +65,14 @@ const schema = z.object({
   population: z
     .string()
     .max(CITY_POPULATION_STRING_MAX_CHARS)
+    .optional()
+    .default(""),
+  partnerWheelTerms: z
+    .string()
+    .max(
+      PARTNER_WHEEL_TERMS_MAX_CHARS,
+      `${PARTNER_WHEEL_TERMS_MAX_CHARS} caractères maximum`
+    )
     .optional()
     .default(""),
 });
@@ -95,6 +105,7 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
       latitude: "",
       longitude: "",
       population: "",
+      partnerWheelTerms: "",
       ...defaultValues,
     },
   });
@@ -182,6 +193,7 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
         latitude: data.latitude ?? "",
         longitude: data.longitude ?? "",
         population: data.population ?? "",
+        partnerWheelTerms: data.partnerWheelTerms ?? "",
       });
       if (!res.success) {
         toast.error(res.error);
@@ -201,6 +213,7 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
       latitude: data.latitude ?? "",
       longitude: data.longitude ?? "",
       population: data.population ?? "",
+      partnerWheelTerms: data.partnerWheelTerms ?? "",
     });
     if (!res.success) {
       toast.error(res.error);
@@ -463,6 +476,36 @@ export function CityForm({ mode, cityId, defaultValues }: CityFormProps) {
                 <FieldCharacterCount
                   length={field.value?.length ?? 0}
                   max={CITY_POPULATION_STRING_MAX_CHARS}
+                />
+              </div>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+        <Controller
+          name="partnerWheelTerms"
+          control={form.control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>
+                Règlement roue partenaires (optionnel)
+              </FieldLabel>
+              <p className="text-xs text-muted-foreground">
+                S&apos;applique aux lots « toute la ville » et comme repli si une aventure n&apos;a
+                pas de texte dédié. Conditions, durée, litiges, RGPD…
+              </p>
+              <Textarea
+                {...field}
+                id={field.name}
+                rows={6}
+                maxLength={PARTNER_WHEEL_TERMS_MAX_CHARS}
+                className="min-h-24 font-mono text-sm"
+                placeholder="Texte affiché aux joueurs (API `legalNotice`)…"
+              />
+              <div className="flex justify-end pt-0.5">
+                <FieldCharacterCount
+                  length={field.value?.length ?? 0}
+                  max={PARTNER_WHEEL_TERMS_MAX_CHARS}
                 />
               </div>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}

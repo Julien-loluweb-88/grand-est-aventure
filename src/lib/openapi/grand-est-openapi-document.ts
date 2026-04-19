@@ -404,6 +404,60 @@ export function buildGrandEstOpenApiDocument() {
             },
           },
         },
+        GameAvatarItem: {
+          type: "object",
+          required: ["id", "slug", "name", "sortOrder"],
+          properties: {
+            id: { type: "string", description: "Identifiant Prisma (à envoyer dans PATCH préférence)." },
+            slug: {
+              type: "string",
+              description:
+                "Clé stable pour le bundle app (ex. `companion_fox` → fichier local `…/companion_fox.glb`).",
+            },
+            name: { type: "string", description: "Libellé affiché dans les paramètres." },
+            thumbnailUrl: { type: ["string", "null"], description: "Aperçu optionnel (URL)." },
+            modelUrl: {
+              type: ["string", "null"],
+              description:
+                "URL absolue ou chemin `/uploads/…` du **.glb** hébergé par l’admin ; si `null`, l’app utilise le modèle embarqué (`slug`).",
+            },
+            sortOrder: { type: "integer" },
+          },
+        },
+        GameAvatarsResponse: {
+          type: "object",
+          required: ["avatars"],
+          properties: {
+            avatars: { type: "array", items: { $ref: "#/components/schemas/GameAvatarItem" } },
+          },
+        },
+        UserAvatarPreferenceResponse: {
+          type: "object",
+          required: ["selectedAvatarId"],
+          properties: {
+            selectedAvatarId: { type: ["string", "null"] },
+            selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
+          },
+        },
+        UserAvatarPatchBody: {
+          type: "object",
+          required: ["selectedAvatarId"],
+          properties: {
+            selectedAvatarId: {
+              oneOf: [{ type: "string" }, { type: "null" }],
+              description: "Id Prisma d’un avatar actif, ou `null` pour effacer le choix.",
+            },
+          },
+        },
+        UserAvatarPatchOk: {
+          type: "object",
+          required: ["ok", "selectedAvatarId", "selectedAvatar"],
+          properties: {
+            ok: { type: "boolean", const: true },
+            selectedAvatarId: { type: ["string", "null"] },
+            selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
+          },
+        },
         UserBadgesResponse: {
           type: "object",
           required: ["badges"],
@@ -701,6 +755,22 @@ export function buildGrandEstOpenApiDocument() {
                     },
                   },
                 },
+              },
+            },
+          },
+        },
+      },
+      "/api/game/avatars": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Catalogue avatars (compagnon 3D)",
+          description:
+            "Liste **publique** des avatars **`isActive`** (métadonnées). Si **`modelUrl`** est renseigné, l’app peut charger ce **.glb** depuis le serveur ; sinon repli sur le bundle local via **`slug**.",
+          responses: {
+            "200": {
+              description: "Liste triée par `sortOrder`.",
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/GameAvatarsResponse" } },
               },
             },
           },
@@ -1141,6 +1211,213 @@ export function buildGrandEstOpenApiDocument() {
           },
         },
       },
+      "/api/game/adventure-partner-lots": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Roue partenaires — état (fin d’aventure)",
+          description:
+            "Après **succès** sur l’aventure (`UserAdventures.success`), indique si des **lots** actifs existent pour la roue " +
+            "(lots liés à **cette aventure** ou à **sa ville** sans aventure).\n\n" +
+            "**Réponse** : `legalNotice` (règlement texte : aventure puis repli ville) ; `adventureFinished` ; si `true`, `wheel` vaut `none` (pas de lot), `ready` (segments pour animer la roue), ou `done` (gain déjà tiré, `won` avec dates `validUntil` / `redeemed`).\n\n" +
+            `**Rate limit** : ~120 req/min. ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          parameters: [
+            {
+              name: "adventureId",
+              in: "query",
+              required: true,
+              schema: { type: "string" },
+              description: "Identifiant de l’aventure jouée.",
+            },
+          ],
+          responses: {
+            "200": {
+              description: "État roue / lots.",
+              content: {
+                "application/json": {
+                  schema: {
+                    oneOf: [
+                      {
+                        type: "object",
+                        required: ["adventureFinished", "legalNotice"],
+                        properties: {
+                          adventureFinished: { type: "boolean", enum: [false] },
+                          legalNotice: { type: "string", nullable: true },
+                        },
+                      },
+                      {
+                        type: "object",
+                        required: [
+                          "adventureFinished",
+                          "legalNotice",
+                          "wheel",
+                          "segments",
+                          "won",
+                        ],
+                        properties: {
+                          adventureFinished: { type: "boolean", enum: [true] },
+                          legalNotice: { type: "string", nullable: true },
+                          wheel: {
+                            type: "string",
+                            enum: ["none", "ready", "done"],
+                          },
+                          segments: {
+                            type: "array",
+                            items: {
+                              type: "object",
+                              required: ["id", "title", "partnerName"],
+                              properties: {
+                                id: { type: "string" },
+                                title: { type: "string" },
+                                partnerName: { type: "string" },
+                              },
+                            },
+                          },
+                          won: {
+                            nullable: true,
+                            type: "object",
+                            properties: {
+                              id: { type: "string" },
+                              winId: { type: "string" },
+                              title: { type: "string" },
+                              partnerName: { type: "string" },
+                              description: { type: "string", nullable: true },
+                              redemptionHint: { type: "string", nullable: true },
+                              validFrom: { type: "string", nullable: true },
+                              validUntil: { type: "string", nullable: true },
+                              redeemedAt: { type: "string", nullable: true },
+                              redeemed: { type: "boolean" },
+                            },
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            "400": { description: "`adventureId` manquant." },
+            "401": { description: "Session requise." },
+            "404": { description: "Aventure introuvable, inactive, ou accès refusé." },
+            "429": { description: "Trop de requêtes." },
+          },
+        },
+      },
+      "/api/game/adventure-partner-lots/spin": {
+        post: {
+          tags: ["Jeu"],
+          summary: "Roue partenaires — tirage",
+          description:
+            "Tire **un** lot pour l’utilisateur sur cette aventure (succès requis). **Idempotent** : un second appel renvoie le même gain (`alreadyHadSpin: true`).\n\n" +
+            "**Corps** : `adventureId`, `userId` (identique à la session).\n\n" +
+            `**Rate limit** : ~20 req/min. ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["adventureId", "userId"],
+                  properties: {
+                    adventureId: { type: "string" },
+                    userId: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Gain attribué ou déjà obtenu.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["ok", "alreadyHadSpin", "won"],
+                    properties: {
+                      ok: { type: "boolean", enum: [true] },
+                      alreadyHadSpin: { type: "boolean" },
+                      won: {
+                        type: "object",
+                        properties: {
+                          id: { type: "string" },
+                          winId: { type: "string" },
+                          title: { type: "string" },
+                          partnerName: { type: "string" },
+                          description: { type: "string", nullable: true },
+                          redemptionHint: { type: "string", nullable: true },
+                          validFrom: { type: "string", nullable: true },
+                          validUntil: { type: "string", nullable: true },
+                          redeemedAt: { type: "string", nullable: true },
+                          redeemed: { type: "boolean" },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description:
+                "`ADVENTURE_NOT_FINISHED`, `NO_PARTNER_LOTS`, corps invalide, ou concordance `userId`.",
+            },
+            "401": { description: "Session requise." },
+            "404": { description: "Aventure introuvable, inactive, ou accès refusé." },
+            "429": { description: "Trop de requêtes." },
+            "503": { description: "`SPIN_RETRY` — conflit stock, réessayer." },
+          },
+        },
+      },
+      "/api/game/adventure-partner-lots/redeem": {
+        post: {
+          tags: ["Jeu"],
+          summary: "Roue partenaires — validation en magasin",
+          description:
+            "Le joueur confirme **une fois** en boutique (souvent après accord du commerçant). " +
+            "Si déjà validé, **200** avec `alreadyRedeemed: true` (idempotent).\n\n" +
+            "**Corps** : `adventureId`, `userId` (identique à la session).\n\n" +
+            `**Rate limit** : ~30 req/min. ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["adventureId", "userId"],
+                  properties: {
+                    adventureId: { type: "string" },
+                    userId: { type: "string" },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Utilisation enregistrée ou déjà enregistrée.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["ok", "redeemedAt", "alreadyRedeemed"],
+                    properties: {
+                      ok: { type: "boolean", enum: [true] },
+                      redeemedAt: { type: "string" },
+                      alreadyRedeemed: { type: "boolean" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "`NO_WIN` ou corps invalide." },
+            "401": { description: "Session requise." },
+            "404": { description: "Aventure introuvable, inactive, ou accès refusé." },
+            "429": { description: "Trop de requêtes." },
+          },
+        },
+      },
       "/api/game/adventure-review": {
         post: {
           tags: ["Jeu"],
@@ -1537,6 +1814,50 @@ export function buildGrandEstOpenApiDocument() {
             "400": { description: "Corps invalide ou publicité inactive." },
             "404": { description: "Publicité introuvable." },
             "429": { description: "Trop de requêtes." },
+          },
+        },
+      },
+      "/api/user/avatar": {
+        get: {
+          tags: ["Utilisateur"],
+          summary: "Préférence avatar du joueur",
+          description: "Retourne `selectedAvatarId` et le détail `selectedAvatar` si un choix est enregistré.",
+          security: [{ sessionCookie: [] }],
+          responses: {
+            "200": {
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/UserAvatarPreferenceResponse" } },
+              },
+              description: "Préférence courante.",
+            },
+            "401": { description: "Non connecté." },
+            "404": { description: "Utilisateur introuvable." },
+          },
+        },
+        patch: {
+          tags: ["Utilisateur"],
+          summary: "Choisir ou effacer l’avatar",
+          description:
+            "Corps `{ \"selectedAvatarId\": \"…\" }` pour un avatar **actif**, ou **`null`** pour effacer. " +
+            `**Rate limit** : ~${20}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/UserAvatarPatchBody" } },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Mise à jour enregistrée.",
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/UserAvatarPatchOk" } },
+              },
+            },
+            "400": { description: "Corps invalide." },
+            "401": { description: "Non authentifié." },
+            "404": { description: "Avatar introuvable ou inactif." },
+            "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
           },
         },
       },

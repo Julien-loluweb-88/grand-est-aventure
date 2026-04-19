@@ -44,6 +44,7 @@ export default async function EditVillePage({
               latitude: city.latitude != null ? String(city.latitude) : "",
               longitude: city.longitude != null ? String(city.longitude) : "",
               population: city.population != null ? String(city.population) : "",
+              partnerWheelTerms: city.partnerWheelTerms ?? "",
             }}
           />
         </CardContent>

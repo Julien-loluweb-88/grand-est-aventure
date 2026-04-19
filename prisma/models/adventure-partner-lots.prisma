@@ -1,0 +1,50 @@
+// Lots « roue partenaires » en fin d’aventure (périmètre aventure et/ou ville).
+
+/// Segment de roue / offre commerçant — éligible si actif, dans la fenêtre de dates et en stock.
+model AdventurePartnerLot {
+  id                 String    @id @default(cuid())
+  /// Enseigne affichée au joueur.
+  partnerName        String
+  /// Libellé court (segment de roue).
+  title              String
+  description        String?
+  /// Conseil d’utilisation (ex. montrez cet écran en caisse).
+  redemptionHint     String?
+  /// Poids relatif sur la roue (≥ 1).
+  weight             Int       @default(1)
+  /// Stock restant ; null = illimité.
+  quantityRemaining  Int?
+  active             Boolean   @default(true)
+  validFrom          DateTime?
+  validUntil         DateTime?
+  /// Lot réservé à cette aventure (prioritaire sur le filtre ville seul).
+  adventureId        String?
+  adventure          Adventure? @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  /// Lot pour toute aventure de cette ville (`adventureId` doit être null).
+  cityId             String?
+  city                 City?     @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  wins                 UserAdventurePartnerLotWin[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([adventureId, active])
+  @@index([cityId, active])
+}
+
+/// Un tirage par couple (utilisateur, aventure terminée).
+model UserAdventurePartnerLotWin {
+  id                    String             @id @default(cuid())
+  userId                String
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  adventureId           String
+  adventure             Adventure          @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventurePartnerLotId String
+  adventurePartnerLot   AdventurePartnerLot @relation(fields: [adventurePartnerLotId], references: [id], onDelete: Restrict)
+  createdAt             DateTime           @default(now())
+  /// Le joueur confirme en boutique (app) après passage en caisse — une seule fois.
+  redeemedAt            DateTime?
+
+  @@unique([userId, adventureId])
+  @@index([adventureId])
+  @@index([redeemedAt])
+}
