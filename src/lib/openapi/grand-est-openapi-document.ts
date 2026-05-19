@@ -70,7 +70,12 @@ export function buildGrandEstOpenApiDocument() {
           "Demandes joueur et validation commerçant (badges partenaires) — en pratique consommé par l’app mobile avec session Better Auth.",
       },
       { name: "Utilisateur", description: "Données liées au compte connecté." },
-      { name: "Contact", description: "Formulaire contact public (notification Discord côté serveur)." },
+      {
+        name: "Contact",
+        description:
+          "Messages contact → webhook Discord (`DISCORD_CONTACT_WEBHOOK_URL`). " +
+          "Champ embed **Origine** : **Site web** (formulaire `/contact`) ou **Application mobile** (`POST /api/contact`) — valeur fixée côté serveur, jamais dans le corps JSON.",
+      },
       { name: "Cron", description: "Tâches planifiées (secret Bearer)." },
       { name: "Admin", description: "Contexte rôle pour le tableau de bord (proxy d’administration)." },
       { name: "Fichiers", description: "Fichiers publics du dossier `uploads/`." },
@@ -1751,9 +1756,10 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Contact"],
           summary: "Envoyer un message contact (Discord)",
           description:
-            "Public, sans session. Corps JSON `{ name, email, message }` — mêmes limites que le formulaire web. " +
-            "La notification Discord indique **Application mobile** (origine fixée côté serveur, pas dans le corps). " +
-            "**Rate limit** : 3 requêtes / 10 min par e-mail et par IP.",
+            "Public, sans session. Corps JSON `{ name, email, message }` — mêmes limites que le formulaire web (`/contact`). " +
+            "Notification Discord : champ **Origine** = **Application mobile** (cette route) ; le formulaire web envoie **Site web**. " +
+            "Ne pas envoyer `source` dans le JSON (ignoré / non prévu — l’origine est imposée par le canal d’appel). " +
+            "**Rate limit** partagé avec le web : 3 requêtes / 10 min par e-mail et par IP.",
           requestBody: {
             required: true,
             content: {

@@ -194,6 +194,7 @@ Plusieurs routes utilisent `src/lib/api/simple-rate-limit.ts` (mémoire **par in
 3. `validate-enigma` : ordre + `multiSelect` / `submissions`.
 4. Après victoire : `adventure-partner-lots` → `spin` → affichage `validUntil` / `legalNotice` → `redeem` en boutique.
 5. Ne pas confondre **roue aventure** et **`partner-offers/claims`** (flux **Advertisement**).
+6. **Contact** : `POST /api/contact` (app) → Discord **Application mobile** ; formulaire web `/contact` → **Site web** (origine fixée serveur, pas dans le JSON).
 
 ---
 

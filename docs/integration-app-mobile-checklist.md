@@ -249,7 +249,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 ### Légal / produit (checklist métier)
 
 - [ ] Affichage du **règlement** (`legalNotice`) quand vous exploitez la roue avec lots à valeur.  
-- [ ] Point contact support visible sur écran gain / erreur bloquante.
+- [ ] **Contact support** : `POST /api/contact` avec `{ name, email, message }` (sans session). Discord affiche **Application mobile** (origine serveur — ne pas envoyer `source`). Gérer **429** / **502** / **503**. Le site utilise `/contact` → **Site web** dans Discord. Voir README § *Contact (web + app mobile)*.
 
 ---
 

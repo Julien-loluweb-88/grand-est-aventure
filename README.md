@@ -76,7 +76,7 @@ DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
 NEXT_PUBLIC_DISCORD_CLIENT_ID=
 
-# Contact (app mobile) : webhook Discord serveur uniquement — ne pas exposer côté client
+# Contact (site web + app mobile) : webhook Discord serveur uniquement — ne pas exposer côté client
 DISCORD_CONTACT_WEBHOOK_URL=
 
 # Cron production : expiration des demandes partenaires (Bearer)
@@ -322,6 +322,21 @@ Implémentation : **`src/lib/advertisement-eligibility.ts`** (`filterEligibleAdv
 
 Réponse : liste triée ; chaque encart peut inclure `partnerOffer` (`badgeTitle`, **`badgeImageUrl`** avec repli sur l’image de l’encart, `open`, `maxRedemptionsPerUser`). **Joueur connecté** : envoyez les cookies de session ; les encarts déjà masqués (`POST /api/user/advertisement-dismissals`) n’apparaissent plus.
 
+### Contact (web + app mobile)
+
+Les messages passent par un **webhook Discord** (`DISCORD_CONTACT_WEBHOOK_URL`). L’embed inclut un champ **Origine** (fixé côté serveur, pas envoyé par le client) :
+
+| Canal | Mécanisme | Origine Discord |
+|-------|-----------|-----------------|
+| Site | Formulaire `/contact` (server action) | **Site web** |
+| App | `POST /api/contact` (JSON public, sans session) | **Application mobile** |
+
+Corps API : `{ "name", "email", "message" }` — limites identiques au formulaire web (voir `src/lib/contact-text-limits.ts`). **Rate limit** : 3 requêtes / 10 min par e-mail et par IP (web et API partagent les mêmes compteurs).
+
+| Méthode | Chemin | Description |
+|---------|--------|-------------|
+| POST | `/api/contact` | Contact depuis l’app ; **200** `{ ok, message }` ; **502** / **503** si Discord indisponible ou webhook absent |
+
 ### Offres partenaires (app mobile)
 
 | Méthode | Chemin | Description |
@@ -447,6 +462,11 @@ flowchart LR
 
 - [ ] `GET /api/merchant/partner-claims` — **`advertisement.badgeImageUrl`**.  
 - [ ] `POST …/resolve` — approve / reject ; gérer 403 si non rattaché à la pub.
+
+### Contact support
+
+- [ ] `POST /api/contact` — corps `{ name, email, message }` ; **sans session** ; pas de champ `source` (le serveur marque **Application mobile** dans Discord). Gérer **429** + `Retry-After`, **502**, **503**.  
+- [ ] Écran support / erreur bloquante : lien ou formulaire branché sur cette route (le site web utilise `/contact` → **Site web** dans Discord).
 
 ### Points de découverte (joueur)
 
