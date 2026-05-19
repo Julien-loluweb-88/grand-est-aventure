@@ -70,6 +70,7 @@ export function buildGrandEstOpenApiDocument() {
           "Demandes joueur et validation commerçant (badges partenaires) — en pratique consommé par l’app mobile avec session Better Auth.",
       },
       { name: "Utilisateur", description: "Données liées au compte connecté." },
+      { name: "Contact", description: "Formulaire contact public (notification Discord côté serveur)." },
       { name: "Cron", description: "Tâches planifiées (secret Bearer)." },
       { name: "Admin", description: "Contexte rôle pour le tableau de bord (proxy d’administration)." },
       { name: "Fichiers", description: "Fichiers publics du dossier `uploads/`." },
@@ -1742,6 +1743,59 @@ export function buildGrandEstOpenApiDocument() {
             "401": { description: "Non authentifié." },
             "403": { description: "Commerçant non autorisé sur cette publicité." },
             "404": { description: "Demande introuvable." },
+          },
+        },
+      },
+      "/api/contact": {
+        post: {
+          tags: ["Contact"],
+          summary: "Envoyer un message contact (Discord)",
+          description:
+            "Public, sans session. Corps JSON `{ name, email, message }` — mêmes limites que le formulaire web. " +
+            "La notification Discord indique **Application mobile** (origine fixée côté serveur, pas dans le corps). " +
+            "**Rate limit** : 3 requêtes / 10 min par e-mail et par IP.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  required: ["name", "email", "message"],
+                  properties: {
+                    name: { type: "string", minLength: 2, maxLength: 120 },
+                    email: { type: "string", format: "email", maxLength: 254 },
+                    message: { type: "string", minLength: 10, maxLength: 4000 },
+                  },
+                },
+              },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Message transmis.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    properties: {
+                      ok: { type: "boolean", enum: [true] },
+                      message: { type: "string" },
+                    },
+                  },
+                },
+              },
+            },
+            "400": {
+              description: "Validation.",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
+            },
+            "429": {
+              description: "Trop de demandes.",
+              headers: { "Retry-After": { schema: { type: "string" } } },
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorMessage" } } },
+            },
+            "502": { description: "Échec envoi Discord." },
+            "503": { description: "Webhook non configuré (`DISCORD_CONTACT_WEBHOOK_URL`)." },
           },
         },
       },

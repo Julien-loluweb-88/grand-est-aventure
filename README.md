@@ -76,6 +76,9 @@ DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
 NEXT_PUBLIC_DISCORD_CLIENT_ID=
 
+# Contact (app mobile) : webhook Discord serveur uniquement — ne pas exposer côté client
+DISCORD_CONTACT_WEBHOOK_URL=
+
 # Cron production : expiration des demandes partenaires (Bearer)
 CRON_SECRET=
 
