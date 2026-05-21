@@ -70,7 +70,7 @@ Références complémentaires :
 
 | Méthode | Route | Rôle |
 |--------|--------|------|
-| `GET` | `/api/user/badges` | Badges du joueur. |
+| `GET` | `/api/user/badges` | Catalogue badges + `earned`. |
 | `GET` | `/api/user/avatar` | Préférence avatar (`selectedAvatarId`, objet `selectedAvatar` si défini). |
 | `PATCH` | `/api/user/avatar` | Corps `{ "selectedAvatarId": "<id Prisma>" }` ou `null` pour effacer ; avatar doit être **actif** (`GET /api/game/avatars`). |
 | `POST` | `/api/user/advertisement-dismissals` | Masquer une pub pour ce compte (persistant). |

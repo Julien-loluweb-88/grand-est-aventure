@@ -1,12 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
+import { contentTypeForImageExtension } from "@/lib/uploads/image-mime";
 
 const MIME: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
   ".glb": "model/gltf-binary",
 };
 
@@ -34,7 +31,8 @@ export async function GET(
   try {
     const buf = await readFile(abs);
     const ext = path.extname(abs).toLowerCase();
-    const ct = MIME[ext] ?? "application/octet-stream";
+    const ct =
+      MIME[ext] ?? contentTypeForImageExtension(ext) ?? "application/octet-stream";
     return new NextResponse(buf, {
       headers: {
         "Content-Type": ct,

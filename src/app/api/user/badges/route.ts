@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { listUserBadgeCatalog } from "@/lib/badges/list-user-badge-catalog";
+import { getUserRoleForAccess } from "@/lib/adventure-public-access";
 
-/** Collection de badges du joueur connecté (virtuels + paliers). */
+/** Catalogue badges + état acquis pour le joueur connecté. */
 export async function GET() {
   const session = await auth.api.getSession({
     headers: await headers(),
@@ -12,24 +13,11 @@ export async function GET() {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
 
-  const rows = await prisma.userBadge.findMany({
-    where: { userId: session.user.id },
-    orderBy: { earnedAt: "desc" },
-    include: {
-      badgeDefinition: {
-        select: {
-          id: true,
-          slug: true,
-          title: true,
-          imageUrl: true,
-          kind: true,
-          adventureId: true,
-          criteria: true,
-          sortOrder: true,
-        },
-      },
-    },
+  const role = await getUserRoleForAccess(session.user.id);
+  const items = await listUserBadgeCatalog({
+    userId: session.user.id,
+    role,
   });
 
-  return NextResponse.json({ badges: rows });
+  return NextResponse.json({ items });
 }

@@ -6,11 +6,10 @@ import path from "node:path";
 
 const MAX_BYTES = 5 * 1024 * 1024;
 
-const MIME_TO_EXT = new Map<string, string>([
-  ["image/jpeg", ".jpg"],
-  ["image/png", ".png"],
-  ["image/webp", ".webp"],
-]);
+import {
+  extensionForImageMime,
+  resolveImageMimeFromFile,
+} from "@/lib/uploads/image-mime";
 
 /**
  * Enregistre la photo d’avis sous `uploads/reviews/{adventureId}/`.
@@ -27,10 +26,10 @@ export async function saveReviewPhotoFile(params: {
     return { ok: false, error: "Photo trop volumineuse (max 5 Mo)." };
   }
 
-  const mime = params.file.type;
-  const ext = MIME_TO_EXT.get(mime);
+  const mime = resolveImageMimeFromFile(params.file);
+  const ext = extensionForImageMime(mime);
   if (!ext) {
-    return { ok: false, error: "Format photo non supporté (JPEG, PNG, WebP)." };
+    return { ok: false, error: "Format photo non supporté (fichier image requis)." };
   }
 
   const buf = Buffer.from(await params.file.arrayBuffer());

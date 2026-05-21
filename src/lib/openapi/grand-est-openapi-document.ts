@@ -464,17 +464,62 @@ export function buildGrandEstOpenApiDocument() {
             selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
           },
         },
+        UserBadgeCatalogItem: {
+          type: "object",
+          required: [
+            "id",
+            "slug",
+            "title",
+            "kind",
+            "sortOrder",
+            "earned",
+            "earnedAt",
+            "userBadgeId",
+          ],
+          properties: {
+            id: { type: "string", description: "Id `BadgeDefinition`." },
+            slug: { type: "string" },
+            title: { type: "string" },
+            imageUrl: { type: ["string", "null"] },
+            kind: {
+              type: "string",
+              enum: [
+                "ADVENTURE_COMPLETE",
+                "MILESTONE_ADVENTURES",
+                "MILESTONE_KM",
+                "PARTNER_OFFER",
+                "DISCOVERY",
+              ],
+            },
+            adventureId: { type: ["string", "null"] },
+            criteria: {
+              type: ["object", "null"],
+              additionalProperties: true,
+              description: "Seuils paliers (`minCompletedAdventures`, `minKmTotal`, …).",
+            },
+            sortOrder: { type: "integer" },
+            earned: { type: "boolean", description: "Vrai si le joueur a une ligne `UserBadge`." },
+            earnedAt: {
+              type: ["string", "null"],
+              format: "date-time",
+              description: "Date d’obtention ; `null` si non acquis.",
+            },
+            userBadgeId: {
+              type: ["string", "null"],
+              description: "Id `UserBadge` si acquis.",
+            },
+          },
+        },
         UserBadgesResponse: {
           type: "object",
-          required: ["badges"],
+          required: ["items"],
           properties: {
-            badges: {
+            items: {
               type: "array",
-              items: {
-                type: "object",
-                description: "Ligne Prisma `UserBadge` avec relation `badgeDefinition` (champs sélectionnés par la route).",
-                additionalProperties: true,
-              },
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+              description:
+                "Catalogue éligible (paliers, aventures publiques actives, POI découverte visibles, offres partenaires actives) " +
+                "+ badges déjà acquis hors catalogue (aventure désactivée, pub expirée, …). Tri `sortOrder` puis titre.",
             },
           },
         },
@@ -1435,7 +1480,7 @@ export function buildGrandEstOpenApiDocument() {
             "**JSON** (`application/json`) : `adventureId`, `userId`, `rating` (1–5, optionnel), `content`, `image` (URL optionnelle), " +
             "`consentCommunicationNetworks`, `reportsMissingBadge`, `reportsStolenTreasure` (booléens stricts : `true` seulement compte comme vrai).\n\n" +
             "**Multipart** (`multipart/form-data`) : mêmes champs en champs texte + fichier **`photo`** (ou **`image`**) pour envoyer **photo + avis en une requête** ; " +
-            "JPEG, PNG ou WebP, max 5 Mo ; l’URL publique est renvoyée côté serveur (`/uploads/reviews/...`). " +
+            "Tout format image (`image/*`), max 5 Mo ; l’URL publique est renvoyée côté serveur (`/uploads/reviews/...`). " +
             "Optionnel : **`imageUrl`** si l’image est déjà hébergée ailleurs.\n\n" +
             "Les avis **affichés publiquement** via `GET /api/game/adventure-reviews` le sont uniquement lorsque `moderationStatus` est `APPROVED` (côté base / modération).\n\n" +
             "Soumission refusée si l’aventure est **démo** et que le compte n’a pas accès.\n\n" +
@@ -1924,8 +1969,10 @@ export function buildGrandEstOpenApiDocument() {
       "/api/user/badges": {
         get: {
           tags: ["Utilisateur"],
-          summary: "Badges du joueur connecté",
-          description: "Collection `UserBadge` avec définitions associées, tri décroissant par `earnedAt`.",
+          summary: "Catalogue badges du joueur connecté",
+          description:
+            "Toutes les définitions éligibles avec `earned` / `earnedAt` / `userBadgeId`. " +
+            "UI : afficher en gris si `earned` est faux, en couleur sinon.",
           security: [{ sessionCookie: [] }],
           responses: {
             "200": {

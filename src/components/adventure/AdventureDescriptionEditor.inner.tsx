@@ -643,7 +643,7 @@ export function AdventureDescriptionEditorInner({
       <input
         ref={richTextImageInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/*"
         className="hidden"
         onChange={(ev) => void onRichTextImageFile(ev)}
       />

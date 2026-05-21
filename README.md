@@ -291,7 +291,7 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 |---------|--------|-------------|
 | GET | `/api/user/avatar` | Préférence avatar 3D (`selectedAvatarId`, détail `selectedAvatar`) |
 | PATCH | `/api/user/avatar` | Choisir l’avatar ; corps `{ "selectedAvatarId" }` ou `null` ; rate limit |
-| GET | `/api/user/badges` | Badges du joueur |
+| GET | `/api/user/badges` | Catalogue badges + `earned` (acquis ou non) |
 | POST | `/api/user/advertisement-dismissals` | Masquer une pub pour le compte (persistant) ; corps `{ "advertisementId" }` ; rate limit |
 
 ### Publicités (souvent sans session)
@@ -474,7 +474,7 @@ flowchart LR
 - [ ] Sur la fiche parcours : utiliser le tableau **`discoveryPoints`** de **`GET /api/game/adventures/{id}`** (même structure que la liste ci‑dessous) pour afficher les badges « découverte » de la **ville** sans requête supplémentaire.  
 - [ ] Hors fiche parcours (ex. carte globale ville) : `GET /api/game/discovery-points?cityId=…` — afficher marqueurs (`latitude`, `longitude`, `radiusMeters`, `title`, `teaser`, `imageUrl`) ; distinguer **`adventureId === null`** (toute la ville) vs **`adventureId` renseigné** (réservé aux joueurs ayant une ligne **`UserAdventures`** sur cette aventure — à masquer ou griser si pas encore démarré).  
 - [ ] `POST /api/game/claim-discovery` avec **cookies de session** (même mécanisme que `validate-enigma`) : corps JSON `userId` (= id session), `discoveryPointId`, `latitude`, `longitude` = **position actuelle** (WGS84). Gérer **400** (`TOO_FAR`, `ADVENTURE_REQUIRED`), **404**, **429** + `Retry-After`. Réponse **200** : `{ ok: true, userBadgeId }` ou `{ …, alreadyHad: true }` si déjà obtenu.  
-- [ ] Rafraîchir la collection avec **`GET /api/user/badges`** ; filtrer ou badger les entrées dont `badgeDefinition.kind === "DISCOVERY"` (et éventuellement corréler avec la liste des POI).
+- [ ] Rafraîchir la collection avec **`GET /api/user/badges`** (`items`, champ `earned`) ; filtrer par `kind === "DISCOVERY"` si besoin (corrélation POI via `id` de définition).
 
 ---
 
@@ -587,7 +587,7 @@ ou, si le joueur avait déjà le badge :
 
 ### Collection badges joueur
 
-**`GET /api/user/badges`** — déjà utilisée après une aventure ; les badges `DISCOVERY` apparaissent comme les autres avec `badgeDefinition.kind === "DISCOVERY"`, `title`, `imageUrl`, `slug`, etc. Vous pouvez croiser `badgeDefinition.id` avec les définitions créées pour chaque point si besoin d’URLs profondes.
+**`GET /api/user/badges`** — renvoie `{ items: [...] }` : chaque entrée est une **`BadgeDefinition`** du catalogue éligible (paliers, aventures publiques actives, POI découverte visibles, offres partenaires actives) avec **`earned`**, **`earnedAt`**, **`userBadgeId`**. Les badges déjà obtenus mais plus au catalogue (aventure désactivée, pub expirée) restent listés avec `earned: true`. UI : griser si `earned === false`, couleur sinon.
 
 ### Références code
 

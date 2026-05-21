@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { uploadDashboardImage } from "@/lib/actions/upload-dashboard-image";
 import type { DashboardImageScope } from "@/lib/uploads/dashboard-image-scope";
+import { IMAGE_INPUT_ACCEPT } from "@/lib/uploads/image-mime";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,11 @@ export function DashboardImageUploadField({
   const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (!file || disabled) return;
+    if (!file) return;
+    if (disabled) {
+      toast.error("Vous n’avez pas le droit de téléverser des images.");
+      return;
+    }
     if (scope === "advertisement-draft") {
       if (!advertisementDraftId?.trim()) {
         toast.error("Identifiant de brouillon publicité manquant.");
@@ -82,8 +87,9 @@ export function DashboardImageUploadField({
       }
       onChange(res.url);
       toast.success("Image enregistrée sur le serveur.");
-    } catch {
-      toast.error("Téléversement impossible.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Téléversement impossible.";
+      toast.error(msg);
     } finally {
       setUploading(false);
     }
@@ -106,7 +112,7 @@ export function DashboardImageUploadField({
           <input
             ref={inputRef}
             type="file"
-            accept="image/jpeg,image/png,image/webp"
+            accept={IMAGE_INPUT_ACCEPT}
             className="hidden"
             onChange={(ev) => void onPick(ev)}
           />

@@ -5,10 +5,11 @@ import path from "node:path";
 
 import { gateAvatarAssetsUpload } from "@/lib/adventure-authorization";
 import { prisma } from "@/lib/prisma";
+import { DASHBOARD_UPLOAD_MAX_BYTES } from "@/lib/uploads/dashboard-image-upload";
 import {
-  DASHBOARD_IMAGE_MIME_TO_EXT,
-  DASHBOARD_UPLOAD_MAX_BYTES,
-} from "@/lib/uploads/dashboard-image-upload";
+  COMMON_IMAGE_FILE_EXTENSIONS,
+  extensionForImageMime,
+} from "@/lib/uploads/image-mime";
 import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 
 /** Limite dédiée aux fichiers `.glb` (modèles compagnons) — alignée avec `proxyClientMaxBodySize` / serverActions. */
@@ -58,16 +59,16 @@ export async function saveAvatarThumbnailFromUpload(params: {
     return { ok: false, error: "Avatar introuvable." };
   }
 
-  const ext = DASHBOARD_IMAGE_MIME_TO_EXT.get(params.mimeType);
+  const ext = extensionForImageMime(params.mimeType);
   if (!ext) {
-    return { ok: false, error: "Image : JPEG, PNG ou WebP uniquement." };
+    return { ok: false, error: "Image : format non reconnu (fichier image requis)." };
   }
 
   const uploadsRoot = path.join(process.cwd(), "uploads");
   const dirAbs = path.join(uploadsRoot, "avatars", params.avatarId);
   await mkdir(dirAbs, { recursive: true });
 
-  for (const e of [".jpg", ".jpeg", ".png", ".webp"] as const) {
+  for (const e of COMMON_IMAGE_FILE_EXTENSIONS) {
     if (e === ext) continue;
     try {
       await unlink(path.join(dirAbs, `thumbnail${e}`));

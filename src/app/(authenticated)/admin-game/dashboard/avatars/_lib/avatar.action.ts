@@ -9,6 +9,7 @@ import {
   saveAvatarModelFromUpload,
   saveAvatarThumbnailFromUpload,
 } from "@/lib/uploads/dashboard-avatar-upload";
+import { resolveImageMimeFromFile } from "@/lib/uploads/image-mime";
 
 const SLUG_RE = /^[a-z][a-z0-9_]{1,48}$/;
 const NAME_MAX = 80;
@@ -119,11 +120,12 @@ export async function uploadAvatarThumbnailAction(
     return { ok: false, error: "Fichier ou avatar manquant." };
   }
 
+  const mimeType = resolveImageMimeFromFile(file);
   const buffer = Buffer.from(await file.arrayBuffer());
   const res = await saveAvatarThumbnailFromUpload({
     avatarId,
     fileBuffer: buffer,
-    mimeType: file.type,
+    mimeType,
   });
   if (!res.ok) {
     return { ok: false, error: res.error };

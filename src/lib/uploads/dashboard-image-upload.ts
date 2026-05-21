@@ -14,15 +14,10 @@ import {
 import { prisma } from "@/lib/prisma";
 import type { DashboardImageScope } from "@/lib/uploads/dashboard-image-scope";
 import { removeAdventureImageStem } from "@/lib/uploads/delete-uploads-file";
+import { extensionForImageMime } from "@/lib/uploads/image-mime";
 
 /** Limite unique pour les téléversements dashboard (couverture, badge, énigme, éditeur, etc.). */
 export const DASHBOARD_UPLOAD_MAX_BYTES = 50 * 1024 * 1024;
-
-export const DASHBOARD_IMAGE_MIME_TO_EXT = new Map<string, string>([
-  ["image/jpeg", ".jpg"],
-  ["image/png", ".png"],
-  ["image/webp", ".webp"],
-]);
 
 /** `crypto.randomUUID()` (navigateur / Node). */
 const UUID_RE =
@@ -54,9 +49,9 @@ export async function saveDashboardImage(params: {
   fileBuffer: Buffer;
   mimeType: string;
 }): Promise<SaveDashboardImageResult> {
-  const ext = DASHBOARD_IMAGE_MIME_TO_EXT.get(params.mimeType);
+  const ext = extensionForImageMime(params.mimeType);
   if (!ext) {
-    return { ok: false, error: "Type non autorisé (JPEG, PNG, WebP)." };
+    return { ok: false, error: "Type non autorisé. Envoyez un fichier image." };
   }
 
   if (params.scope === "adventure-editor-draft") {
