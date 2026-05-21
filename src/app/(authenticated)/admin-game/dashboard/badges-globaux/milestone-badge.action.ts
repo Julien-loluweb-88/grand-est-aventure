@@ -189,5 +189,3 @@ export async function deleteMilestoneBadge(
     };
   }
 }
-
-export { MILESTONE_KINDS };
