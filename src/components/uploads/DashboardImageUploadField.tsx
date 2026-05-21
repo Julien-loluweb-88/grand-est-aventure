@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { uploadDashboardImage } from "@/lib/actions/upload-dashboard-image";
 import type { DashboardImageScope } from "@/lib/uploads/dashboard-image-scope";
-import { IMAGE_INPUT_ACCEPT } from "@/lib/uploads/image-mime";
+import { IMAGE_INPUT_ACCEPT } from "@/lib/uploads/image-input-accept";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,19 @@ type Props = {
   onChange: (url: string) => void;
   disabled?: boolean;
 };
+
+function urlPlaceholderForScope(scope: DashboardImageScope): string {
+  if (scope === "milestone-badge") {
+    return "/uploads/badges/milestone/… ou URL https://";
+  }
+  if (scope === "discovery-point") {
+    return "/uploads/badges/discovery/… ou URL https://";
+  }
+  if (scope === "advertisement" || scope === "advertisement-draft") {
+    return "/uploads/advertisements/… ou URL https://";
+  }
+  return "/uploads/adventures/… ou URL https://";
+}
 
 export function DashboardImageUploadField({
   scope,
@@ -103,7 +116,7 @@ export function DashboardImageUploadField({
         <Input
           value={value}
           onChange={(ev) => onChange(ev.target.value)}
-          placeholder="/uploads/adventures/… ou URL https://"
+          placeholder={urlPlaceholderForScope(scope)}
           disabled={disabled}
           className="font-mono text-xs sm:min-w-[16rem] sm:flex-1"
           autoComplete="off"

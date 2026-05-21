@@ -1,4 +1,8 @@
 import type { NextConfig } from "next";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url));
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -7,6 +11,9 @@ const securityHeaders = [
 ] as const;
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: projectRoot,
+  },
   reactCompiler: true,
   async redirects() {
     return [

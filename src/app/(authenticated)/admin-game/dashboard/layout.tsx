@@ -14,6 +14,9 @@ import { AdminCapabilitiesProvider } from "./AdminCapabilitiesProvider";
 import { redirect } from "next/navigation";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
+/** fs / Buffer pour téléversements dashboard (Server Actions). */
+export const runtime = "nodejs";
+
 export default async function DashboardLayout({
   children,
 }: {

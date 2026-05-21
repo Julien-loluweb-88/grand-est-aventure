@@ -49,12 +49,13 @@ export async function saveDashboardImage(params: {
   fileBuffer: Buffer;
   mimeType: string;
 }): Promise<SaveDashboardImageResult> {
-  const ext = extensionForImageMime(params.mimeType);
-  if (!ext) {
-    return { ok: false, error: "Type non autorisé. Envoyez un fichier image." };
-  }
+  try {
+    const ext = extensionForImageMime(params.mimeType);
+    if (!ext) {
+      return { ok: false, error: "Type non autorisé. Envoyez un fichier image." };
+    }
 
-  if (params.scope === "adventure-editor-draft") {
+    if (params.scope === "adventure-editor-draft") {
     const gate = await gateAdventureDraftUpload();
     if (!gate.ok) {
       return { ok: false, error: "Non autorisé." };
@@ -207,8 +208,13 @@ export async function saveDashboardImage(params: {
   const uploadsRoot = path.join(process.cwd(), "uploads");
   const absoluteDir = path.join(uploadsRoot, path.dirname(relative));
   const absoluteFile = path.join(uploadsRoot, relative);
-  await mkdir(absoluteDir, { recursive: true });
-  await writeFile(absoluteFile, params.fileBuffer);
+    await mkdir(absoluteDir, { recursive: true });
+    await writeFile(absoluteFile, params.fileBuffer);
 
-  return { ok: true, publicUrl: publicUrlForRelative(relative) };
+    return { ok: true, publicUrl: publicUrlForRelative(relative) };
+  } catch (e) {
+    const msg =
+      e instanceof Error ? e.message : "Impossible d’enregistrer le fichier sur le serveur.";
+    return { ok: false, error: msg };
+  }
 }

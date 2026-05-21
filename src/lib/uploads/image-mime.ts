@@ -1,6 +1,3 @@
-/** Valeur `accept` pour les `<input type="file">` images (dashboard, éditeur, avis, etc.). */
-export const IMAGE_INPUT_ACCEPT = "image/*";
-
 const EXT_TO_MIME: Record<string, string> = {
   ".apng": "image/apng",
   ".avif": "image/avif",
