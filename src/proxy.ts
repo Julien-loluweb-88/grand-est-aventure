@@ -182,6 +182,14 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Superadmin : outils progression joueur (tests / dev)
+  if (pathname.startsWith("/admin-game/dashboard/outils-joueur")) {
+    if (role !== "superadmin") {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
+
   // User management routes
   if (pathname.startsWith("/admin-game/dashboard/utilisateurs")) {
     if (!roleHasRoutePermission(role, "user", "get")) {

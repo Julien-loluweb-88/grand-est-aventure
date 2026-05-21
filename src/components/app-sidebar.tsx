@@ -22,6 +22,7 @@ import {
   BookOpenIcon,
   EnvelopeSimpleIcon,
   ScrollIcon,
+  WrenchIcon,
   BracketsCurlyIcon,
   MapPinIcon,
   MegaphoneSimpleIcon,
@@ -108,6 +109,18 @@ function buildNavMain(caps: AdminSessionCapabilities) {
             {
               title: "Événements",
               url: "/admin-game/dashboard/journal-admin",
+            },
+          ],
+        },
+        {
+          title: "Outils joueur",
+          url: "/admin-game/dashboard/outils-joueur",
+          icon: <WrenchIcon />,
+          isActive: false,
+          items: [
+            {
+              title: "Progression (dev)",
+              url: "/admin-game/dashboard/outils-joueur",
             },
           ],
         },
