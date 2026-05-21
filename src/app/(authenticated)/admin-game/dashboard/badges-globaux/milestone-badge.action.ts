@@ -7,6 +7,7 @@ import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
 import { allocateUniqueMilestoneBadgeSlug } from "@/lib/badges/slugify-milestone-badge";
 import { MILESTONE_BADGE_TITLE_MAX_CHARS } from "@/lib/dashboard-text-limits";
+import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 
 const MILESTONE_KINDS: BadgeDefinitionKind[] = [
   BadgeDefinitionKind.MILESTONE_ADVENTURES,
@@ -165,6 +166,7 @@ export async function deleteMilestoneBadge(
       id: true,
       kind: true,
       adventureId: true,
+      imageUrl: true,
       partnerAdvertisement: { select: { id: true } },
     },
   });
@@ -180,6 +182,9 @@ export async function deleteMilestoneBadge(
 
   try {
     await prisma.badgeDefinition.delete({ where: { id } });
+    if (existing.imageUrl) {
+      await deleteUploadsFileByUrl(existing.imageUrl);
+    }
     revalidatePath("/admin-game/dashboard/badges-globaux");
     return { success: true };
   } catch (e) {
