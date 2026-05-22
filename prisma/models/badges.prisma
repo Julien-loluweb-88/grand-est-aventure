@@ -35,6 +35,12 @@ enum BadgeDefinitionKind {
   MILESTONE_ADVENTURES
   /// Kilomètres cumulés (parcours `Adventure.distance` des aventures réussies).
   MILESTONE_KM
+  /// Fin de parcours réussi dans une plage horaire (ex. nocturne 21h–6h).
+  SPECIAL_TIME_WINDOW
+  /// Au moins N semaines consécutives avec ≥ 1 parcours terminé avec succès.
+  PERFORMANCE_STREAK
+  /// Plus de km cumulés sur un mois calendaire (attribué par cron, permanent).
+  PERFORMANCE_MONTHLY_KM
   /// Badge obtenu via validation d’offre partenaire (publicité / commerce).
   PARTNER_OFFER
   /// Badge « point de découverte » géolocalisé (ville et/ou aventure).
@@ -58,7 +64,7 @@ model BadgeDefinition {
   /// Aventure liée (un seul badge virtuel par aventure).
   adventureId String?             @unique
   adventure   Adventure?          @relation(fields: [adventureId], references: [id], onDelete: Cascade)
-  /// Seuils pour les badges globaux, ex. `{ "minCompletedAdventures": 10 }`, `{ "minKmTotal": 50 }`.
+  /// Paramètres d’attribution selon `kind` (seuils, plage horaire, parcours record, etc.).
   criteria    Json?
   sortOrder   Int                 @default(0)
   createdAt   DateTime            @default(now())
@@ -81,6 +87,8 @@ model UserBadge {
   badgeDefinitionId String
   badgeDefinition   BadgeDefinition @relation(fields: [badgeDefinitionId], references: [id], onDelete: Cascade)
   earnedAt          DateTime        @default(now())
+  /// Contexte d’obtention (ex. `{ "period": "2026-05" }` pour marcheur du mois).
+  context           Json?
 
   @@unique([userId, badgeDefinitionId])
   @@index([userId])

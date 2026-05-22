@@ -7,6 +7,14 @@ import {
 } from "../../../generated/prisma/client";
 import { processGameFinish } from "@/lib/badges/award-on-finish";
 import {
+  parseMilestoneAdventuresCriteria,
+  parseMilestoneKmCriteria,
+} from "@/lib/badges/criteria/parse-criteria";
+import {
+  countDistinctCompletedAdventures,
+  sumKmCompletedAdventures,
+} from "@/lib/badges/load-global-badge-stats";
+import {
   enigmaStepKey,
   TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
@@ -17,50 +25,7 @@ import { prisma } from "@/lib/prisma";
 
 type Tx = Prisma.TransactionClient;
 
-type MilestoneCriteria = {
-  minCompletedAdventures?: number;
-  minKmTotal?: number;
-};
-
-function parseCriteria(raw: Prisma.JsonValue | null | undefined): MilestoneCriteria {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return {};
-  }
-  return raw as MilestoneCriteria;
-}
-
-async function countDistinctCompletedAdventures(tx: Tx, userId: string): Promise<number> {
-  const grouped = await tx.userAdventures.groupBy({
-    by: ["adventureId"],
-    where: { userId, success: true },
-    _count: true,
-  });
-  return grouped.length;
-}
-
-async function sumKmCompletedAdventures(tx: Tx, userId: string): Promise<number> {
-  const distinct = await tx.userAdventures.findMany({
-    where: { userId, success: true },
-    distinct: ["adventureId"],
-    select: { adventureId: true },
-  });
-  if (distinct.length === 0) {
-    return 0;
-  }
-  const adventures = await tx.adventure.findMany({
-    where: { id: { in: distinct.map((d) => d.adventureId) } },
-    select: { distance: true },
-  });
-  let sum = 0;
-  for (const a of adventures) {
-    const d = a.distance;
-    if (typeof d === "number" && !Number.isNaN(d)) {
-      sum += d;
-    }
-  }
-  return sum;
-}
-
+/** Retire uniquement les paliers seuil si la progression admin ne les justifie plus. */
 async function syncMilestoneBadgesAfterProgressChange(tx: Tx, userId: string): Promise<void> {
   const milestones = await tx.badgeDefinition.findMany({
     where: {
@@ -70,6 +35,7 @@ async function syncMilestoneBadgesAfterProgressChange(tx: Tx, userId: string): P
           BadgeDefinitionKind.MILESTONE_KM,
         ],
       },
+      adventureId: null,
     },
     select: { id: true, kind: true, criteria: true },
   });
@@ -78,13 +44,12 @@ async function syncMilestoneBadgesAfterProgressChange(tx: Tx, userId: string): P
   const totalKm = await sumKmCompletedAdventures(tx, userId);
 
   for (const def of milestones) {
-    const c = parseCriteria(def.criteria);
     let stillEarned = false;
     if (def.kind === BadgeDefinitionKind.MILESTONE_ADVENTURES) {
-      const min = c.minCompletedAdventures;
+      const min = parseMilestoneAdventuresCriteria(def.criteria).minCompletedAdventures;
       stillEarned = typeof min === "number" && completedAdventures >= min;
     } else if (def.kind === BadgeDefinitionKind.MILESTONE_KM) {
-      const min = c.minKmTotal;
+      const min = parseMilestoneKmCriteria(def.criteria).minKmTotal;
       stillEarned = typeof min === "number" && totalKm >= min;
     }
     if (stillEarned) {

@@ -131,7 +131,13 @@ export async function getDashboardOverview(params: {
     prisma.badgeDefinition.count({
       where: {
         kind: {
-          in: [BadgeDefinitionKind.MILESTONE_ADVENTURES, BadgeDefinitionKind.MILESTONE_KM],
+          in: [
+            BadgeDefinitionKind.MILESTONE_ADVENTURES,
+            BadgeDefinitionKind.MILESTONE_KM,
+            BadgeDefinitionKind.SPECIAL_TIME_WINDOW,
+            BadgeDefinitionKind.PERFORMANCE_STREAK,
+            BadgeDefinitionKind.PERFORMANCE_MONTHLY_KM,
+          ],
         },
         adventureId: null,
       },

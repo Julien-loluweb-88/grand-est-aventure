@@ -352,6 +352,7 @@ Corps API : `{ "name", "email", "message" }` — limites identiques au formulair
 |---------|--------|-------------|
 | GET | `/api/cron/expire-partner-claims` | Passe en `EXPIRED` les `PENDING` > **24 h** ; **`Authorization: Bearer $CRON_SECRET`** |
 | GET | `/api/cron/recompute-adventure-durations` | Ferme les sessions **`IN_PROGRESS`** de plus de **30 jours** (`ABANDONED`), remet à zéro puis recalcule **`averagePlayDurationSeconds`** / **`playDurationSampleCount`** / **`playDurationStatsUpdatedAt`** pour chaque aventure (moyenne affichée à partir de **5** succès) ; **`Authorization: Bearer $CRON_SECRET`** — réponse `{ ok, stalePlaySessionsClosed, adventuresUpdated }` |
+| GET | `/api/cron/award-monthly-km-badges` | Attribue **`PERFORMANCE_MONTHLY_KM`** aux gagnants du **mois civil précédent** (km cumulés, Paris) ; **`Authorization: Bearer $CRON_SECRET`** — à planifier le **1er** de chaque mois |
 
 ### Dashboard / technique
 
@@ -483,9 +484,14 @@ flowchart LR
 | Type (`BadgeDefinitionKind`) | Attribution |
 |------------------------------|-------------|
 | (virtuels liés aventure) | Config admin aventure |
-| `MILESTONE_ADVENTURES` / `MILESTONE_KM` | **Paliers globaux** : admin **Badges globaux** (`/admin-game/dashboard/badges-globaux`) ; le **slug** est généré automatiquement à partir du libellé (suffixe si collision). Évaluation à la **fin d’une aventure réussie** (`src/lib/badges/award-on-finish.ts`) : km = somme des `Adventure.distance` des parcours **distincts** terminés avec succès. |
+| `MILESTONE_ADVENTURES` / `MILESTONE_KM` | **Paliers** : admin **Badges globaux** ; seuils dans `criteria` ; fin de parcours réussi (`evaluate-global-badges`). |
+| `SPECIAL_TIME_WINDOW` | Plage horaire (ex. nocturne 21h–6h Paris) ; fin de parcours réussi. |
+| `PERFORMANCE_STREAK` | Semaines consécutives avec ≥ 1 parcours réussi ; fin de parcours réussi. |
+| `PERFORMANCE_MONTHLY_KM` | Max km sur le mois civil **précédent** ; cron `GET /api/cron/award-monthly-km-badges` (1er du mois). |
 | `PARTNER_OFFER` | Validation offre partenaire par commerçant (lié à une **publicité**) |
 | `DISCOVERY` | **Point de découverte** — voir [section détaillée](#points-de-decouverte-admin-app-mobile). |
+
+Moteur : registre d’évaluateurs (`src/lib/badges/evaluators/`) — pas de logique par slug. Doc API détaillée : `GET /api/user/badges` (OpenAPI).
 
 **Stock physique** : `AdventureBadgeInstance`, événements — géré depuis l’admin aventure.
 
@@ -620,6 +626,7 @@ ou, si le joueur avait déjà le badge :
 **`vercel.json`** :  
 - **`GET /api/cron/expire-partner-claims`** (toutes les heures) — expiration des demandes partenaires.  
 - **`GET /api/cron/recompute-adventure-durations`** (tous les jours à 03:00 UTC) — mises à jour des **durées moyennes de jeu** par aventure (sessions `UserAdventurePlaySession` terminées avec succès).
+- **`GET /api/cron/award-monthly-km-badges`** (1er de chaque mois, ex. 00:05 Europe/Paris) — badge **marcheur du mois** (`PERFORMANCE_MONTHLY_KM`) pour le mois précédent.
 
 Configurer **`CRON_SECRET`** côté hébergeur et en **`Authorization: Bearer …`** pour chaque route cron.
 
