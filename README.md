@@ -51,10 +51,21 @@ Créez un fichier `.env` à la racine (ne le versionnez pas).
 # Base de données
 DATABASE_URL="postgresql://USER:PASSWORD@localhost:5432/NOM_BASE?schema=public"
 
-# Better Auth
+# App (origine publique : liens e-mail, client Better Auth, callbacks)
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+# Optionnel : surcharge serveur OAuth / baseURL Better Auth (sinon = NEXT_PUBLIC_APP_URL)
+# BETTER_AUTH_URL="https://baladindices.fr"
+# Legacy (si présent, utilisé seulement si NEXT_PUBLIC_APP_URL est absent)
+# NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
+
 BETTER_AUTH_SECRET="votre-secret-long-et-aleatoire"
-BETTER_AUTH_URL="http://localhost:3000"
-NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
+
+# Prod derrière reverse proxy : fetch middleware → API locale (voir src/proxy.ts)
+# INTERNAL_APP_ORIGIN="http://127.0.0.1:3000"
+
+# Expo / app mobile (deep links OAuth + suppression de compte)
+# BETTER_AUTH_EXPO_SCHEME=grandestaventure
+# BETTER_AUTH_TRUSTED_ORIGINS_EXTRA=exp://**,exp://192.168.*.*:*/
 
 # E-mails (reset mot de passe, etc.)
 NODEMAILER_HOST=smtp.example.com

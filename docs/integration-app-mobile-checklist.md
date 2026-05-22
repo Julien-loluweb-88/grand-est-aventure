@@ -29,7 +29,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 - [ ] Décider de l’**URL de production** du backend Next.js (HTTPS).  
 - [ ] Définir l’**URL de développement** accessible depuis l’émulateur / téléphone (**pas** `localhost` sur l’appareil — utiliser l’IP LAN ou un tunnel).  
-- [ ] Renseigner les variables Expo (`EXPO_PUBLIC_…`) alignées sur `BETTER_AUTH_URL` / schéma deep link (voir `expo-better-auth.md`).  
+- [ ] Renseigner les variables Expo (`EXPO_PUBLIC_…`) alignées sur `NEXT_PUBLIC_APP_URL` / schéma deep link (voir `expo-better-auth.md`).  
 - [ ] Vérifier `BETTER_AUTH_EXPO_SCHEME` côté serveur et `expo.scheme` côté app **identiques**.  
 - [ ] Télécharger ou consulter la **spec OpenAPI** une fois pour générer des types / client HTTP si besoin.
 
@@ -59,6 +59,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 - [ ] Connexion réussie → appel test `GET /api/user/badges` (ou autre route protégée) → **200**.  
 - [ ] Déconnexion locale + invalidation cookies / secure store.
+- [ ] **Suppression de compte** : écran paramètres (`deleteUser` + mot de passe si compte e-mail) ; deep link `supprimer-compte?token=` → `deleteUser({ token })` (voir `docs/expo-better-auth.md`).
 
 ### Avatars compagnon (paramètres / carte / AR)
 

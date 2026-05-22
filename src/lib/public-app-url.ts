@@ -1,10 +1,29 @@
 /**
- * Origine publique de l’app (sans slash final).
- * Définir `NEXT_PUBLIC_BETTER_AUTH_URL` dans `.env` (ex. `http://localhost:3000` en local).
+ * Origine publique HTTPS/HTTP de l’app (sans slash final).
+ * Priorité : `NEXT_PUBLIC_APP_URL`, puis `NEXT_PUBLIC_BETTER_AUTH_URL` (legacy).
  */
-export function getPublicAppOrigin(): string {
-  const raw = process.env.NEXT_PUBLIC_BETTER_AUTH_URL?.trim() ?? "";
+function resolvePublicAppOriginFromEnv(): string {
+  const raw =
+    process.env.NEXT_PUBLIC_APP_URL?.trim() ??
+    process.env.NEXT_PUBLIC_BETTER_AUTH_URL?.trim() ??
+    "";
   return raw.replace(/\/$/, "");
+}
+
+/**
+ * `baseURL` Better Auth côté serveur (callbacks OAuth, liens e-mail).
+ * Priorité : `BETTER_AUTH_URL`, puis origine publique ci-dessus.
+ */
+export function getBetterAuthServerBaseUrl(): string {
+  const explicit = process.env.BETTER_AUTH_URL?.trim();
+  if (explicit) {
+    return explicit.replace(/\/$/, "");
+  }
+  return resolvePublicAppOriginFromEnv();
+}
+
+export function getPublicAppOrigin(): string {
+  return resolvePublicAppOriginFromEnv();
 }
 
 /** URL absolue pour le lien « mot de passe oublié » (e-mail). */
@@ -19,7 +38,7 @@ export function getResetPasswordRedirectUrl(): string {
 
 /**
  * URL de retour après clic sur le lien de vérification (param `callbackURL` Better Auth).
- * Doit être une origine autorisée : utiliser une URL absolue si `NEXT_PUBLIC_BETTER_AUTH_URL` est défini.
+ * Doit être une origine autorisée : utiliser une URL absolue si l’origine publique est définie.
  */
 export function getEmailVerificationCallbackUrl(): string {
   const origin = getPublicAppOrigin();
@@ -34,6 +53,16 @@ export function getEmailVerificationCallbackUrl(): string {
 export function getChangeEmailCallbackUrl(): string {
   const origin = getPublicAppOrigin();
   const path = "/admin-game/dashboard/parametres#email";
+  if (!origin) {
+    return path;
+  }
+  return `${origin}${path}`;
+}
+
+/** Après suppression réussie du compte (Better Auth `deleteUser` + `callbackURL`). */
+export function getDeleteAccountCallbackUrl(): string {
+  const origin = getPublicAppOrigin();
+  const path = "/admin-game?deleted=1";
   if (!origin) {
     return path;
   }

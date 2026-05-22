@@ -2,10 +2,11 @@ import { createAuthClient } from "better-auth/react"
 import { adminClient } from "better-auth/client/plugins"
 import { i18nClient } from "@better-auth/i18n/client"
 import { ac, admin, user, myCustomRole, superadmin } from "@/lib/permissions"
+import { getPublicAppOrigin } from "@/lib/public-app-url"
 
-/** Même valeur que `BETTER_AUTH_URL` côté serveur ; requise côté navigateur (préfixe NEXT_PUBLIC_). */
+/** Origine publique (`NEXT_PUBLIC_APP_URL` ou legacy `NEXT_PUBLIC_BETTER_AUTH_URL`). */
 export const authClient = createAuthClient({
-    baseURL: process.env.NEXT_PUBLIC_BETTER_AUTH_URL ?? "",
+    baseURL: getPublicAppOrigin(),
     plugins: [
         i18nClient(),
         adminClient({

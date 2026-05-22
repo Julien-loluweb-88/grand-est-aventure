@@ -8,15 +8,18 @@ Ce dépôt **Next.js** héberge Better Auth (`/api/auth/...`), la base PostgreSQ
 2. **`expo()`** dans la liste des plugins Better Auth (`src/lib/auth.ts`), en tête de liste pour que les hooks (OAuth / redirections custom scheme) s’appliquent correctement.
 3. **`trustedOrigins`** — deep links autorisés après connexion OAuth ou flux qui redirigent vers l’app. Définis dans `src/lib/better-auth-expo-trusted-origins.ts` à partir des variables d’environnement.
 
-Better Auth ajoute **automatiquement** l’origine du site (dérivée de `BETTER_AUTH_URL` / `baseURL`) aux origines de confiance : le **navigateur web** (`http://localhost:3000`, `https://ton-domaine.fr`, etc.) continue de fonctionner sans les dupliquer dans `trustedOrigins`.
+Better Auth ajoute **automatiquement** l’origine du site (dérivée de `baseURL` : `BETTER_AUTH_URL` ou `NEXT_PUBLIC_APP_URL`) aux origines de confiance : le **navigateur web** (`http://localhost:3000`, `https://baladindices.fr`, etc.) continue de fonctionner sans les dupliquer dans `trustedOrigins`.
 
 ## Variables d’environnement (Next.js / `.env`)
 
 | Variable | Rôle |
 |----------|------|
-| `BETTER_AUTH_URL` | URL publique du site (déjà utilisée). Ex. `http://localhost:3000` ou `https://www.example.com`. Sert aux callbacks OAuth et à l’origine web de confiance. |
+| `NEXT_PUBLIC_APP_URL` | **Origine publique** (web + liens e-mail + client Better Auth). Ex. `https://baladindices.fr` en prod, `http://localhost:3000` en local. |
+| `BETTER_AUTH_URL` | Optionnel. Surcharge serveur pour `baseURL` Better Auth ; sinon = `NEXT_PUBLIC_APP_URL`. |
+| `INTERNAL_APP_ORIGIN` | Optionnel. Origine pour les `fetch` middleware → API en prod (`http://127.0.0.1:3000`). Voir `src/proxy.ts`. |
 | `BETTER_AUTH_EXPO_SCHEME` | Schéma deep link de l’app Expo (doit correspondre à `expo.scheme` dans `app.json`). Défaut : `grandestaventure`. |
-| `BETTER_AUTH_TRUSTED_ORIGINS_EXTRA` | Optionnel. Liste séparée par des virgules d’origines ou motifs supplémentaires (ex. second schéma `myapp-staging://`). |
+| `BETTER_AUTH_TRUSTED_ORIGINS_EXTRA` | Optionnel. Origines/motifs supplémentaires séparés par des virgules (ex. `exp://**` pour Expo Go contre API de prod). |
+| `NEXT_PUBLIC_BETTER_AUTH_URL` | Legacy : utilisé si `NEXT_PUBLIC_APP_URL` est absent. |
 
 En **développement** (`NODE_ENV=development`), le serveur autorise en plus des motifs du type `exp://**` et `exp://192.168.*.*:*/**` pour Expo Go / tunnel. **Ne pas compter sur ces motifs en production.**
 
@@ -49,8 +52,8 @@ Détail des corps, codes d’erreur et ordre d’appel : **`README.md`** (sectio
 `.env` (extrait) :
 
 ```env
-BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+INTERNAL_APP_ORIGIN=http://127.0.0.1:3000
 BETTER_AUTH_EXPO_SCHEME=grandestaventure
 ```
 
@@ -128,9 +131,10 @@ Adapte `scheme` / `storagePrefix` si tu changes `BETTER_AUTH_EXPO_SCHEME`.
 ### Next.js (hébergement HTTPS)
 
 ```env
-BETTER_AUTH_URL=https://www.example.com
-NEXT_PUBLIC_BETTER_AUTH_URL=https://www.example.com
+NEXT_PUBLIC_APP_URL=https://baladindices.fr
+INTERNAL_APP_ORIGIN=http://127.0.0.1:3000
 BETTER_AUTH_EXPO_SCHEME=grandestaventure
+BETTER_AUTH_TRUSTED_ORIGINS_EXTRA=exp://**,exp://192.168.*.*:*/
 ```
 
 Pas besoin des motifs `exp://…` : ils ne sont ajoutés **que** en `NODE_ENV=development`.
@@ -138,7 +142,7 @@ Pas besoin des motifs `exp://…` : ils ne sont ajoutés **que** en `NODE_ENV=de
 ### App Expo (build store ou EAS)
 
 ```env
-EXPO_PUBLIC_BETTER_AUTH_URL=https://www.example.com/api/auth
+EXPO_PUBLIC_BETTER_AUTH_URL=https://baladindices.fr/api/auth
 ```
 
 Vérifie que :
@@ -147,6 +151,42 @@ Vérifie que :
 - les **redirect URIs** des fournisseurs OAuth (Google, Facebook, Discord, etc.) incluent bien  
   `https://www.example.com/api/auth/callback/<provider>`  
   comme pour le web.
+
+---
+
+## Suppression de compte (web + app)
+
+Côté serveur (`src/lib/auth.ts`) : `user.deleteUser.enabled` et `sendDeleteAccountVerification` envoient un e-mail avec :
+
+- le **lien officiel** Better Auth (`url`) — confirmation dans le navigateur si la session web est active ;
+- une page **Paramètres** avec jeton : `/admin-game/dashboard/parametres?deleteToken=…` ;
+- un **deep link** : `{scheme}://supprimer-compte?token=…` (schéma = `BETTER_AUTH_EXPO_SCHEME`, défaut `grandestaventure`).
+
+### Web (ce repo)
+
+- Formulaire : **Paramètres** du dashboard (`DeleteAccountForm`).
+- Mot de passe → suppression immédiate ; sans mot de passe (OAuth) → e-mail, puis `DeleteAccountTokenHandler` ou lien officiel.
+
+### App Expo (à brancher)
+
+1. Écran paramètres : `authClient.deleteUser({ password })` ou `deleteUser()` (e-mail si OAuth).
+2. Deep link `supprimer-compte` : parser `token`, puis `await authClient.deleteUser({ token, callbackURL: "…" })`, déconnexion locale, navigation accueil.
+
+```ts
+// Exemple (expo-router + Linking)
+import * as Linking from "expo-linking";
+
+Linking.addEventListener("url", async ({ url }) => {
+  const parsed = Linking.parse(url);
+  if (parsed.path !== "supprimer-compte") return;
+  const token = typeof parsed.queryParams?.token === "string" ? parsed.queryParams.token : null;
+  if (!token) return;
+  await authClient.deleteUser({ token });
+  await authClient.signOut();
+});
+```
+
+Helpers partagés (URLs) : `src/lib/better-auth-delete-account-urls.ts`.
 
 ---
 
@@ -164,6 +204,7 @@ Vérifie que :
 |---------|------|
 | `src/lib/auth.ts` | Instance Better Auth + plugin `expo()`. |
 | `src/lib/better-auth-expo-trusted-origins.ts` | Construction de `trustedOrigins` pour Expo. |
+| `src/lib/better-auth-delete-account-urls.ts` | Deep link + URL web de confirmation suppression. |
 | `src/app/api/auth/[...all]/route.ts` | Handler Next pour toutes les routes `/api/auth/*`. |
 
 ## Références

@@ -15,6 +15,7 @@ import {
   isEmailNotVerifiedAuthError,
 } from "@/components/email-verification-prompt";
 import { AuthCallbackQueryToasts } from "@/components/auth-callback-query-toasts";
+import { DeleteAccountQueryToasts } from "@/components/delete-account-query-toasts";
 
 const ADMIN_ROLES = ["admin", "superadmin", "merchant"] as const;
 
@@ -108,6 +109,7 @@ export function AdminGameAuthClient() {
   return (
     <div className="flex min-h-svh w-full flex-col items-center p-6 md:p-10">
       <EmailVerificationQueryToasts />
+      <DeleteAccountQueryToasts />
       <AuthCallbackQueryToasts />
       <div className="mb-6 flex justify-center">
         <BrandMark height={96} />

@@ -12,6 +12,11 @@ import { queueTransactionalEmail } from "@/lib/send-transactional-email";
 import { queueOAuthWelcomeEmail } from "@/lib/user-lifecycle-emails";
 import { betterAuthFrMessages } from "@/lib/better-auth-i18n-fr";
 import { getExpoTrustedOrigins } from "@/lib/better-auth-expo-trusted-origins";
+import { getBetterAuthServerBaseUrl } from "@/lib/public-app-url";
+import {
+  buildDeleteAccountExpoDeepLink,
+  buildDeleteAccountWebConfirmUrl,
+} from "@/lib/better-auth-delete-account-urls";
 import {
   DEFAULT_ADMIN_BAN_REASON,
   DEFAULT_MAX_PASSWORD_LENGTH,
@@ -32,7 +37,7 @@ const discordClientSecret = process.env.DISCORD_CLIENT_SECRET?.trim();
 const discordOAuthEnabled = Boolean(discordClientId && discordClientSecret);
 
 /** Doc Better Auth : URL de base pour les callbacks OAuth (évite redirect_uri_mismatch). */
-const betterAuthBaseUrl = process.env.BETTER_AUTH_URL?.trim();
+const betterAuthBaseUrl = getBetterAuthServerBaseUrl();
 
 /**
  * Fenêtre après création du lien `Account` OAuth : une **nouvelle connexion** recrée une
@@ -82,7 +87,7 @@ export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  ...(betterAuthBaseUrl ? { baseURL: betterAuthBaseUrl } : {}),
+  ...(betterAuthBaseUrl ? { baseURL: betterAuthBaseUrl } : {}), // ex. https://baladindices.fr via NEXT_PUBLIC_APP_URL
   /** Deep links Expo (`scheme://`) + motifs `exp://` en dev. Voir docs/expo-better-auth.md */
   trustedOrigins: getExpoTrustedOrigins(),
   ...(oauthTrustedProviderIds.length > 0
@@ -142,8 +147,63 @@ export const auth = betterAuth({
     }),
   },
   user: {
-    deleteUser: { 
-        enabled: true
+    deleteUser: {
+      enabled: true,
+      sendDeleteAccountVerification: async ({ user: u, url, token }) => {
+        const appDeepLink = buildDeleteAccountExpoDeepLink(token);
+        const webConfirmUrl = buildDeleteAccountWebConfirmUrl(token);
+        queueTransactionalEmail({
+          to: u.email,
+          subject: "Confirmez la suppression de votre compte",
+          text: [
+            `Bonjour${u.name ? ` ${u.name}` : ""},`,
+            "",
+            "Une demande de suppression définitive de votre compte Balad'indice a été enregistrée.",
+            "",
+            "Sur le site (navigateur, compte connecté) :",
+            url,
+            "",
+            "Sur le site (lien avec jeton, page Paramètres) :",
+            webConfirmUrl,
+            "",
+            "Dans l’application mobile : ouvrez ce lien ou copiez-le dans l’app si besoin :",
+            appDeepLink,
+            "",
+            "Sans action de votre part, le compte reste actif. Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.",
+          ].join("\n"),
+          html: buildBrandEmailHtml({
+            preheader: "Confirmez la suppression de votre compte Balad'indice.",
+            headline: "Suppression de compte",
+            blocks: [
+              {
+                type: "p",
+                text: u.name?.trim()
+                  ? `Bonjour ${u.name.trim()},`
+                  : "Bonjour,",
+              },
+              {
+                type: "p",
+                text: "Vous avez demandé la suppression définitive de votre compte. Choisissez le moyen qui correspond à l’endroit où vous utilisez Balad'indice.",
+              },
+              { type: "cta", label: "Confirmer sur le site (lien officiel)", href: url },
+              {
+                type: "cta",
+                label: "Confirmer sur le site (page Paramètres)",
+                href: webConfirmUrl,
+              },
+              {
+                type: "highlight",
+                title: "Application mobile",
+                text: `Ouvrez ce lien depuis votre téléphone (l’app doit être installée) : ${appDeepLink}`,
+              },
+              {
+                type: "p",
+                text: "Sans confirmation, votre compte reste actif. Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.",
+              },
+            ],
+          }),
+        });
+      },
     },
     changeEmail: {
       enabled: true,
