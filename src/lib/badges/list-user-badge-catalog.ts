@@ -119,6 +119,9 @@ const BADGE_KIND_ORDER: readonly BadgeDefinitionKind[] = [
   BadgeDefinitionKind.ADVENTURE_COMPLETE,
   BadgeDefinitionKind.MILESTONE_ADVENTURES,
   BadgeDefinitionKind.MILESTONE_KM,
+  BadgeDefinitionKind.SPECIAL_TIME_WINDOW,
+  BadgeDefinitionKind.PERFORMANCE_STREAK,
+  BadgeDefinitionKind.PERFORMANCE_MONTHLY_KM,
   BadgeDefinitionKind.PARTNER_OFFER,
   BadgeDefinitionKind.DISCOVERY,
 ];
@@ -161,17 +164,21 @@ export async function listUserBadgeCatalog(params: {
 }): Promise<UserBadgeCatalogResult> {
   const now = new Date();
 
+  const globalEvaluatorKinds = [
+    BadgeDefinitionKind.MILESTONE_ADVENTURES,
+    BadgeDefinitionKind.MILESTONE_KM,
+    BadgeDefinitionKind.SPECIAL_TIME_WINDOW,
+    BadgeDefinitionKind.PERFORMANCE_STREAK,
+    BadgeDefinitionKind.PERFORMANCE_MONTHLY_KM,
+  ] as const;
+
   const [milestonesAndAdventures, partnerOffers, discovery] = await Promise.all([
     prisma.badgeDefinition.findMany({
       where: {
         OR: [
           {
-            kind: {
-              in: [
-                BadgeDefinitionKind.MILESTONE_ADVENTURES,
-                BadgeDefinitionKind.MILESTONE_KM,
-              ],
-            },
+            kind: { in: [...globalEvaluatorKinds] },
+            adventureId: null,
           },
           {
             kind: BadgeDefinitionKind.ADVENTURE_COMPLETE,

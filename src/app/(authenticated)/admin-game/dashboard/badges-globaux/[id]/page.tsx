@@ -1,19 +1,20 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { getMilestoneBadgeForAdminEdit } from "../_lib/milestone-badge-queries";
-import { parseThresholdFromCriteria } from "@/lib/badges/milestone-badge-criteria";
-import { MilestoneBadgeForm } from "../_components/MilestoneBadgeForm";
+import {
+  criteriaToFormDefaults,
+  GlobalBadgeForm,
+} from "../_components/GlobalBadgeForm";
+import { getGlobalBadgeForAdminEdit } from "../_lib/global-badge-queries";
+import { isAdminGlobalBadgeKind } from "@/lib/badges/global-badge-metadata";
 
-type MilestoneKind = "MILESTONE_ADVENTURES" | "MILESTONE_KM";
-
-export default async function EditMilestoneBadgePage({
+export default async function EditGlobalBadgePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getMilestoneBadgeForAdminEdit(id);
+  const result = await getGlobalBadgeForAdminEdit(id);
 
   if (!result.ok) {
     if (result.reason === "auth") {
@@ -22,7 +23,11 @@ export default async function EditMilestoneBadgePage({
     notFound();
   }
   const row = result.row;
-  const threshold = parseThresholdFromCriteria(row.kind, row.criteria);
+  if (!isAdminGlobalBadgeKind(row.kind)) {
+    notFound();
+  }
+
+  const criteriaDefaults = criteriaToFormDefaults(row.kind, row.criteria);
 
   return (
     <div className="m-8 space-y-6">
@@ -30,7 +35,7 @@ export default async function EditMilestoneBadgePage({
         href="/admin-game/dashboard/badges-globaux"
         className="inline-flex text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
       >
-        ← Badges globaux (paliers)
+        ← Badges globaux
       </Link>
       <Card className="h-fit p-5">
         <CardHeader className="px-0 pt-0">
@@ -38,16 +43,16 @@ export default async function EditMilestoneBadgePage({
           <CardDescription className="font-mono text-xs">id {row.id}</CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
-          <MilestoneBadgeForm
+          <GlobalBadgeForm
             mode="edit"
             badgeId={row.id}
             slug={row.slug}
             defaultValues={{
               title: row.title,
-              kind: row.kind as MilestoneKind,
-              threshold,
+              kind: row.kind,
               sortOrder: row.sortOrder,
               imageUrl: row.imageUrl ?? "",
+              ...criteriaDefaults,
             }}
           />
         </CardContent>

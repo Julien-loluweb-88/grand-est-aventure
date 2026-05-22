@@ -487,15 +487,24 @@ export function buildGrandEstOpenApiDocument() {
                 "ADVENTURE_COMPLETE",
                 "MILESTONE_ADVENTURES",
                 "MILESTONE_KM",
+                "SPECIAL_TIME_WINDOW",
+                "PERFORMANCE_STREAK",
+                "PERFORMANCE_MONTHLY_KM",
                 "PARTNER_OFFER",
                 "DISCOVERY",
               ],
+              description:
+                "Famille du badge. Paliers : seuils cumulatifs. `SPECIAL_TIME_WINDOW` : plage horaire (ex. nocturne). " +
+                "`PERFORMANCE_*` : assiduité, km du mois. Voir description `GET /api/user/badges`.",
             },
             adventureId: { type: ["string", "null"] },
             criteria: {
               type: ["object", "null"],
               additionalProperties: true,
-              description: "Seuils paliers (`minCompletedAdventures`, `minKmTotal`, …).",
+              description:
+                "Paramètres d’attribution selon `kind`. Exemples : `{ \"minCompletedAdventures\": 5 }`, `{ \"minKmTotal\": 30 }`, " +
+                "`{ \"startHour\": 21, \"endHour\": 6, \"timezone\": \"Europe/Paris\" }`, `{ \"minWeeksConsecutive\": 4 }`. " +
+                "Les badges performance sont **permanents** une fois obtenus.",
             },
             sortOrder: { type: "integer" },
             earned: { type: "boolean", description: "Vrai si le joueur a une ligne `UserBadge`." },
@@ -520,6 +529,9 @@ export function buildGrandEstOpenApiDocument() {
                 "ADVENTURE_COMPLETE",
                 "MILESTONE_ADVENTURES",
                 "MILESTONE_KM",
+                "SPECIAL_TIME_WINDOW",
+                "PERFORMANCE_STREAK",
+                "PERFORMANCE_MONTHLY_KM",
                 "PARTNER_OFFER",
                 "DISCOVERY",
               ],
@@ -538,8 +550,7 @@ export function buildGrandEstOpenApiDocument() {
               type: "array",
               items: { $ref: "#/components/schemas/UserBadgeCatalogGroup" },
               description:
-                "Catalogue éligible (paliers, aventures publiques actives, POI découverte visibles, offres partenaires actives) " +
-                "+ badges déjà acquis hors catalogue, découpé par `kind`. Seuls les kinds présents.",
+                "Catalogue éligible + badges déjà acquis hors catalogue, découpé par `kind`.",
             },
           },
         },
@@ -1991,16 +2002,68 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Utilisateur"],
           summary: "Catalogue badges du joueur connecté",
           description:
-            "Toutes les définitions éligibles avec `earned` / `earnedAt` / `userBadgeId`. " +
-            "Réponse : `groups[]` — une section par `kind`, badges triés dans chaque groupe. " +
-            "UI : griser si `earned` est faux.",
+            "Retourne le catalogue des badges **éligibles** pour ce joueur, avec pour chaque entrée : `earned` (booléen), " +
+            "`earnedAt` (ISO 8601 ou `null`), `userBadgeId` (ou `null`). La réponse est structurée en `groups[]` : une section par `kind`, " +
+            "triée pour l’affichage (paliers, performances, aventures, découverte, offres partenaires).\n\n" +
+            "### Attribution automatique (badges globaux)\n\n" +
+            "La plupart des badges globaux sont évalués à la **fin d’une aventure réussie** (validation trésor / `processGameFinish`). " +
+            "Une fois obtenus, ils restent dans la collection (**permanents** ; ils ne sont pas retirés si un autre joueur bat un record).\n\n" +
+            "| `kind` | Règle (résumé) | Moment |\n" +
+            "|--------|----------------|--------|\n" +
+            "| `MILESTONE_ADVENTURES` | Nombre d’aventures **distinctes** réussies ≥ `criteria.minCompletedAdventures` | Fin parcours réussi |\n" +
+            "| `MILESTONE_KM` | Somme des `distance` (km) des parcours distincts réussis ≥ `criteria.minKmTotal` | Fin parcours réussi |\n" +
+            "| `SPECIAL_TIME_WINDOW` | Fin du parcours entre `startHour` et `endHour` (fuseau `Europe/Paris`, ex. 21h→6h) | Fin parcours réussi |\n" +
+            "| `PERFORMANCE_STREAK` | ≥ `minWeeksConsecutive` semaines Paris consécutives avec ≥ 1 parcours réussi | Fin parcours réussi |\n" +
+            "| `PERFORMANCE_MONTHLY_KM` | Plus de km cumulés sur le **mois civil précédent** (Paris) | Cron `GET /api/cron/award-monthly-km-badges` |\n\n" +
+            "Autres kinds : `ADVENTURE_COMPLETE` (badge lié à une aventure), `DISCOVERY` (point de découverte sur place), " +
+            "`PARTNER_OFFER` (validation commerçant).\n\n" +
+            "**UI** : une rubrique par `kind` ; griser ou masquer les entrées avec `earned: false`. " +
+            "Pour le marcheur du mois, `earnedAt` indique quand le joueur a reçu le trophée du mois écoulé.",
           security: [{ sessionCookie: [] }],
           responses: {
             "200": {
               content: { "application/json": { schema: { $ref: "#/components/schemas/UserBadgesResponse" } } },
-              description: "Liste des badges.",
+              description: "Catalogue groupé par `kind`.",
             },
             "401": { description: "Non connecté." },
+          },
+        },
+      },
+      "/api/cron/award-monthly-km-badges": {
+        get: {
+          tags: ["Cron"],
+          summary: "Attribuer le badge marcheur du mois (mois précédent)",
+          description:
+            "Calcule, pour le **mois civil précédent** (fuseau Europe/Paris), les joueurs ayant le plus de kilomètres cumulés " +
+            "(somme des `Adventure.distance` des parcours distincts terminés avec succès dans ce mois, date de fin = `endedAt` de session). " +
+            "Attribue le badge `PERFORMANCE_MONTHLY_KM` (définition unique en base) à tous les ex æquo. Idempotent : ne recrée pas un `UserBadge` existant.\n\n" +
+            "**Planification** : appeler le **1er jour de chaque mois** (ex. 00:05 Paris).\n\n" +
+            "En-tête `Authorization: Bearer $CRON_SECRET`.",
+          responses: {
+            "200": {
+              description: "Attribution terminée.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: ["ok", "period", "winnerCount", "awardedUserBadgeIds"],
+                    properties: {
+                      ok: { type: "boolean", const: true },
+                      period: { type: "string", example: "2026-04", description: "Mois traité (YYYY-MM, Paris)." },
+                      definitionId: { type: ["string", "null"], description: "Id `BadgeDefinition` ou null si absent en base." },
+                      winnerCount: { type: "integer" },
+                      awardedUserBadgeIds: {
+                        type: "array",
+                        items: { type: "string" },
+                        description: "Nouveaux `UserBadge` créés lors de cet appel.",
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "401": { description: "Secret invalide." },
+            "503": { description: "CRON_SECRET non configuré." },
           },
         },
       },

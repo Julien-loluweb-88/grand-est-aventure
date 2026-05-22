@@ -1,15 +1,19 @@
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
+import {
+  parseMilestoneAdventuresCriteria,
+  parseMilestoneKmCriteria,
+} from "@/lib/badges/criteria/parse-criteria";
 
+/** Seuil numérique pour les paliers admin (parcours ou km). */
 export function parseThresholdFromCriteria(
   kind: BadgeDefinitionKind,
   raw: unknown
 ): number {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return 1;
-  const o = raw as Record<string, unknown>;
   if (kind === BadgeDefinitionKind.MILESTONE_ADVENTURES) {
-    const n = Number(o.minCompletedAdventures);
-    return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+    return parseMilestoneAdventuresCriteria(raw).minCompletedAdventures ?? 1;
   }
-  const n = Number(o.minKmTotal);
-  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 1;
+  if (kind === BadgeDefinitionKind.MILESTONE_KM) {
+    return parseMilestoneKmCriteria(raw).minKmTotal ?? 1;
+  }
+  return 1;
 }

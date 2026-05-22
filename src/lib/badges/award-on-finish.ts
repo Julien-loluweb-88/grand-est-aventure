@@ -1,64 +1,14 @@
 import type { Prisma } from "../../../generated/prisma/client";
 import {
   AdventureBadgeInstanceStatus,
-  BadgeDefinitionKind,
 } from "../../../generated/prisma/client";
+import { UserAdventurePlaySessionStatus } from "../../../generated/prisma/client";
+import { evaluateGlobalBadgesOnFinish } from "@/lib/badges/evaluate-global-badges";
+import { awardBadgeOnce } from "@/lib/badges/award-once";
 import { assertCanFinishWithSuccess } from "@/lib/game/server-adventure-progress";
 import { closeActivePlaySession } from "@/lib/game/user-adventure-play-session";
 
 type Tx = Prisma.TransactionClient;
-
-type Criteria = {
-  minCompletedAdventures?: number;
-  minKmTotal?: number;
-};
-
-function parseCriteria(raw: Prisma.JsonValue | null | undefined): Criteria {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return {};
-  }
-  return raw as Criteria;
-}
-
-/** Compte d’aventures distinctes réussies pour l’utilisateur. */
-async function countDistinctCompletedAdventures(
-  tx: Tx,
-  userId: string
-): Promise<number> {
-  const grouped = await tx.userAdventures.groupBy({
-    by: ["adventureId"],
-    where: { userId, success: true },
-    _count: true,
-  });
-  return grouped.length;
-}
-
-/** Somme des distances (km) des aventures distinctes réussies (une fois par aventure). */
-async function sumKmCompletedAdventures(
-  tx: Tx,
-  userId: string
-): Promise<number> {
-  const distinct = await tx.userAdventures.findMany({
-    where: { userId, success: true },
-    distinct: ["adventureId"],
-    select: { adventureId: true },
-  });
-  if (distinct.length === 0) {
-    return 0;
-  }
-  const adventures = await tx.adventure.findMany({
-    where: { id: { in: distinct.map((d) => d.adventureId) } },
-    select: { distance: true },
-  });
-  let sum = 0;
-  for (const a of adventures) {
-    const d = a.distance;
-    if (typeof d === "number" && !Number.isNaN(d)) {
-      sum += d;
-    }
-  }
-  return sum;
-}
 
 export async function processGameFinish(
   tx: Tx,
@@ -133,65 +83,33 @@ export async function processGameFinish(
     where: { adventureId },
   });
   if (adventureDef) {
-    const row = await tx.userBadge.upsert({
-      where: {
-        userId_badgeDefinitionId: {
-          userId,
-          badgeDefinitionId: adventureDef.id,
-        },
-      },
-      create: { userId, badgeDefinitionId: adventureDef.id },
-      update: {},
+    const id = await awardBadgeOnce(tx, {
+      userId,
+      badgeDefinitionId: adventureDef.id,
     });
-    awardedUserBadgeIds.push(row.id);
+    if (id) {
+      awardedUserBadgeIds.push(id);
+    }
   }
 
-  const milestones = await tx.badgeDefinition.findMany({
+  const closedSession = await tx.userAdventurePlaySession.findFirst({
     where: {
-      kind: {
-        in: [
-          BadgeDefinitionKind.MILESTONE_ADVENTURES,
-          BadgeDefinitionKind.MILESTONE_KM,
-        ],
-      },
+      userId,
+      adventureId,
+      status: UserAdventurePlaySessionStatus.COMPLETED_SUCCESS,
     },
+    orderBy: { endedAt: "desc" },
+    select: { endedAt: true, durationSeconds: true },
   });
 
-  const completedAdventures = await countDistinctCompletedAdventures(
-    tx,
-    userId
-  );
-  const totalKm = await sumKmCompletedAdventures(tx, userId);
-
-  for (const def of milestones) {
-    const c = parseCriteria(def.criteria);
-    let ok = false;
-    if (def.kind === BadgeDefinitionKind.MILESTONE_ADVENTURES) {
-      const min = c.minCompletedAdventures;
-      if (typeof min === "number" && completedAdventures >= min) {
-        ok = true;
-      }
-    } else if (def.kind === BadgeDefinitionKind.MILESTONE_KM) {
-      const min = c.minKmTotal;
-      if (typeof min === "number" && totalKm >= min) {
-        ok = true;
-      }
-    }
-    if (!ok) {
-      continue;
-    }
-    const row = await tx.userBadge.upsert({
-      where: {
-        userId_badgeDefinitionId: {
-          userId,
-          badgeDefinitionId: def.id,
-        },
-      },
-      create: { userId, badgeDefinitionId: def.id },
-      update: {},
-    });
-    awardedUserBadgeIds.push(row.id);
-  }
+  const globalAwarded = await evaluateGlobalBadgesOnFinish(tx, {
+    userId,
+    adventureId,
+    success: true,
+    sessionEndedAt: closedSession?.endedAt ?? new Date(),
+    durationSeconds: closedSession?.durationSeconds ?? null,
+  });
+  awardedUserBadgeIds.push(...globalAwarded);
 
   return { awardedUserBadgeIds };
 }
