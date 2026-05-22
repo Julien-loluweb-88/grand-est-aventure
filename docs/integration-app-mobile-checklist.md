@@ -170,7 +170,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### Badges joueur
 
-- [ ] `GET /api/user/badges` après victoire (ou retour collection) : lire `items[]`, afficher gris si `earned === false`, couleur si acquis.
+- [ ] `GET /api/user/badges` après victoire (ou retour collection) : lire `groups[]` / `items` par section, gris si `earned === false`, couleur si acquis.
 
 ### Cases récap
 

@@ -510,16 +510,36 @@ export function buildGrandEstOpenApiDocument() {
             },
           },
         },
-        UserBadgesResponse: {
+        UserBadgeCatalogGroup: {
           type: "object",
-          required: ["items"],
+          required: ["kind", "items"],
           properties: {
+            kind: {
+              type: "string",
+              enum: [
+                "ADVENTURE_COMPLETE",
+                "MILESTONE_ADVENTURES",
+                "MILESTONE_KM",
+                "PARTNER_OFFER",
+                "DISCOVERY",
+              ],
+            },
             items: {
               type: "array",
               items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+            },
+          },
+        },
+        UserBadgesResponse: {
+          type: "object",
+          required: ["groups"],
+          properties: {
+            groups: {
+              type: "array",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogGroup" },
               description:
                 "Catalogue éligible (paliers, aventures publiques actives, POI découverte visibles, offres partenaires actives) " +
-                "+ badges déjà acquis hors catalogue (aventure désactivée, pub expirée, …). Tri `sortOrder` puis titre.",
+                "+ badges déjà acquis hors catalogue, découpé par `kind`. Seuls les kinds présents.",
             },
           },
         },
@@ -1972,8 +1992,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Catalogue badges du joueur connecté",
           description:
             "Toutes les définitions éligibles avec `earned` / `earnedAt` / `userBadgeId`. " +
-            "Tri : `kind` (ADVENTURE_COMPLETE → paliers → partenaire → découverte), puis `sortOrder`, puis titre. " +
-            "UI : afficher en gris si `earned` est faux, en couleur sinon.",
+            "Réponse : `groups[]` — une section par `kind`, badges triés dans chaque groupe. " +
+            "UI : griser si `earned` est faux.",
           security: [{ sessionCookie: [] }],
           responses: {
             "200": {

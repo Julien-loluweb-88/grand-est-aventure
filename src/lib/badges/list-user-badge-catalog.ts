@@ -29,6 +29,16 @@ export type UserBadgeCatalogItem = DefinitionRow & {
   userBadgeId: string | null;
 };
 
+export type UserBadgeCatalogGroup = {
+  kind: BadgeDefinitionKind;
+  items: UserBadgeCatalogItem[];
+};
+
+export type UserBadgeCatalogResult = {
+  /** Sections par `kind` (kind → sortOrder → titre dans chaque groupe). */
+  groups: UserBadgeCatalogGroup[];
+};
+
 function activePartnerAdvertisementWhere(now: Date): Prisma.AdvertisementWhereInput {
   return {
     active: true,
@@ -129,11 +139,26 @@ function sortCatalogItems(a: UserBadgeCatalogItem, b: UserBadgeCatalogItem): num
   return a.title.localeCompare(b.title, "fr");
 }
 
+function groupCatalogItemsByKind(
+  items: UserBadgeCatalogItem[]
+): UserBadgeCatalogGroup[] {
+  const groups: UserBadgeCatalogGroup[] = [];
+  for (const item of items) {
+    const last = groups[groups.length - 1];
+    if (last?.kind === item.kind) {
+      last.items.push(item);
+    } else {
+      groups.push({ kind: item.kind, items: [item] });
+    }
+  }
+  return groups;
+}
+
 /** Catalogue complet (définitions éligibles) + état acquis pour un joueur. */
 export async function listUserBadgeCatalog(params: {
   userId: string;
   role: string | null | undefined;
-}): Promise<UserBadgeCatalogItem[]> {
+}): Promise<UserBadgeCatalogResult> {
   const now = new Date();
 
   const [milestonesAndAdventures, partnerOffers, discovery] = await Promise.all([
@@ -210,5 +235,5 @@ export async function listUserBadgeCatalog(params: {
   });
 
   items.sort(sortCatalogItems);
-  return items;
+  return { groups: groupCatalogItemsByKind(items) };
 }

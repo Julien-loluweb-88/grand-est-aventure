@@ -14,10 +14,10 @@ export async function GET() {
   }
 
   const role = await getUserRoleForAccess(session.user.id);
-  const items = await listUserBadgeCatalog({
+  const catalog = await listUserBadgeCatalog({
     userId: session.user.id,
     role,
   });
 
-  return NextResponse.json({ items });
+  return NextResponse.json(catalog);
 }
