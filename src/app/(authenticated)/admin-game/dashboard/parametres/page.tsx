@@ -3,7 +3,6 @@ import { PwaInstallPanel } from "@/components/pwa/pwa-install-panel";
 import { ChangePasswordForm } from "@/components/change-password-form";
 import { ChangeEmailForm } from "@/components/change-email-form";
 import { DeleteAccountForm } from "@/components/delete-account-form";
-import { DeleteAccountTokenHandler } from "@/components/delete-account-token-handler";
 import { EmailVerificationQueryToasts } from "@/components/email-verification-prompt";
 import { getUser } from "@/lib/auth/auth-user";
 import {
@@ -22,7 +21,6 @@ export default async function ParametresPage() {
     <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
       <Suspense fallback={null}>
         <EmailVerificationQueryToasts />
-        <DeleteAccountTokenHandler />
       </Suspense>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Paramètres</h1>

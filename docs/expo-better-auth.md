@@ -159,18 +159,21 @@ Vérifie que :
 Côté serveur (`src/lib/auth.ts`) : `user.deleteUser.enabled` et `sendDeleteAccountVerification` envoient un e-mail avec :
 
 - le **lien officiel** Better Auth (`url`) — confirmation dans le navigateur si la session web est active ;
-- une page **Paramètres** avec jeton : `/admin-game/dashboard/parametres?deleteToken=…` ;
-- un **deep link** : `{scheme}://supprimer-compte?token=…` (schéma = `BETTER_AUTH_EXPO_SCHEME`, défaut `grandestaventure`).
+- page web **confirmation** : `/confirmer-suppression?deleteToken=…` → puis redirection `/au-revoir` ;
+- **deep link** confirmation : `{scheme}://supprimer-compte?token=…` ;
+- **deep link adieu** (après suppression app) : `{scheme}://au-revoir` (écran « au revoir » dans l’app).
 
 ### Web (ce repo)
 
-- Formulaire : **Paramètres** du dashboard (`DeleteAccountForm`).
-- Mot de passe → suppression immédiate ; sans mot de passe (OAuth) → e-mail, puis `DeleteAccountTokenHandler` ou lien officiel.
+- Formulaire : **Paramètres** du dashboard (`DeleteAccountForm`) → après succès : `/au-revoir`.
+- E-mail : **deux boutons** uniquement (pas d’URL affichée sous les boutons).
+- Lien e-mail web → `/confirmer-suppression?deleteToken=…` → `/au-revoir`.
 
 ### App Expo (à brancher)
 
 1. Écran paramètres : `authClient.deleteUser({ password })` ou `deleteUser()` (e-mail si OAuth).
-2. Deep link `supprimer-compte` : parser `token`, puis `await authClient.deleteUser({ token, callbackURL: "…" })`, déconnexion locale, navigation accueil.
+2. Deep link `supprimer-compte` : parser `token`, puis `deleteUser({ token })`, `signOut()`, `router.replace` vers écran **au revoir** (ex. route `/au-revoir` ou deep link `grandestaventure://au-revoir`).
+3. Écran **au revoir** : message triste + bouton accueil (miroir de la page web `https://baladindices.fr/au-revoir`).
 
 ```ts
 // Exemple (expo-router + Linking)
@@ -181,8 +184,9 @@ Linking.addEventListener("url", async ({ url }) => {
   if (parsed.path !== "supprimer-compte") return;
   const token = typeof parsed.queryParams?.token === "string" ? parsed.queryParams.token : null;
   if (!token) return;
-  await authClient.deleteUser({ token });
+  await authClient.deleteUser({ token, callbackURL: "/au-revoir" });
   await authClient.signOut();
+  router.replace("/au-revoir"); // ou écran dédié « adieu »
 });
 ```
 

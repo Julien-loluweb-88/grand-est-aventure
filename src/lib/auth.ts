@@ -149,7 +149,7 @@ export const auth = betterAuth({
   user: {
     deleteUser: {
       enabled: true,
-      sendDeleteAccountVerification: async ({ user: u, url, token }) => {
+      sendDeleteAccountVerification: async ({ user: u, token }) => {
         const appDeepLink = buildDeleteAccountExpoDeepLink(token);
         const webConfirmUrl = buildDeleteAccountWebConfirmUrl(token);
         queueTransactionalEmail({
@@ -160,14 +160,7 @@ export const auth = betterAuth({
             "",
             "Une demande de suppression définitive de votre compte Balad'indice a été enregistrée.",
             "",
-            "Sur le site (navigateur, compte connecté) :",
-            url,
-            "",
-            "Sur le site (lien avec jeton, page Paramètres) :",
-            webConfirmUrl,
-            "",
-            "Dans l’application mobile : ouvrez ce lien ou copiez-le dans l’app si besoin :",
-            appDeepLink,
+            "Pour confirmer, ouvrez la version HTML de cet e-mail et utilisez les boutons « Confirmer sur le site » ou « Confirmer dans l’application ».",
             "",
             "Sans action de votre part, le compte reste actif. Si vous n’êtes pas à l’origine de cette demande, ignorez ce message.",
           ].join("\n"),
@@ -183,18 +176,19 @@ export const auth = betterAuth({
               },
               {
                 type: "p",
-                text: "Vous avez demandé la suppression définitive de votre compte. Choisissez le moyen qui correspond à l’endroit où vous utilisez Balad'indice.",
+                text: "Vous avez demandé la suppression définitive de votre compte. Choisissez le bouton qui correspond à l’endroit où vous utilisez Balad'indice.",
               },
-              { type: "cta", label: "Confirmer sur le site (lien officiel)", href: url },
               {
                 type: "cta",
-                label: "Confirmer sur le site (page Paramètres)",
+                label: "Confirmer sur le site",
                 href: webConfirmUrl,
+                hideLinkFallback: true,
               },
               {
-                type: "highlight",
-                title: "Application mobile",
-                text: `Ouvrez ce lien depuis votre téléphone (l’app doit être installée) : ${appDeepLink}`,
+                type: "cta",
+                label: "Confirmer dans l’application",
+                href: appDeepLink,
+                hideLinkFallback: true,
               },
               {
                 type: "p",

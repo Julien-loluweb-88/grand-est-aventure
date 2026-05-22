@@ -59,10 +59,15 @@ export function getChangeEmailCallbackUrl(): string {
   return `${origin}${path}`;
 }
 
-/** Après suppression réussie du compte (Better Auth `deleteUser` + `callbackURL`). */
+/** Page d’adieu après suppression réussie (web + `callbackURL` Better Auth). */
+export function getFarewellPagePath(): string {
+  return "/au-revoir";
+}
+
+/** URL absolue de la page d’adieu. */
 export function getDeleteAccountCallbackUrl(): string {
   const origin = getPublicAppOrigin();
-  const path = "/admin-game?deleted=1";
+  const path = getFarewellPagePath();
   if (!origin) {
     return path;
   }

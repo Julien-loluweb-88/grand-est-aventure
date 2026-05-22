@@ -33,7 +33,7 @@ export type BrandEmailBlock =
       title?: string;
       text: string;
     }
-  | { type: "cta"; label: string; href: string }
+  | { type: "cta"; label: string; href: string; hideLinkFallback?: boolean }
   | { type: "pre"; text: string };
 
 function blockToHtml(b: BrandEmailBlock): string {
@@ -48,8 +48,13 @@ function blockToHtml(b: BrandEmailBlock): string {
         : "";
       return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 18px;border-radius:8px;background:${BRAND.cream};border-left:4px solid ${BRAND.green};"><tr><td style="padding:14px 16px;">${title}<p style="margin:0;color:${BRAND.brown};font-size:15px;line-height:1.5;white-space:pre-wrap;">${escapeHtmlForBrandEmail(b.text)}</p></td></tr></table>`;
     }
-    case "cta":
-      return `<p style="margin:24px 0 8px;text-align:center;"><a href="${escapeHtmlForBrandEmail(b.href)}" style="display:inline-block;padding:14px 28px;background:${BRAND.green};color:${BRAND.white};font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">${escapeHtmlForBrandEmail(b.label)}</a></p><p style="margin:0;font-size:12px;color:${BRAND.brown};opacity:0.65;text-align:center;">Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :<br/><span style="word-break:break-all;">${escapeHtmlForBrandEmail(b.href)}</span></p>`;
+    case "cta": {
+      const button = `<p style="margin:24px 0 8px;text-align:center;"><a href="${escapeHtmlForBrandEmail(b.href)}" style="display:inline-block;padding:14px 28px;background:${BRAND.green};color:${BRAND.white};font-weight:700;font-size:15px;text-decoration:none;border-radius:8px;">${escapeHtmlForBrandEmail(b.label)}</a></p>`;
+      if (b.hideLinkFallback) {
+        return button;
+      }
+      return `${button}<p style="margin:0;font-size:12px;color:${BRAND.brown};opacity:0.65;text-align:center;">Si le bouton ne fonctionne pas, copiez-collez ce lien dans votre navigateur :<br/><span style="word-break:break-all;">${escapeHtmlForBrandEmail(b.href)}</span></p>`;
+    }
     case "pre":
       return `<pre style="margin:0 0 16px;padding:14px;background:#f0ebe3;border-radius:8px;font-size:13px;line-height:1.45;color:${BRAND.brown};white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,Consolas,monospace;">${escapeHtmlForBrandEmail(b.text)}</pre>`;
     default:

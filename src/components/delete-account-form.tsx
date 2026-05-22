@@ -86,7 +86,6 @@ export function DeleteAccountForm({ userEmail }: DeleteAccountFormProps) {
         }
 
         await authClient.signOut();
-        toast.success("Votre compte a été supprimé.");
         dialogRef.current?.close();
         resetDialog();
         router.replace(getDeleteAccountCallbackUrl());

@@ -21,6 +21,12 @@ export function buildDeleteAccountExpoDeepLink(token: string): string {
  */
 export function buildDeleteAccountWebConfirmUrl(token: string): string {
   const origin = getPublicAppOrigin();
-  const path = `/admin-game/dashboard/parametres?deleteToken=${encodeURIComponent(token)}`;
+  const path = `/confirmer-suppression?deleteToken=${encodeURIComponent(token)}`;
   return origin ? `${origin}${path}` : path;
+}
+
+/** Deep link page d’adieu après suppression réussie (app Expo). */
+export function buildDeleteAccountExpoFarewellDeepLink(): string {
+  const scheme = getExpoAuthScheme();
+  return `${scheme}://au-revoir`;
 }
