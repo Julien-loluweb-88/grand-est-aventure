@@ -104,7 +104,25 @@ async function discoveryDefinitionsVisibleToUser(params: {
   return out;
 }
 
+/** Ordre d’affichage des groupes (aligné sur l’enum Prisma `BadgeDefinitionKind`). */
+const BADGE_KIND_ORDER: readonly BadgeDefinitionKind[] = [
+  BadgeDefinitionKind.ADVENTURE_COMPLETE,
+  BadgeDefinitionKind.MILESTONE_ADVENTURES,
+  BadgeDefinitionKind.MILESTONE_KM,
+  BadgeDefinitionKind.PARTNER_OFFER,
+  BadgeDefinitionKind.DISCOVERY,
+];
+
+function kindSortIndex(kind: BadgeDefinitionKind): number {
+  const index = BADGE_KIND_ORDER.indexOf(kind);
+  return index === -1 ? BADGE_KIND_ORDER.length : index;
+}
+
 function sortCatalogItems(a: UserBadgeCatalogItem, b: UserBadgeCatalogItem): number {
+  const byKind = kindSortIndex(a.kind) - kindSortIndex(b.kind);
+  if (byKind !== 0) {
+    return byKind;
+  }
   if (a.sortOrder !== b.sortOrder) {
     return a.sortOrder - b.sortOrder;
   }

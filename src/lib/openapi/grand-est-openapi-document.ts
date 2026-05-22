@@ -1972,6 +1972,7 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Catalogue badges du joueur connecté",
           description:
             "Toutes les définitions éligibles avec `earned` / `earnedAt` / `userBadgeId`. " +
+            "Tri : `kind` (ADVENTURE_COMPLETE → paliers → partenaire → découverte), puis `sortOrder`, puis titre. " +
             "UI : afficher en gris si `earned` est faux, en couleur sinon.",
           security: [{ sessionCookie: [] }],
           responses: {
