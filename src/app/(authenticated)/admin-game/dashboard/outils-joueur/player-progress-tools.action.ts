@@ -2,7 +2,7 @@
 
 import { isSuperadmin } from "@/lib/admin-access";
 import { getUser } from "@/lib/auth/auth-user";
-import type { AdventureReviewModerationStatus } from "../../../../../generated/prisma/client";
+import type { AdventureReviewModerationStatus } from "@/lib/badges/prisma-enums";
 import {
   getPlayerAdventureProgressSnapshot,
   superadminDeleteAdventureReview,
