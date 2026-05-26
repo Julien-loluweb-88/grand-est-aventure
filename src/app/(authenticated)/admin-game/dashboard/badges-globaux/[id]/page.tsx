@@ -1,10 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  criteriaToFormDefaults,
-  GlobalBadgeForm,
-} from "../_components/GlobalBadgeForm";
+import { GlobalBadgeForm } from "../_components/GlobalBadgeForm";
+import { criteriaToFormDefaults } from "../_lib/criteria-form-defaults";
 import { getGlobalBadgeForAdminEdit } from "../_lib/global-badge-queries";
 import { isAdminGlobalBadgeKind } from "@/lib/badges/global-badge-metadata";
 
