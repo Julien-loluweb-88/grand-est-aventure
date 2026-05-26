@@ -18,7 +18,6 @@ export const SWAGGER_PATH_ORDER: readonly string[] = [
   "/api/game/adventure-partner-lots/redeem",
   "/api/game/adventure-review",
   "/api/game/adventure-reviews",
-  "/api/game/adventure-reviews/{id}",
   "/api/advertisements",
   "/api/advertisements/events",
   "/api/partner-offers/claims",

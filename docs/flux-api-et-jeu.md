@@ -57,8 +57,7 @@ Références complémentaires :
 | `POST` | `/api/game/adventure-partner-lots/spin` | Si `wheel === "ready"` : tirage **serveur** (une fois par couple utilisateur × aventure). |
 | `POST` | `/api/game/adventure-partner-lots/redeem` | En magasin : confirmation **usage unique** du gain ; **200** idempotent si déjà validé (`alreadyRedeemed`). |
 | `POST` | `/api/game/adventure-review` | Avis / signalements fin de parcours. |
-| `GET` | `/api/game/adventure-reviews` | Liste publique d’avis modérés. |
-| `GET` | `/api/game/adventure-reviews/{id}` | Détail d’un avis public. |
+| `GET` | `/api/game/adventure-reviews` | Liste publique d’avis modérés ; `?reportsOnly=true` pour les signalements badge / trésor. |
 
 ### 2.4 Jeu — découverte (hors fil d’énigmes)
 

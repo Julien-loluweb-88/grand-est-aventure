@@ -278,8 +278,7 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 | POST | `/api/game/adventure-partner-lots/spin` | Tirage serveur une fois par aventure réussie ; corps `adventureId`, `userId` |
 | POST | `/api/game/adventure-partner-lots/redeem` | Validation **en magasin** (usage unique, idempotent si déjà validé) ; corps `adventureId`, `userId` |
 | POST | `/api/game/adventure-review` | Avis fin de partie |
-| GET | `/api/game/adventure-reviews` | Liste avis publics |
-| GET | `/api/game/adventure-reviews/{id}` | Détail avis approuvé |
+| GET | `/api/game/adventure-reviews` | Liste avis publics ; `?reportsOnly=true` pour signalements |
 | GET | `/api/game/discovery-points` | POI « découverte » d’une ville (`?cityId=`) ; POI liés à une **démo** filtrés selon la session |
 | POST | `/api/game/claim-discovery` | Réclamer le badge d’un POI (session + position GPS) |
 

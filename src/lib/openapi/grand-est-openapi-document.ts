@@ -203,38 +203,48 @@ export function buildGrandEstOpenApiDocument() {
         },
         AdventureReviewPublicItem: {
           type: "object",
-          required: ["id", "createdAt"],
-          properties: {
-            id: { type: "string" },
-            rating: { type: ["integer", "null"], minimum: 1, maximum: 5 },
-            content: { type: ["string", "null"] },
-            imageUrl: { type: ["string", "null"] },
-            createdAt: { type: "string", format: "date-time" },
-            authorDisplayName: { type: ["string", "null"], description: "Prénom ou premier mot du nom affiché." },
-          },
-        },
-        AdventureReviewPublicListResponse: {
-          type: "object",
-          required: ["total", "limit", "offset", "reviews"],
-          properties: {
-            total: { type: "integer" },
-            limit: { type: "integer" },
-            offset: { type: "integer" },
-            reviews: { type: "array", items: { $ref: "#/components/schemas/AdventureReviewPublicItem" } },
-          },
-        },
-        AdventureReviewPublicDetail: {
-          type: "object",
-          required: ["id", "adventureId", "adventureName", "createdAt"],
+          required: [
+            "id",
+            "adventureId",
+            "adventureName",
+            "createdAt",
+            "reportsMissingBadge",
+            "reportsStolenTreasure",
+          ],
           properties: {
             id: { type: "string" },
             adventureId: { type: "string" },
             adventureName: { type: "string" },
-            rating: { type: ["integer", "null"] },
+            rating: { type: ["integer", "null"], minimum: 1, maximum: 5 },
             content: { type: ["string", "null"] },
             imageUrl: { type: ["string", "null"] },
             createdAt: { type: "string", format: "date-time" },
-            authorDisplayName: { type: ["string", "null"] },
+            reportsMissingBadge: {
+              type: "boolean",
+              description: "Signalement public : badge indisponible (rupture, perte, vol au point de retrait).",
+            },
+            reportsStolenTreasure: {
+              type: "boolean",
+              description: "Signalement public : trésor absent, vandalisé ou volé.",
+            },
+            authorDisplayName: {
+              type: ["string", "null"],
+              description: "Prénom ou premier mot du nom affiché.",
+            },
+          },
+        },
+        AdventureReviewPublicListResponse: {
+          type: "object",
+          required: ["total", "limit", "offset", "reportsOnly", "reviews"],
+          properties: {
+            total: { type: "integer" },
+            limit: { type: "integer" },
+            offset: { type: "integer" },
+            reportsOnly: {
+              type: "boolean",
+              description: "Vrai si la liste ne contient que des signalements badge / trésor approuvés.",
+            },
+            reviews: { type: "array", items: { $ref: "#/components/schemas/AdventureReviewPublicItem" } },
           },
         },
         PartnerOfferClaimCreateResponse: {
@@ -1587,10 +1597,12 @@ export function buildGrandEstOpenApiDocument() {
       "/api/game/adventure-reviews": {
         get: {
           tags: ["Jeu"],
-          summary: "Liste des avis publics (modérés)",
+          summary: "Liste des avis et signalements publics (modérés)",
           description:
-            "Retourne uniquement les avis avec **moderationStatus = APPROVED** pour une aventure active. " +
-            "Pas d’identifiant utilisateur brut : `authorDisplayName` est dérivé du prénom / premier mot du nom. " +
+            "Retourne uniquement les entrées avec **moderationStatus = APPROVED** pour une aventure active. " +
+            "Chaque élément inclut `reportsMissingBadge` et `reportsStolenTreasure` (signalements fin de parcours validés par l’admin). " +
+            "Avec **`reportsOnly=true`** : uniquement les lignes où l’un des deux booléens est vrai. " +
+            "Sans ce filtre : tous les avis approuvés. `authorDisplayName` = prénom / premier mot du nom si présent. " +
             "Pour une aventure **démo**, la session doit avoir le **droit** de voir cette aventure ; sinon **404**.",
           parameters: [
             {
@@ -1598,6 +1610,14 @@ export function buildGrandEstOpenApiDocument() {
               in: "query",
               required: true,
               schema: { type: "string" },
+            },
+            {
+              name: "reportsOnly",
+              in: "query",
+              required: false,
+              schema: { type: "boolean", default: false },
+              description:
+                "Si `true`, ne retourne que les signalements badge / trésor approuvés (section alertes accueil).",
             },
             {
               name: "limit",
@@ -1623,29 +1643,6 @@ export function buildGrandEstOpenApiDocument() {
             "404": {
               description:
                 "Aventure introuvable, inactive, ou **démo** sans accès pour l’appelant.",
-            },
-            "429": { description: "Trop de requêtes." },
-          },
-        },
-      },
-      "/api/game/adventure-reviews/{id}": {
-        get: {
-          tags: ["Jeu"],
-          summary: "Détail d’un avis public",
-          description:
-            "Uniquement si l’avis est **APPROVED** et l’aventure encore active. " +
-            "Si l’aventure est **démo**, session + droit d’accès requis ; sinon **404**.",
-          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-          responses: {
-            "200": {
-              content: {
-                "application/json": { schema: { $ref: "#/components/schemas/AdventureReviewPublicDetail" } },
-              },
-              description: "Avis publié.",
-            },
-            "404": {
-              description:
-                "Avis introuvable, non approuvé, aventure inactive, ou **démo** sans accès.",
             },
             "429": { description: "Trop de requêtes." },
           },

@@ -8,6 +8,7 @@ import {
 } from "@/lib/adventure-public-access";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
+import type { Prisma } from "../../../../../generated/prisma/client";
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 60;
@@ -20,6 +21,12 @@ function parseIntParam(value: string | null, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+function parseBooleanQuery(value: string | null): boolean {
+  if (value == null || value.trim() === "") return false;
+  const t = value.trim().toLowerCase();
+  return t === "true" || t === "1" || t === "yes";
+}
+
 function publicAuthorName(name: string | null | undefined): string | null {
   if (!name?.trim()) return null;
   const first = name.trim().split(/\s+/)[0];
@@ -28,7 +35,7 @@ function publicAuthorName(name: string | null | undefined): string | null {
 
 /**
  * Liste des avis **publics** : uniquement `moderationStatus === APPROVED`.
- * Query : `adventureId` (obligatoire), `limit`, `offset`.
+ * Query : `adventureId` (obligatoire), `limit`, `offset`, `reportsOnly` (signalements badge / trésor).
  */
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
@@ -48,6 +55,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Paramètre adventureId requis." }, { status: 400 });
   }
 
+  const reportsOnly = parseBooleanQuery(request.nextUrl.searchParams.get("reportsOnly"));
+
   const limit = Math.min(
     MAX_LIMIT,
     Math.max(1, parseIntParam(request.nextUrl.searchParams.get("limit"), DEFAULT_LIMIT))
@@ -56,7 +65,7 @@ export async function GET(request: NextRequest) {
 
   const adventure = await prisma.adventure.findFirst({
     where: { id: adventureId, status: true },
-    select: { id: true, audience: true },
+    select: { id: true, name: true, audience: true },
   });
   if (!adventure) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
@@ -76,12 +85,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
   }
 
+  const reviewWhere: Prisma.AdventureReviewWhereInput = {
+    adventureId,
+    moderationStatus: "APPROVED",
+    ...(reportsOnly
+      ? { OR: [{ reportsMissingBadge: true }, { reportsStolenTreasure: true }] }
+      : {}),
+  };
+
   const [total, rows] = await Promise.all([
-    prisma.adventureReview.count({
-      where: { adventureId, moderationStatus: "APPROVED" },
-    }),
+    prisma.adventureReview.count({ where: reviewWhere }),
     prisma.adventureReview.findMany({
-      where: { adventureId, moderationStatus: "APPROVED" },
+      where: reviewWhere,
       orderBy: { createdAt: "desc" },
       skip: offset,
       take: limit,
@@ -91,6 +106,8 @@ export async function GET(request: NextRequest) {
         content: true,
         image: true,
         createdAt: true,
+        reportsMissingBadge: true,
+        reportsStolenTreasure: true,
         user: { select: { name: true } },
       },
     }),
@@ -100,12 +117,17 @@ export async function GET(request: NextRequest) {
     total,
     limit,
     offset,
+    reportsOnly,
     reviews: rows.map((r) => ({
       id: r.id,
+      adventureId: adventure.id,
+      adventureName: adventure.name,
       rating: r.rating,
       content: r.content,
       imageUrl: r.image,
       createdAt: r.createdAt.toISOString(),
+      reportsMissingBadge: r.reportsMissingBadge,
+      reportsStolenTreasure: r.reportsStolenTreasure,
       authorDisplayName: publicAuthorName(r.user.name),
     })),
   });
