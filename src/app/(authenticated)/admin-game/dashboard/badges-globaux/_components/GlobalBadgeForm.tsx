@@ -34,12 +34,6 @@ import {
   GLOBAL_BADGE_KIND_META,
   type AdminGlobalBadgeKindValue,
 } from "@/lib/badges/global-badge-kind-meta";
-import {
-  parseMilestoneAdventuresCriteria,
-  parseMilestoneKmCriteria,
-  parseStreakCriteria,
-  parseTimeWindowCriteria,
-} from "@/lib/badges/criteria/parse-criteria";
 import { MILESTONE_BADGE_TITLE_MAX_CHARS } from "@/lib/dashboard-text-limits";
 import { FieldCharacterCount } from "@/components/ui/field-character-count";
 
@@ -73,30 +67,6 @@ export type GlobalBadgeFormProps = {
   slug?: string;
   defaultValues?: Partial<FormValues>;
 };
-
-export function criteriaToFormDefaults(
-  kind: AdminGlobalBadgeKindValue,
-  criteria: unknown
-): Partial<FormValues> {
-  switch (kind) {
-    case "MILESTONE_ADVENTURES":
-      return {
-        threshold: parseMilestoneAdventuresCriteria(criteria).minCompletedAdventures ?? 1,
-      };
-    case "MILESTONE_KM":
-      return { threshold: parseMilestoneKmCriteria(criteria).minKmTotal ?? 1 };
-    case "SPECIAL_TIME_WINDOW": {
-      const t = parseTimeWindowCriteria(criteria);
-      return { startHour: t.startHour, endHour: t.endHour };
-    }
-    case "PERFORMANCE_STREAK":
-      return {
-        streakWeeks: parseStreakCriteria(criteria).minWeeksConsecutive,
-      };
-    default:
-      return {};
-  }
-}
 
 export function GlobalBadgeForm({
   mode,
