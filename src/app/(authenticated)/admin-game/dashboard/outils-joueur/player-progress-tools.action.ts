@@ -2,11 +2,14 @@
 
 import { isSuperadmin } from "@/lib/admin-access";
 import { getUser } from "@/lib/auth/auth-user";
+import type { AdventureReviewModerationStatus } from "../../../../../generated/prisma/client";
 import {
   getPlayerAdventureProgressSnapshot,
+  superadminDeleteAdventureReview,
   superadminForceCompleteAdventure,
   superadminResetAdventureProgress,
   superadminUnvalidateProgressStep,
+  superadminUpsertAdventureReview,
   superadminValidateAllProgressSteps,
   superadminValidateProgressStep,
 } from "@/lib/game/superadmin-player-progress-tools";
@@ -156,6 +159,50 @@ export async function unvalidatePlayerProgressStep(
     revertedFinish: result.revertedFinish,
     snapshot: snapshot ?? null,
   };
+}
+
+export async function savePlayerAdventureReviewSimulation(input: {
+  userId: string;
+  adventureId: string;
+  rating: number | null;
+  content: string;
+  reportsMissingBadge: boolean;
+  reportsStolenTreasure: boolean;
+  consentCommunicationNetworks: boolean;
+  moderationStatus: AdventureReviewModerationStatus;
+}) {
+  const actor = await requireSuperadminActor();
+  if (!actor) {
+    return { ok: false as const, error: "Non autorisé." };
+  }
+  if (!input.userId || !input.adventureId) {
+    return { ok: false as const, error: "Joueur et aventure requis." };
+  }
+  const result = await superadminUpsertAdventureReview(input);
+  if (!result.ok) {
+    return { ok: false as const, error: result.error };
+  }
+  const snapshot = await getPlayerAdventureProgressSnapshot(
+    input.userId,
+    input.adventureId
+  );
+  return { ok: true as const, reviewId: result.reviewId, snapshot: snapshot ?? null };
+}
+
+export async function deletePlayerAdventureReview(userId: string, adventureId: string) {
+  const actor = await requireSuperadminActor();
+  if (!actor) {
+    return { ok: false as const, error: "Non autorisé." };
+  }
+  if (!userId || !adventureId) {
+    return { ok: false as const, error: "Joueur et aventure requis." };
+  }
+  const result = await superadminDeleteAdventureReview({ userId, adventureId });
+  if (!result.ok) {
+    return { ok: false as const, error: "Erreur lors de la suppression." };
+  }
+  const snapshot = await getPlayerAdventureProgressSnapshot(userId, adventureId);
+  return { ok: true as const, snapshot: snapshot ?? null };
 }
 
 export async function resetPlayerAdventureProgress(userId: string, adventureId: string) {

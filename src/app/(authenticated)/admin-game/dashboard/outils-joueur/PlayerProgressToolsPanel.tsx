@@ -3,8 +3,21 @@
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type {
+  PlayerAdventureProgressSnapshot,
+  PlayerAdventureReviewSnapshot,
+} from "@/lib/game/superadmin-player-progress-tools";
 import {
   Card,
   CardContent,
@@ -12,11 +25,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import type { PlayerAdventureProgressSnapshot } from "@/lib/game/superadmin-player-progress-tools";
 import {
+  deletePlayerAdventureReview,
   forceCompletePlayerAdventure,
   loadPlayerAdventureProgress,
   resetPlayerAdventureProgress,
+  savePlayerAdventureReviewSimulation,
   searchAdventuresForProgressTools,
   searchUsersForProgressTools,
   unvalidatePlayerProgressStep,
@@ -154,8 +168,278 @@ function ProgressStepsEditor({
   );
 }
 
+const MODERATION_LABELS: Record<PlayerAdventureReviewSnapshot["moderationStatus"], string> = {
+  DRAFT: "Brouillon",
+  PENDING: "En attente",
+  APPROVED: "Validé (public)",
+  REJECTED: "Refusé",
+};
+
+function ReviewSimulationEditor({
+  snapshot,
+  disabled,
+  onSaved,
+}: {
+  snapshot: PlayerAdventureProgressSnapshot;
+  disabled: boolean;
+  onSaved: () => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [rating, setRating] = useState("");
+  const [content, setContent] = useState("");
+  const [reportsMissingBadge, setReportsMissingBadge] = useState(false);
+  const [reportsStolenTreasure, setReportsStolenTreasure] = useState(false);
+  const [consentCommunicationNetworks, setConsentCommunicationNetworks] = useState(false);
+  const [moderationStatus, setModerationStatus] =
+    useState<PlayerAdventureReviewSnapshot["moderationStatus"]>("APPROVED");
+
+  useEffect(() => {
+    const r = snapshot.adventureReview;
+    if (!r) {
+      setRating("");
+      setContent("");
+      setReportsMissingBadge(false);
+      setReportsStolenTreasure(false);
+      setConsentCommunicationNetworks(false);
+      setModerationStatus("APPROVED");
+      return;
+    }
+    setRating(r.rating != null ? String(r.rating) : "");
+    setContent(r.content ?? "");
+    setReportsMissingBadge(r.reportsMissingBadge);
+    setReportsStolenTreasure(r.reportsStolenTreasure);
+    setConsentCommunicationNetworks(r.consentCommunicationNetworks);
+    setModerationStatus(r.moderationStatus);
+  }, [snapshot.adventureReview, snapshot.userId, snapshot.adventureId]);
+
+  const applyPreset = (preset: "review" | "badge" | "treasure") => {
+    if (preset === "review") {
+      setRating("5");
+      setContent("Super parcours, énigmes bien pensées !");
+      setReportsMissingBadge(false);
+      setReportsStolenTreasure(false);
+      setModerationStatus("APPROVED");
+      return;
+    }
+    if (preset === "badge") {
+      setRating("");
+      setContent("Plus de badges disponibles au point de retrait.");
+      setReportsMissingBadge(true);
+      setReportsStolenTreasure(false);
+      setModerationStatus("APPROVED");
+      return;
+    }
+    setRating("");
+    setContent("Le trésor n’était plus sur place.");
+    setReportsMissingBadge(false);
+    setReportsStolenTreasure(true);
+    setModerationStatus("APPROVED");
+  };
+
+  const handleSave = () => {
+    const parsedRating =
+      rating.trim() === "" ? null : Number.parseInt(rating, 10);
+    if (parsedRating != null && (parsedRating < 1 || parsedRating > 5)) {
+      toast.error("La note doit être entre 1 et 5.");
+      return;
+    }
+    startTransition(async () => {
+      const res = await savePlayerAdventureReviewSimulation({
+        userId: snapshot.userId,
+        adventureId: snapshot.adventureId,
+        rating: parsedRating,
+        content,
+        reportsMissingBadge,
+        reportsStolenTreasure,
+        consentCommunicationNetworks,
+        moderationStatus,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Avis / signalement enregistré.");
+      onSaved();
+    });
+  };
+
+  const handleDelete = () => {
+    if (!snapshot.adventureReview) {
+      toast.message("Aucun avis à supprimer.");
+      return;
+    }
+    if (!window.confirm("Supprimer l’avis / signalement de ce joueur pour cette aventure ?")) {
+      return;
+    }
+    startTransition(async () => {
+      const res = await deletePlayerAdventureReview(snapshot.userId, snapshot.adventureId);
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success("Avis supprimé.");
+      onSaved();
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={disabled || pending}
+          onClick={() => applyPreset("review")}
+        >
+          Préréglage : avis 5★
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={disabled || pending}
+          onClick={() => applyPreset("badge")}
+        >
+          Préréglage : badge
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          disabled={disabled || pending}
+          onClick={() => applyPreset("treasure")}
+        >
+          Préréglage : trésor
+        </Button>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Note (1 à 5, vide = pas de note)</Label>
+        <div className="flex flex-wrap items-center gap-2">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <Button
+              key={n}
+              type="button"
+              size="sm"
+              variant={rating === String(n) ? "default" : "outline"}
+              disabled={disabled || pending}
+              onClick={() => setRating(String(n))}
+            >
+              {n} ★
+            </Button>
+          ))}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={disabled || pending}
+            onClick={() => setRating("")}
+          >
+            Effacer
+          </Button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="review-content">Commentaire</Label>
+        <Textarea
+          id="review-content"
+          rows={3}
+          placeholder="Texte de l’avis ou détail du signalement…"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          disabled={disabled || pending}
+        />
+      </div>
+
+      <div className="space-y-3">
+        <div className="flex items-start gap-2">
+          <Checkbox
+            id="reports-missing-badge"
+            checked={reportsMissingBadge}
+            onCheckedChange={(v) => setReportsMissingBadge(v === true)}
+            disabled={disabled || pending}
+          />
+          <Label htmlFor="reports-missing-badge" className="font-normal leading-snug">
+            Signalement : badges en rupture / perdus / volés
+          </Label>
+        </div>
+        <div className="flex items-start gap-2">
+          <Checkbox
+            id="reports-stolen-treasure"
+            checked={reportsStolenTreasure}
+            onCheckedChange={(v) => setReportsStolenTreasure(v === true)}
+            disabled={disabled || pending}
+          />
+          <Label htmlFor="reports-stolen-treasure" className="font-normal leading-snug">
+            Signalement : trésor absent ou volé
+          </Label>
+        </div>
+        <div className="flex items-start gap-2">
+          <Checkbox
+            id="consent-com"
+            checked={consentCommunicationNetworks}
+            onCheckedChange={(v) => setConsentCommunicationNetworks(v === true)}
+            disabled={disabled || pending}
+          />
+          <Label htmlFor="consent-com" className="font-normal leading-snug">
+            Consentement communication (réseaux / supports)
+          </Label>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Modération (affichage public = Validé)</Label>
+        <Select
+          value={moderationStatus}
+          onValueChange={(v) =>
+            setModerationStatus(v as PlayerAdventureReviewSnapshot["moderationStatus"])
+          }
+          disabled={disabled || pending}
+        >
+          <SelectTrigger className="w-full max-w-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(["DRAFT", "PENDING", "APPROVED", "REJECTED"] as const).map((s) => (
+              <SelectItem key={s} value={s}>
+                {MODERATION_LABELS[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" disabled={disabled || pending} onClick={handleSave}>
+          Enregistrer (simule POST /api/game/adventure-review)
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={disabled || pending || !snapshot.adventureReview}
+          onClick={handleDelete}
+        >
+          Supprimer l’avis
+        </Button>
+      </div>
+
+      {snapshot.adventureReview ? (
+        <p className="text-xs text-muted-foreground">
+          En base : {MODERATION_LABELS[snapshot.adventureReview.moderationStatus]} — mis à jour le{" "}
+          {new Date(snapshot.adventureReview.updatedAt).toLocaleString("fr-FR")}
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">Aucun avis enregistré pour ce couple joueur × aventure.</p>
+      )}
+    </div>
+  );
+}
+
 function ProgressSnapshotView({ snapshot }: { snapshot: PlayerAdventureProgressSnapshot }) {
   const finished = snapshot.userAdventure?.success === true;
+  const review = snapshot.adventureReview;
   return (
     <div className="space-y-4 rounded-lg border bg-muted/30 p-4 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -204,6 +488,21 @@ function ProgressSnapshotView({ snapshot }: { snapshot: PlayerAdventureProgressS
         <div>
           <dt className="text-muted-foreground">Lot partenaire (roue)</dt>
           <dd>{snapshot.hasPartnerLotWin ? "Oui" : "Non"}</dd>
+        </div>
+        <div className="sm:col-span-2">
+          <dt className="text-muted-foreground">Avis / signalement</dt>
+          <dd>
+            {review ? (
+              <>
+                {MODERATION_LABELS[review.moderationStatus]}
+                {review.rating != null ? ` — ${review.rating}/5` : ""}
+                {review.reportsMissingBadge ? " — badge signalé" : ""}
+                {review.reportsStolenTreasure ? " — trésor signalé" : ""}
+              </>
+            ) : (
+              "—"
+            )}
+          </dd>
         </div>
         {snapshot.userAdventure ? (
           <div>
@@ -477,6 +776,26 @@ export function PlayerProgressToolsPanel() {
               disabled={pending}
               onStepChange={refreshProgress}
               onValidateAll={handleValidateAllSteps}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {snapshot && selectedUser && selectedAdventure ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Avis & signalements (simulation)</CardTitle>
+            <CardDescription>
+              Reproduit l’écran de fin de partie : note, commentaire, problèmes badge / trésor.
+              Choisissez <strong>Validé (public)</strong> pour tester{" "}
+              <code className="text-xs">GET /api/game/adventure-reviews</code> sur l’app ou l’accueil.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReviewSimulationEditor
+              snapshot={snapshot}
+              disabled={pending}
+              onSaved={refreshProgress}
             />
           </CardContent>
         </Card>

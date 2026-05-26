@@ -34,8 +34,9 @@ export default async function OutilsJoueurPage() {
             Outils progression joueur
           </CardTitle>
           <CardDescription>
-            Forcer la fin d’une aventure ou effacer la progression d’un compte pour les tests
-            (app mobile, badges, roue partenaires). Accès réservé au super administrateur —
+            Forcer la fin d’une aventure, simuler avis / signalements (note, problèmes badge ou
+            trésor) ou effacer la progression d’un compte pour les tests (app mobile, accueil,
+            badges, roue partenaires). Accès réservé au super administrateur —
             ne pas utiliser en production sur de vrais joueurs sans précaution.
           </CardDescription>
         </CardHeader>

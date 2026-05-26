@@ -20,8 +20,14 @@ import {
   TREASURE_STEP_KEY,
 } from "@/lib/game/adventure-step-keys";
 import { recordStepValidated } from "@/lib/game/server-adventure-progress";
+import { getUserRoleForAccess } from "@/lib/adventure-public-access";
 import { ensureActivePlaySession } from "@/lib/game/user-adventure-play-session";
+import {
+  processAdventureReview,
+  ReviewValidationError,
+} from "@/lib/game/process-adventure-review";
 import { prisma } from "@/lib/prisma";
+import type { AdventureReviewModerationStatus } from "../../../generated/prisma/client";
 
 type Tx = Prisma.TransactionClient;
 
@@ -95,6 +101,18 @@ export type ProgressStepItem = {
   validated: boolean;
 };
 
+export type PlayerAdventureReviewSnapshot = {
+  id: string;
+  rating: number | null;
+  content: string | null;
+  image: string | null;
+  moderationStatus: AdventureReviewModerationStatus;
+  consentCommunicationNetworks: boolean;
+  reportsMissingBadge: boolean;
+  reportsStolenTreasure: boolean;
+  updatedAt: string;
+};
+
 export type PlayerAdventureProgressSnapshot = {
   adventureId: string;
   adventureName: string;
@@ -110,6 +128,7 @@ export type PlayerAdventureProgressSnapshot = {
   serverReadyForSuccessFinish: boolean;
   hasPartnerLotWin: boolean;
   adventureBadgeEarned: boolean;
+  adventureReview: PlayerAdventureReviewSnapshot | null;
 };
 
 function buildProgressSteps(input: {
@@ -203,7 +222,7 @@ export async function getPlayerAdventureProgressSnapshot(
   userId: string,
   adventureId: string
 ): Promise<PlayerAdventureProgressSnapshot | null> {
-  const [user, adventure, validations, userAdventure, partnerWin, adventureBadge] =
+  const [user, adventure, validations, userAdventure, partnerWin, adventureBadge, adventureReview] =
     await Promise.all([
       prisma.user.findUnique({
         where: { id: userId },
@@ -235,6 +254,22 @@ export async function getPlayerAdventureProgressSnapshot(
         where: { adventureId },
         select: {
           userBadges: { where: { userId }, select: { id: true }, take: 1 },
+        },
+      }),
+      prisma.adventureReview.findUnique({
+        where: {
+          userId_adventureId: { userId, adventureId },
+        },
+        select: {
+          id: true,
+          rating: true,
+          content: true,
+          image: true,
+          moderationStatus: true,
+          consentCommunicationNetworks: true,
+          reportsMissingBadge: true,
+          reportsStolenTreasure: true,
+          updatedAt: true,
         },
       }),
     ]);
@@ -298,7 +333,82 @@ export async function getPlayerAdventureProgressSnapshot(
     serverReadyForSuccessFinish,
     hasPartnerLotWin: partnerWin != null,
     adventureBadgeEarned: (adventureBadge?.userBadges.length ?? 0) > 0,
+    adventureReview: adventureReview
+      ? {
+          id: adventureReview.id,
+          rating: adventureReview.rating,
+          content: adventureReview.content,
+          image: adventureReview.image,
+          moderationStatus: adventureReview.moderationStatus,
+          consentCommunicationNetworks: adventureReview.consentCommunicationNetworks,
+          reportsMissingBadge: adventureReview.reportsMissingBadge,
+          reportsStolenTreasure: adventureReview.reportsStolenTreasure,
+          updatedAt: adventureReview.updatedAt.toISOString(),
+        }
+      : null,
   };
+}
+
+function reviewValidationMessage(code: ReviewValidationError["code"]): string {
+  const map: Record<ReviewValidationError["code"], string> = {
+    INVALID_RATING: "La note doit être un entier entre 1 et 5.",
+    CONTENT_TOO_LONG: "Le commentaire dépasse 10 000 caractères.",
+    ADVENTURE_NOT_FOUND: "Aventure introuvable ou inaccessible pour ce joueur.",
+    EMPTY_REVIEW:
+      "Renseignez au moins une note, un commentaire ou un signalement (badge / trésor).",
+  };
+  return map[code];
+}
+
+export async function superadminUpsertAdventureReview(input: {
+  userId: string;
+  adventureId: string;
+  rating: number | null;
+  content: string;
+  reportsMissingBadge: boolean;
+  reportsStolenTreasure: boolean;
+  consentCommunicationNetworks: boolean;
+  moderationStatus: AdventureReviewModerationStatus;
+}): Promise<{ ok: true; reviewId: string } | { ok: false; error: string }> {
+  try {
+    const userRole = await getUserRoleForAccess(input.userId);
+    const { id } = await prisma.$transaction(async (tx) => {
+      const result = await processAdventureReview(tx, {
+        adventureId: input.adventureId,
+        userId: input.userId,
+        userRole,
+        rating: input.rating ?? undefined,
+        content: input.content,
+        consentCommunicationNetworks: input.consentCommunicationNetworks,
+        reportsMissingBadge: input.reportsMissingBadge,
+        reportsStolenTreasure: input.reportsStolenTreasure,
+      });
+      await tx.adventureReview.update({
+        where: { id: result.id },
+        data: { moderationStatus: input.moderationStatus },
+      });
+      return result;
+    });
+    return { ok: true, reviewId: id };
+  } catch (e) {
+    if (e instanceof ReviewValidationError) {
+      return { ok: false, error: reviewValidationMessage(e.code) };
+    }
+    if (e instanceof Error) {
+      return { ok: false, error: e.message };
+    }
+    return { ok: false, error: "Erreur lors de l’enregistrement de l’avis." };
+  }
+}
+
+export async function superadminDeleteAdventureReview(input: {
+  userId: string;
+  adventureId: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  await prisma.adventureReview.deleteMany({
+    where: { userId: input.userId, adventureId: input.adventureId },
+  });
+  return { ok: true };
 }
 
 export async function superadminForceCompleteAdventure(input: {
