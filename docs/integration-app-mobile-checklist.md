@@ -229,8 +229,8 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ## Phase 8 — Avis publics (lecture)
 
-- [ ] `GET /api/game/adventure-reviews` — liste (filtres selon query OpenAPI).  
-- [ ] `GET /api/game/adventure-reviews/{id}` — détail d’un avis **approuvé**.
+- [ ] `GET /api/game/adventure-reviews?adventureId=` — avis approuvés (`reportsMissingBadge`, `reportsStolenTreasure`, `adventureName`, etc.).
+- [ ] `GET /api/game/adventure-reviews?adventureId=&reportsOnly=true` — signalements seuls (accueil / alertes).
 
 ---
 
