@@ -173,18 +173,22 @@ export async function GET(request: NextRequest) {
     limit,
     offset,
     reportsOnly,
-    reviews: rows.map((r) => ({
-      id: r.id,
-      adventureId: r.adventureId,
-      adventureName: r.adventure.name,
-      rating: r.rating,
-      content: r.content,
-      imageUrl: r.image,
-      createdAt: r.createdAt.toISOString(),
-      reportsMissingBadge: r.reportsMissingBadge,
-      reportsStolenTreasure: r.reportsStolenTreasure,
-      moderationStatus: r.moderationStatus,
-      authorDisplayName: publicAuthorName(r.user.name),
-    })),
+    reviews: rows.map((r) => {
+      const base = {
+        id: r.id,
+        adventureId: r.adventureId,
+        adventureName: r.adventure.name,
+        rating: r.rating,
+        content: r.content,
+        imageUrl: r.image,
+        createdAt: r.createdAt.toISOString(),
+        reportsMissingBadge: r.reportsMissingBadge,
+        reportsStolenTreasure: r.reportsStolenTreasure,
+        authorDisplayName: publicAuthorName(r.user.name),
+      };
+      return canSeeAllModerationStatuses
+        ? { ...base, moderationStatus: r.moderationStatus }
+        : base;
+    }),
   });
 }
