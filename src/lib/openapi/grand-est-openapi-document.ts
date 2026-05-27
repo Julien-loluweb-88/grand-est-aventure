@@ -1614,17 +1614,20 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Jeu"],
           summary: "Liste des avis et signalements publics (modérés)",
           description:
-            "Retourne uniquement les entrées avec **moderationStatus = APPROVED** pour une aventure active. " +
+            "Deux modes : " +
+            "avec `adventureId`, retourne les entrées **APPROVED** d’une aventure active (et respecte les règles d’accès à l’aventure, notamment DEMO) ; " +
+            "sans `adventureId`, retourne globalement les avis/signalements de toutes les aventures. " +
+            "Dans ce mode global, le public voit seulement `APPROVED`, tandis que `admin` / `superadmin` voient aussi `PENDING` et `REJECTED`. " +
             "Chaque élément inclut `reportsMissingBadge` et `reportsStolenTreasure` (signalements fin de parcours validés par l’admin). " +
             "Avec **`reportsOnly=true`** : uniquement les lignes où l’un des deux booléens est vrai. " +
-            "Sans ce filtre : tous les avis approuvés. `authorDisplayName` = prénom / premier mot du nom si présent. " +
-            "Pour une aventure **démo**, la session doit avoir le **droit** de voir cette aventure ; sinon **404**.",
+            "`authorDisplayName` = prénom / premier mot du nom si présent.",
           parameters: [
             {
               name: "adventureId",
               in: "query",
-              required: true,
+              required: false,
               schema: { type: "string" },
+              description: "Optionnel. Si renseigné, filtre sur une aventure donnée.",
             },
             {
               name: "reportsOnly",
@@ -1654,7 +1657,6 @@ export function buildGrandEstOpenApiDocument() {
                 "application/json": { schema: { $ref: "#/components/schemas/AdventureReviewPublicListResponse" } },
               },
             },
-            "400": { description: "`adventureId` manquant." },
             "404": {
               description:
                 "Aventure introuvable, inactive, ou **démo** sans accès pour l’appelant.",

@@ -6,6 +6,7 @@ import {
   getUserRoleForAccess,
   userCanAccessAdventureForPlay,
 } from "@/lib/adventure-public-access";
+import { isAdminRole } from "@/lib/admin-access";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import type { Prisma } from "../../../../../generated/prisma/client";
@@ -35,7 +36,9 @@ function publicAuthorName(name: string | null | undefined): string | null {
 
 /**
  * Liste des avis **publics** : uniquement `moderationStatus === APPROVED`.
- * Query : `adventureId` (obligatoire), `limit`, `offset`, `reportsOnly` (signalements badge / trésor).
+ * Query :
+ * - mode "aventure" (public) : `adventureId` + `limit`, `offset`, `reportsOnly`
+ * - mode "global" (public) : sans `adventureId` + `limit`, `offset`, `reportsOnly`
  */
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
@@ -50,10 +53,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const adventureId = (request.nextUrl.searchParams.get("adventureId") ?? "").trim();
-  if (!adventureId) {
-    return NextResponse.json({ error: "Paramètre adventureId requis." }, { status: 400 });
-  }
+  const adventureIdRaw = (request.nextUrl.searchParams.get("adventureId") ?? "").trim();
+  const hasAdventureId = Boolean(adventureIdRaw);
 
   const reportsOnly = parseBooleanQuery(request.nextUrl.searchParams.get("reportsOnly"));
 
@@ -63,31 +64,82 @@ export async function GET(request: NextRequest) {
   );
   const offset = Math.max(0, parseIntParam(request.nextUrl.searchParams.get("offset"), 0));
 
-  const adventure = await prisma.adventure.findFirst({
-    where: { id: adventureId, status: true },
-    select: { id: true, name: true, audience: true },
-  });
-  if (!adventure) {
-    return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
-  }
-
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  const viewerId = session?.user?.id;
+  const session = await auth.api.getSession({ headers: await headers() });
+  const viewerId = session?.user?.id ?? null;
   const viewerRole = viewerId ? await getUserRoleForAccess(viewerId) : null;
-  const canSee = await userCanAccessAdventureForPlay(prisma, {
-    userId: viewerId ?? "__no_session__",
-    role: viewerRole,
-    adventure: { id: adventure.id, status: true, audience: adventure.audience },
-  });
-  if (!canSee) {
-    return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
+
+  // Mode 1 : public, filtré par aventure.
+  if (hasAdventureId) {
+    const adventure = await prisma.adventure.findFirst({
+      where: { id: adventureIdRaw, status: true },
+      select: { id: true, name: true, audience: true },
+    });
+    if (!adventure) {
+      return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
+    }
+
+    const canSee = await userCanAccessAdventureForPlay(prisma, {
+      userId: viewerId ?? "__no_session__",
+      role: viewerRole,
+      adventure: { id: adventure.id, status: true, audience: adventure.audience },
+    });
+    if (!canSee) {
+      return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
+    }
+
+    const reviewWhere: Prisma.AdventureReviewWhereInput = {
+      adventureId: adventure.id,
+      moderationStatus: "APPROVED",
+      ...(reportsOnly
+        ? { OR: [{ reportsMissingBadge: true }, { reportsStolenTreasure: true }] }
+        : {}),
+    };
+
+    const [total, rows] = await Promise.all([
+      prisma.adventureReview.count({ where: reviewWhere }),
+      prisma.adventureReview.findMany({
+        where: reviewWhere,
+        orderBy: { createdAt: "desc" },
+        skip: offset,
+        take: limit,
+        select: {
+          id: true,
+          rating: true,
+          content: true,
+          image: true,
+          createdAt: true,
+          reportsMissingBadge: true,
+          reportsStolenTreasure: true,
+          user: { select: { name: true } },
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      total,
+      limit,
+      offset,
+      reportsOnly,
+      reviews: rows.map((r) => ({
+        id: r.id,
+        adventureId: adventure.id,
+        adventureName: adventure.name,
+        rating: r.rating,
+        content: r.content,
+        imageUrl: r.image,
+        createdAt: r.createdAt.toISOString(),
+        reportsMissingBadge: r.reportsMissingBadge,
+        reportsStolenTreasure: r.reportsStolenTreasure,
+        authorDisplayName: publicAuthorName(r.user.name),
+      })),
+    });
   }
 
+  // Mode 2 : global (toutes aventures).
+  // Public : seulement APPROVED. Admin/superadmin : tous les statuts.
+  const canSeeAllModerationStatuses = isAdminRole(viewerRole);
   const reviewWhere: Prisma.AdventureReviewWhereInput = {
-    adventureId,
-    moderationStatus: "APPROVED",
+    ...(!canSeeAllModerationStatuses ? { moderationStatus: "APPROVED" } : {}),
     ...(reportsOnly
       ? { OR: [{ reportsMissingBadge: true }, { reportsStolenTreasure: true }] }
       : {}),
@@ -102,12 +154,15 @@ export async function GET(request: NextRequest) {
       take: limit,
       select: {
         id: true,
+        adventureId: true,
         rating: true,
         content: true,
         image: true,
         createdAt: true,
         reportsMissingBadge: true,
         reportsStolenTreasure: true,
+        moderationStatus: true,
+        adventure: { select: { name: true } },
         user: { select: { name: true } },
       },
     }),
@@ -120,14 +175,15 @@ export async function GET(request: NextRequest) {
     reportsOnly,
     reviews: rows.map((r) => ({
       id: r.id,
-      adventureId: adventure.id,
-      adventureName: adventure.name,
+      adventureId: r.adventureId,
+      adventureName: r.adventure.name,
       rating: r.rating,
       content: r.content,
       imageUrl: r.image,
       createdAt: r.createdAt.toISOString(),
       reportsMissingBadge: r.reportsMissingBadge,
       reportsStolenTreasure: r.reportsStolenTreasure,
+      moderationStatus: r.moderationStatus,
       authorDisplayName: publicAuthorName(r.user.name),
     })),
   });
