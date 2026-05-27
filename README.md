@@ -485,7 +485,7 @@ flowchart LR
 - [ ] Sur la fiche parcours : utiliser le tableau **`discoveryPoints`** de **`GET /api/game/adventures/{id}`** (même structure que la liste ci‑dessous) pour afficher les badges « découverte » de la **ville** sans requête supplémentaire.  
 - [ ] Hors fiche parcours (ex. carte globale ville) : `GET /api/game/discovery-points?cityId=…` — afficher marqueurs (`latitude`, `longitude`, `radiusMeters`, `title`, `teaser`, `imageUrl`) ; distinguer **`adventureId === null`** (toute la ville) vs **`adventureId` renseigné** (réservé aux joueurs ayant une ligne **`UserAdventures`** sur cette aventure — à masquer ou griser si pas encore démarré).  
 - [ ] `POST /api/game/claim-discovery` avec **cookies de session** (même mécanisme que `validate-enigma`) : corps JSON `userId` (= id session), `discoveryPointId`, `latitude`, `longitude` = **position actuelle** (WGS84). Gérer **400** (`TOO_FAR`, `ADVENTURE_REQUIRED`), **404**, **429** + `Retry-After`. Réponse **200** : `{ ok: true, userBadgeId }` ou `{ …, alreadyHad: true }` si déjà obtenu.  
-- [ ] Rafraîchir la collection avec **`GET /api/user/badges`** (`groups`, champ `earned`) ; section `kind === "DISCOVERY"` si besoin (corrélation POI via `id` de définition).
+- [ ] Rafraîchir la collection avec **`GET /api/user/badges`** (clés par `kind`, champ `earned`) ; clé `DISCOVERY` si besoin (corrélation POI via `id` de définition).
 
 ---
 
@@ -603,7 +603,7 @@ ou, si le joueur avait déjà le badge :
 
 ### Collection badges joueur
 
-**`GET /api/user/badges`** — renvoie `{ groups: [{ kind, items: [...] }] }` : chaque badge du catalogue éligible (paliers, aventures, POI, offres partenaires) avec **`earned`**, **`earnedAt`**, **`userBadgeId`**. Les badges déjà obtenus mais hors catalogue restent dans le groupe correspondant avec `earned: true`. UI : une rubrique par `kind` ; griser si `earned === false`.
+**`GET /api/user/badges`** — renvoie un objet avec **toutes** les clés **`kind`** (`ADVENTURE_COMPLETE`, `MILESTONE_ADVENTURES`, …) → tableaux de badges (`[]` si vide). Chaque entrée inclut **`earned`**, **`earnedAt`**, **`userBadgeId`**. UI : une rubrique par `kind` ; griser si `earned === false`.
 
 ### Références code
 

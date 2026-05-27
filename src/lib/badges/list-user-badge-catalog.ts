@@ -29,15 +29,11 @@ export type UserBadgeCatalogItem = DefinitionRow & {
   userBadgeId: string | null;
 };
 
-export type UserBadgeCatalogGroup = {
-  kind: BadgeDefinitionKind;
-  items: UserBadgeCatalogItem[];
-};
-
-export type UserBadgeCatalogResult = {
-  /** Sections par `kind` (kind → sortOrder → titre dans chaque groupe). */
-  groups: UserBadgeCatalogGroup[];
-};
+/** Catalogue par `kind` : toutes les catégories sont toujours présentes (tableau vide si aucun badge). */
+export type UserBadgeCatalogResult = Record<
+  BadgeDefinitionKind,
+  UserBadgeCatalogItem[]
+>;
 
 function activePartnerAdvertisementWhere(now: Date): Prisma.AdvertisementWhereInput {
   return {
@@ -142,19 +138,18 @@ function sortCatalogItems(a: UserBadgeCatalogItem, b: UserBadgeCatalogItem): num
   return a.title.localeCompare(b.title, "fr");
 }
 
-function groupCatalogItemsByKind(
-  items: UserBadgeCatalogItem[]
-): UserBadgeCatalogGroup[] {
-  const groups: UserBadgeCatalogGroup[] = [];
+function emptyCatalogByKind(): UserBadgeCatalogResult {
+  return Object.fromEntries(
+    BADGE_KIND_ORDER.map((kind) => [kind, [] as UserBadgeCatalogItem[]])
+  ) as UserBadgeCatalogResult;
+}
+
+function catalogItemsByKind(items: UserBadgeCatalogItem[]): UserBadgeCatalogResult {
+  const byKind = emptyCatalogByKind();
   for (const item of items) {
-    const last = groups[groups.length - 1];
-    if (last?.kind === item.kind) {
-      last.items.push(item);
-    } else {
-      groups.push({ kind: item.kind, items: [item] });
-    }
+    byKind[item.kind].push(item);
   }
-  return groups;
+  return byKind;
 }
 
 /** Catalogue complet (définitions éligibles) + état acquis pour un joueur. */
@@ -242,5 +237,5 @@ export async function listUserBadgeCatalog(params: {
   });
 
   items.sort(sortCatalogItems);
-  return { groups: groupCatalogItemsByKind(items) };
+  return catalogItemsByKind(items);
 }

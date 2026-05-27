@@ -529,38 +529,53 @@ export function buildGrandEstOpenApiDocument() {
             },
           },
         },
-        UserBadgeCatalogGroup: {
+        UserBadgesResponse: {
           type: "object",
-          required: ["kind", "items"],
+          description:
+            "Catalogue éligible + badges déjà acquis hors catalogue. Toutes les clés `kind` sont toujours présentes ; " +
+            "tableau vide si aucun badge dans la catégorie.",
+          required: [
+            "ADVENTURE_COMPLETE",
+            "MILESTONE_ADVENTURES",
+            "MILESTONE_KM",
+            "SPECIAL_TIME_WINDOW",
+            "PERFORMANCE_STREAK",
+            "PERFORMANCE_MONTHLY_KM",
+            "PARTNER_OFFER",
+            "DISCOVERY",
+          ],
           properties: {
-            kind: {
-              type: "string",
-              enum: [
-                "ADVENTURE_COMPLETE",
-                "MILESTONE_ADVENTURES",
-                "MILESTONE_KM",
-                "SPECIAL_TIME_WINDOW",
-                "PERFORMANCE_STREAK",
-                "PERFORMANCE_MONTHLY_KM",
-                "PARTNER_OFFER",
-                "DISCOVERY",
-              ],
-            },
-            items: {
+            ADVENTURE_COMPLETE: {
               type: "array",
               items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
             },
-          },
-        },
-        UserBadgesResponse: {
-          type: "object",
-          required: ["groups"],
-          properties: {
-            groups: {
+            MILESTONE_ADVENTURES: {
               type: "array",
-              items: { $ref: "#/components/schemas/UserBadgeCatalogGroup" },
-              description:
-                "Catalogue éligible + badges déjà acquis hors catalogue, découpé par `kind`.",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+            },
+            MILESTONE_KM: {
+              type: "array",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+            },
+            SPECIAL_TIME_WINDOW: {
+              type: "array",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+            },
+            PERFORMANCE_STREAK: {
+              type: "array",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+            },
+            PERFORMANCE_MONTHLY_KM: {
+              type: "array",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+            },
+            PARTNER_OFFER: {
+              type: "array",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
+            },
+            DISCOVERY: {
+              type: "array",
+              items: { $ref: "#/components/schemas/UserBadgeCatalogItem" },
             },
           },
         },
@@ -2000,8 +2015,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Catalogue badges du joueur connecté",
           description:
             "Retourne le catalogue des badges **éligibles** pour ce joueur, avec pour chaque entrée : `earned` (booléen), " +
-            "`earnedAt` (ISO 8601 ou `null`), `userBadgeId` (ou `null`). La réponse est structurée en `groups[]` : une section par `kind`, " +
-            "triée pour l’affichage (paliers, performances, aventures, découverte, offres partenaires).\n\n" +
+            "`earnedAt` (ISO 8601 ou `null`). Objet avec **toutes** les clés `kind` (`ADVENTURE_COMPLETE`, `MILESTONE_ADVENTURES`, …) ; " +
+            "tableau vide si la catégorie n’a aucun badge éligible.\n\n" +
             "### Attribution automatique (badges globaux)\n\n" +
             "La plupart des badges globaux sont évalués à la **fin d’une aventure réussie** (validation trésor / `processGameFinish`). " +
             "Une fois obtenus, ils restent dans la collection (**permanents** ; ils ne sont pas retirés si un autre joueur bat un record).\n\n" +
@@ -2020,7 +2035,7 @@ export function buildGrandEstOpenApiDocument() {
           responses: {
             "200": {
               content: { "application/json": { schema: { $ref: "#/components/schemas/UserBadgesResponse" } } },
-              description: "Catalogue groupé par `kind`.",
+              description: "Catalogue indexé par `kind`.",
             },
             "401": { description: "Non connecté." },
           },
