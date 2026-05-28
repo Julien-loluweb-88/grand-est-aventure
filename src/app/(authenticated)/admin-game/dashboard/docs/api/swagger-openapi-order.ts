@@ -5,6 +5,7 @@
 export const SWAGGER_PATH_ORDER: readonly string[] = [
   "/api/auth/{path}",
   "/api/game/adventures",
+  "/api/game/home",
   "/api/game/adventures/{id}",
   "/api/game/cities",
   "/api/game/avatars",

@@ -721,6 +721,84 @@ export function buildGrandEstOpenApiDocument() {
           },
         },
       },
+      "/api/game/home": {
+        get: {
+          tags: ["Jeu"],
+          summary: "Accueil mobile agrégé (public)",
+          description:
+            "Route sans authentification obligatoire : stats communauté globales, **toutes** les aventures catalogue pour la carte, " +
+            "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés. " +
+            "Ne contient pas de gamification niveau / XP utilisateur. " +
+            "Les agrégats `communityStats` sont des `COUNT(*)` globaux mis en cache mémoire côté serveur (TTL ~5 min).",
+          parameters: [
+            { name: "latitude", in: "query", required: false, schema: { type: "number" } },
+            { name: "longitude", in: "query", required: false, schema: { type: "number" } },
+            {
+              name: "reviewsLimit",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, maximum: 50, default: 25 },
+            },
+            {
+              name: "featuredLimit",
+              in: "query",
+              required: false,
+              schema: { type: "integer", minimum: 1, maximum: 10, default: 3 },
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Données accueil.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "object",
+                    required: [
+                      "communityStats",
+                      "adventures",
+                      "featuredAdventures",
+                      "recentReviews",
+                    ],
+                    properties: {
+                      communityStats: {
+                        type: "object",
+                        required: [
+                          "totalEnigmasSolved",
+                          "totalAdventuresCompleted",
+                          "totalBadgesEarned",
+                        ],
+                        properties: {
+                          totalEnigmasSolved: { type: "integer", minimum: 0 },
+                          totalAdventuresCompleted: { type: "integer", minimum: 0 },
+                          totalBadgesEarned: { type: "integer", minimum: 0 },
+                        },
+                      },
+                      adventures: {
+                        type: "array",
+                        description: "Toutes les aventures PUBLIC actives (carte Leaflet).",
+                        items: { type: "object", additionalProperties: true },
+                      },
+                      featuredAdventures: {
+                        type: "array",
+                        description:
+                          "Carrousel : score = playDurationSampleCount / (1 + distanceFromUserKm) si GPS, sinon popularité seule.",
+                        items: { type: "object", additionalProperties: true },
+                      },
+                      recentReviews: {
+                        type: "array",
+                        description: "Avis `APPROVED`, tri `createdAt` DESC.",
+                        items: { type: "object", additionalProperties: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            "400": { description: "Paramètres géoloc invalides." },
+            "429": { description: "Trop de requêtes." },
+          },
+        },
+      },
       "/api/game/adventures/{id}": {
         get: {
           tags: ["Jeu"],

@@ -279,6 +279,7 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 | GET | `/api/game/cities` | Référentiel villes |
 | GET | `/api/game/avatars` | Catalogue avatars compagnon (`slug` → fichier **glb** dans l’app) |
 | GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) |
+| GET | `/api/game/home` | Accueil public agrégé : `communityStats`, `adventures` (carte), `featuredAdventures` (×3), `recentReviews` |
 | GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** ; démo → session + droit requis |
 | GET | `/api/game/progress` | Progression joueur (`adventureId`) |
 | POST | `/api/game/start-adventure` | Ouvre la session de jeu au « Commencer » (idempotent) ; **400** `EMPTY_ADVENTURE` si ni énigme ni trésor |

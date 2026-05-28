@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
+import { haversineKm } from "@/lib/game/haversine";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -9,16 +10,6 @@ function parseNumber(value: string | null): number | null {
   if (value == null || value.trim() === "") return null;
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
-}
-
-function haversineKm(aLat: number, aLon: number, bLat: number, bLon: number): number {
-  const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(bLat - aLat);
-  const dLon = toRad(bLon - aLon);
-  const x =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRad(aLat)) * Math.cos(toRad(bLat)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  return 6371 * (2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x)));
 }
 
 /**
