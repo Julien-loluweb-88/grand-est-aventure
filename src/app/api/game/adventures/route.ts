@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
-import { haversineKm } from "@/lib/game/haversine";
+import {
+  loadApprovedReviewAggregatesByAdventureIds,
+  reviewAggregateForAdventure,
+} from "@/lib/game/adventure-review-aggregates";
+import { attachDistanceFromUser, toMobileAdventureListItem } from "@/lib/game/mobile-adventure-catalog";
+import { prisma } from "@/lib/prisma";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -87,37 +91,27 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const filtered = adventures
-    .map((a) => {
-      const distanceFromUserKm =
-        latitude != null && longitude != null
-          ? haversineKm(latitude, longitude, a.latitude, a.longitude)
-          : null;
-      return { ...a, distanceFromUserKm };
-    })
-    .filter((a) => (radiusKm == null ? true : (a.distanceFromUserKm ?? Infinity) <= radiusKm));
+  const withDistance = attachDistanceFromUser(adventures, latitude, longitude);
+  const filtered = withDistance.filter(
+    ({ distanceFromUserKm }) =>
+      radiusKm == null ? true : (distanceFromUserKm ?? Infinity) <= radiusKm
+  );
 
   const paginated = filtered.slice(offset, offset + limit);
+  const reviewAggregates = await loadApprovedReviewAggregatesByAdventureIds(
+    paginated.map(({ row }) => row.id)
+  );
 
   return NextResponse.json({
     total: filtered.length,
     limit,
     offset,
-    adventures: paginated.map((a) => ({
-      id: a.id,
-      name: a.name,
-      coverImageUrl: a.coverImageUrl,
-      city: a.city,
-      latitude: a.latitude,
-      longitude: a.longitude,
-      distanceKm: a.distance,
-      distanceFromUserKm: a.distanceFromUserKm,
-      enigmaCount: a.enigmas.length,
-      hasTreasure: Boolean(a.treasure),
-      estimatedDurationSeconds: a.estimatedPlayDurationSeconds,
-      averagePlayDurationSeconds: a.averagePlayDurationSeconds,
-      playDurationSampleCount: a.playDurationSampleCount,
-      updatedAt: a.updatedAt.toISOString(),
-    })),
+    adventures: paginated.map(({ row, distanceFromUserKm }) =>
+      toMobileAdventureListItem(
+        row,
+        distanceFromUserKm,
+        reviewAggregateForAdventure(reviewAggregates, row.id)
+      )
+    ),
   });
 }

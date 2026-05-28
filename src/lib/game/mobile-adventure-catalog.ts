@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
+import type { AdventureReviewAggregate } from "@/lib/game/adventure-review-aggregates";
 import { haversineKm } from "@/lib/game/haversine";
 
 const publicCatalogSelect = {
@@ -53,12 +54,15 @@ export type MobileAdventureListItem = {
   estimatedDurationSeconds: number | null;
   averagePlayDurationSeconds: number | null;
   playDurationSampleCount: number;
+  averageRating: number | null;
+  reviewCount: number;
   updatedAt: string;
 };
 
 export function toMobileAdventureListItem(
   a: PublicCatalogAdventureRow,
-  distanceFromUserKm: number | null
+  distanceFromUserKm: number | null,
+  reviewStats: AdventureReviewAggregate = { averageRating: null, reviewCount: 0 }
 ): MobileAdventureListItem {
   return {
     id: a.id,
@@ -74,6 +78,8 @@ export function toMobileAdventureListItem(
     estimatedDurationSeconds: a.estimatedPlayDurationSeconds,
     averagePlayDurationSeconds: a.averagePlayDurationSeconds,
     playDurationSampleCount: a.playDurationSampleCount,
+    averageRating: reviewStats.reviewCount > 0 ? reviewStats.averageRating : null,
+    reviewCount: reviewStats.reviewCount,
     updatedAt: a.updatedAt.toISOString(),
   };
 }

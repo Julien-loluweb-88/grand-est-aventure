@@ -632,6 +632,7 @@ export function buildGrandEstOpenApiDocument() {
             "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**. " +
             "Chaque entrée peut inclure **`estimatedDurationSeconds`** (heuristique admin : marche + énigmes + trésor), " +
             "**`averagePlayDurationSeconds`** et **`playDurationSampleCount`** (moyenne temps réel après assez de parties — alimentées par le cron). " +
+            "**`averageRating`** / **`reviewCount`** : moyenne et effectif des avis publics (`APPROVED`) avec note 1–5. " +
             ADVENTURE_AUDIENCE_DEMO,
           parameters: [
             { name: "cityId", in: "query", required: false, schema: { type: "string" } },
@@ -708,6 +709,16 @@ export function buildGrandEstOpenApiDocument() {
                               type: "integer",
                               description: "Nombre de sessions terminées avec succès prises en compte pour la moyenne.",
                             },
+                            averageRating: {
+                              type: ["number", "null"],
+                              description:
+                                "Moyenne des notes 1–5 (avis APPROVED avec rating) ; null si aucun avis noté.",
+                            },
+                            reviewCount: {
+                              type: "integer",
+                              minimum: 0,
+                              description: "Nombre d’avis notés inclus dans averageRating.",
+                            },
                             updatedAt: { type: "string", format: "date-time" },
                           },
                         },
@@ -728,6 +739,7 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Route sans authentification obligatoire : stats communauté globales, **toutes** les aventures catalogue pour la carte, " +
             "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés. " +
+            "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
             "Ne contient pas de gamification niveau / XP utilisateur. " +
             "Les agrégats `communityStats` sont des `COUNT(*)` globaux mis en cache mémoire côté serveur (TTL ~5 min).",
           parameters: [

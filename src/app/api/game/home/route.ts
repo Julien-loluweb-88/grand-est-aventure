@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import { getCommunityStats } from "@/lib/game/community-stats";
+import { loadApprovedReviewAggregatesByAdventureIds, reviewAggregateForAdventure } from "@/lib/game/adventure-review-aggregates";
 import {
   attachDistanceFromUser,
   fetchPublicCatalogAdventures,
@@ -69,15 +70,22 @@ export async function GET(request: NextRequest) {
     parseIntParam(p.get("featuredLimit"), DEFAULT_FEATURED_LIMIT)
   );
 
-  const [communityStats, catalogRows, recentReviews] = await Promise.all([
+  const catalogRows = await fetchPublicCatalogAdventures();
+  const adventureIds = catalogRows.map((r) => r.id);
+
+  const [communityStats, recentReviews, reviewAggregates] = await Promise.all([
     getCommunityStats(),
-    fetchPublicCatalogAdventures(),
     listRecentPublicAdventureReviews(reviewsLimit),
+    loadApprovedReviewAggregatesByAdventureIds(adventureIds),
   ]);
 
   const withDistance = attachDistanceFromUser(catalogRows, latitude, longitude);
   const adventures = withDistance.map(({ row, distanceFromUserKm }) =>
-    toMobileAdventureListItem(row, distanceFromUserKm)
+    toMobileAdventureListItem(
+      row,
+      distanceFromUserKm,
+      reviewAggregateForAdventure(reviewAggregates, row.id)
+    )
   );
   const featuredAdventures = selectFeaturedAdventures(adventures, featuredLimit);
 
