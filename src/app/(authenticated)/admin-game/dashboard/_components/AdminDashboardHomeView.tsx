@@ -61,7 +61,7 @@ export function AdminDashboardHomeView({
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Bonjour, {greeting}</h1>
           <p className="text-sm text-muted-foreground">
-            Espace commerçant : les validations d&apos;offres partenaires se traitent dans
+            Espace commerçant : validez les offres partenaires sur le web ou dans
             l&apos;application mobile.
           </p>
         </div>
@@ -77,7 +77,7 @@ export function AdminDashboardHomeView({
             href="/admin-game/dashboard/commercant"
             label="Demandes en attente"
             value={overview.pendingPartnerClaimCount}
-            hint="À traiter depuis l&apos;app (session identique)"
+            hint="À traiter sur le web ou dans l&apos;app"
           />
         </div>
 

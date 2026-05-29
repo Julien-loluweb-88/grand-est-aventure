@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { PARTNER_WHEEL_TERMS_MAX_CHARS } from "@/lib/dashboard-text-limits";
+import {
+  assertPartnerLotChancePercentTotalForAdventure,
+  canDeletePartnerLotKeepingPercentTotal,
+  parsePartnerLotChancePercentInput,
+} from "@/lib/adventure-partner-lots/partner-lot-chance-percent.server";
 import { getPartnerWheelStatsForAdventureAdmin } from "./partner-lots-queries";
 
 export type PartnerLotWriteInput = {
@@ -11,6 +16,7 @@ export type PartnerLotWriteInput = {
   title: string;
   description: string | null;
   redemptionHint: string | null;
+  /** Probabilité sur la roue (1–100) ; la somme des lots du périmètre doit être 100. */
   weight: number;
   quantityRemaining: number | null;
   active: boolean;
@@ -45,10 +51,11 @@ export async function createPartnerLotForAdventure(
   if (!partnerName || !title) {
     return { success: false, error: "Partenaire et titre requis." };
   }
-  const weight = Math.floor(input.weight);
-  if (weight < 1 || weight > 1000) {
-    return { success: false, error: "Poids invalide (1 à 1000)." };
+  const parsedPercent = parsePartnerLotChancePercentInput(input.weight);
+  if (!parsedPercent.ok) {
+    return { success: false, error: parsedPercent.error };
   }
+  const weight = parsedPercent.percent;
 
   let quantityRemaining: number | null = null;
   if (input.quantityRemaining != null) {
@@ -96,6 +103,12 @@ export async function createPartnerLotForAdventure(
     select: { id: true },
   });
 
+  const totalCheck = await assertPartnerLotChancePercentTotalForAdventure(adventureId);
+  if (!totalCheck.ok) {
+    await prisma.adventurePartnerLot.delete({ where: { id: row.id } });
+    return { success: false, error: totalCheck.error };
+  }
+
   revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
   return { success: true, id: row.id };
 }
@@ -116,6 +129,7 @@ export async function updatePartnerLot(
       id: true,
       adventureId: true,
       cityId: true,
+      weight: true,
     },
   });
   if (!existing) {
@@ -142,10 +156,11 @@ export async function updatePartnerLot(
   if (!partnerName || !title) {
     return { success: false, error: "Partenaire et titre requis." };
   }
-  const weight = Math.floor(input.weight);
-  if (weight < 1 || weight > 1000) {
-    return { success: false, error: "Poids invalide (1 à 1000)." };
+  const parsedPercent = parsePartnerLotChancePercentInput(input.weight);
+  if (!parsedPercent.ok) {
+    return { success: false, error: parsedPercent.error };
   }
+  const weight = parsedPercent.percent;
 
   let quantityRemaining: number | null = null;
   if (input.quantityRemaining != null) {
@@ -167,6 +182,7 @@ export async function updatePartnerLot(
   }
 
   const scopeAdventure = input.scope === "adventure";
+  const previousWeight = existing.weight;
 
   await prisma.adventurePartnerLot.update({
     where: { id: lotId },
@@ -184,6 +200,15 @@ export async function updatePartnerLot(
       cityId: scopeAdventure ? null : adv.cityId,
     },
   });
+
+  const totalCheck = await assertPartnerLotChancePercentTotalForAdventure(adventureId);
+  if (!totalCheck.ok) {
+    await prisma.adventurePartnerLot.update({
+      where: { id: lotId },
+      data: { weight: previousWeight },
+    });
+    return { success: false, error: totalCheck.error };
+  }
 
   revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
   return { success: true };
@@ -233,6 +258,11 @@ export async function deletePartnerLot(
       success: false,
       error: "Impossible de supprimer : des joueurs ont déjà gagné ce lot.",
     };
+  }
+
+  const deleteCheck = await canDeletePartnerLotKeepingPercentTotal(adventureId, lotId);
+  if (!deleteCheck.ok) {
+    return { success: false, error: deleteCheck.error };
   }
 
   await prisma.adventurePartnerLot.delete({ where: { id: lotId } });

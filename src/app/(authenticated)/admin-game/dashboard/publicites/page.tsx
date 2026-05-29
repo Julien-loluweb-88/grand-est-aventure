@@ -11,6 +11,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { listAdvertisementsForAdminTable } from "./_lib/advertisement-admin-queries";
+import {
+  ADVERTISEMENT_PLACEMENTS,
+  labelForAdvertisementPlacement,
+} from "@/lib/advertisements/advertisement-placements";
 
 export default async function PublicitesPage() {
   const rows = await listAdvertisementsForAdminTable();
@@ -26,7 +30,14 @@ export default async function PublicitesPage() {
             <CardTitle className="text-2xl font-bold tracking-tight">Publicités</CardTitle>
             <CardDescription className="max-w-xl">
               Campagnes partenaires, ciblage géographique et compteurs d’impressions / clics
-              (événements enregistrés via l’API).
+              (événements enregistrés via l’API). Placements :{" "}
+              {ADVERTISEMENT_PLACEMENTS.map((p, i) => (
+                <span key={p.value}>
+                  {i > 0 ? ", " : null}
+                  <code className="rounded bg-muted px-1 text-xs">{p.value}</code> ({p.label.toLowerCase()})
+                </span>
+              ))}
+              .
             </CardDescription>
           </div>
           <Button asChild className="shrink-0">
@@ -58,7 +69,7 @@ export default async function PublicitesPage() {
                     <TableCell className="font-medium">{r.name}</TableCell>
                     <TableCell>{r.advertiserName}</TableCell>
                     <TableCell>
-                      <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{r.placement}</code>
+                      <span className="text-sm">{labelForAdvertisementPlacement(r.placement)}</span>
                     </TableCell>
                     <TableCell>{r.active ? "Oui" : "Non"}</TableCell>
                     <TableCell className="text-right tabular-nums">{r.impressionCount}</TableCell>

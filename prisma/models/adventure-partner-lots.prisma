@@ -10,8 +10,8 @@ model AdventurePartnerLot {
   description        String?
   /// Conseil d’utilisation (ex. montrez cet écran en caisse).
   redemptionHint     String?
-  /// Poids relatif sur la roue (≥ 1).
-  weight             Int       @default(1)
+  /// Probabilité sur la roue (1–100) ; la somme des lots du périmètre doit être 100.
+  weight             Int       @default(100)
   /// Stock restant ; null = illimité.
   quantityRemaining  Int?
   active             Boolean   @default(true)

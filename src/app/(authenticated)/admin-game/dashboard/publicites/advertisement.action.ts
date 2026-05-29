@@ -10,6 +10,7 @@ import {
 } from "@/lib/uploads/finalize-advertisement-draft-image";
 import type { AdvertiserKind } from "../../../../../../generated/prisma/client";
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
+import { isAdvertisementPlacement } from "@/lib/advertisements/advertisement-placements";
 
 export type AdvertisementFormInput = {
   name: string;
@@ -161,7 +162,11 @@ export async function createAdvertisement(
   const body = input.body.trim() || null;
   let imageUrl = input.imageUrl.trim() || null;
   const targetUrl = input.targetUrl.trim() || null;
-  const placement = input.placement.trim() || "home";
+  const placementRaw = input.placement.trim();
+  if (!isAdvertisementPlacement(placementRaw)) {
+    return { success: false, error: "Placement invalide." };
+  }
+  const placement = placementRaw;
 
   const lat = parseOptionalFloat(input.targetCenterLatitude);
   const lon = parseOptionalFloat(input.targetCenterLongitude);
@@ -276,7 +281,11 @@ export async function updateAdvertisement(
   const body = input.body.trim() || null;
   const imageUrl = input.imageUrl.trim() || null;
   const targetUrl = input.targetUrl.trim() || null;
-  const placement = input.placement.trim() || "home";
+  const placementRaw = input.placement.trim();
+  if (!isAdvertisementPlacement(placementRaw)) {
+    return { success: false, error: "Placement invalide." };
+  }
+  const placement = placementRaw;
 
   const lat = parseOptionalFloat(input.targetCenterLatitude);
   const lon = parseOptionalFloat(input.targetCenterLongitude);

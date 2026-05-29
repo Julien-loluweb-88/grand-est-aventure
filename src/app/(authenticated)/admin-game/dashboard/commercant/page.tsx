@@ -1,38 +1,61 @@
 import Link from "next/link";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function CommercantDashboardPage() {
+import { auth } from "@/lib/auth";
+import { PartnerOfferClaimStatus } from "@/lib/badges/prisma-enums";
+import { listPartnerClaimsForMerchant } from "@/lib/merchant/list-partner-claims-for-merchant";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { MerchantPartnerClaimsPanel } from "./_components/MerchantPartnerClaimsPanel";
+
+export default async function CommercantDashboardPage() {
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session?.user?.id || session.user.role !== "merchant") {
+    redirect("/admin-game/dashboard/acces-refuse");
+  }
+
+  const initialClaims = await listPartnerClaimsForMerchant(
+    session.user.id,
+    PartnerOfferClaimStatus.PENDING
+  );
+
   return (
-    <div className="m-8 max-w-2xl space-y-6">
+    <div className="flex flex-1 flex-col gap-6 p-4 md:p-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Compte commerçant</h1>
+        <p className="text-sm text-muted-foreground">
+          Validez les demandes d&apos;offres partenaires depuis ce tableau de bord ou depuis
+          l&apos;application mobile — même session, mêmes droits.
+        </p>
+      </div>
+
       <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-bold tracking-tight">Compte commerçant</CardTitle>
+          <CardTitle className="text-base font-semibold">Demandes d&apos;offres</CardTitle>
           <CardDescription>
-            Les validations d’offres partenaires se font depuis l’application mobile, avec la même
-            session que sur ce site.
+            Un super administrateur vous a rattaché à une ou plusieurs campagnes. Vous n&apos;avez
+            pas accès aux aventures, aux villes ni aux publicités en dehors de ces demandes.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
+        <CardContent>
+          <MerchantPartnerClaimsPanel initialClaims={initialClaims} />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-semibold">Aide</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>
-            Ce tableau de bord est volontairement limité : vous n’avez pas accès aux aventures, aux
-            villes ni aux publicités. Un super administrateur vous a rattaché à une ou plusieurs
-            campagnes ; vous traitez les demandes des joueurs dans l’app.
-          </p>
-          <div className="rounded-md border border-border bg-muted/40 p-4 font-mono text-xs text-foreground">
-            <p className="mb-2 font-sans text-sm font-medium text-foreground">API (référence)</p>
-            <ul className="list-inside list-disc space-y-1">
-              <li>
-                <code>GET /api/merchant/partner-claims</code> — file des demandes
-              </li>
-              <li>
-                <code>{`POST /api/merchant/partner-claims/{id}/resolve`}</code> — approuver ou refuser
-              </li>
-            </ul>
-          </div>
-          <p>
-            Besoin d’aide côté organisation ? Contactez l’équipe qui gère Balad&apos;indice (comptes{" "}
-            <span className="text-foreground">admin</span> / <span className="text-foreground">superadmin</span>
-            ).
+            Besoin d&apos;aide côté organisation (nouvelle campagne, rattachement compte) ?
+            Contactez l&apos;équipe qui gère Balad&apos;indice (comptes admin / superadmin).
           </p>
           <p>
             <Link

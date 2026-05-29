@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listEligibleAdvertisements } from "@/lib/advertisements/list-eligible-advertisements";
+import { HOME_ADVERTISEMENT_PLACEMENT } from "@/lib/advertisements/advertisement-placements";
 import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
@@ -18,7 +19,6 @@ const MAX_PER_WINDOW = 60;
 const DEFAULT_REVIEWS_LIMIT = 25;
 const MAX_REVIEWS_LIMIT = 50;
 const DEFAULT_FEATURED_LIMIT = 3;
-const HOME_AD_PLACEMENT = "home";
 
 function parseNumber(value: string | null): number | null {
   if (value == null || value.trim() === "") return null;
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
     listRecentPublicAdventureReviews(reviewsLimit),
     loadApprovedReviewAggregatesByAdventureIds(adventureIds),
     listEligibleAdvertisements({
-      placement: HOME_AD_PLACEMENT,
+      placement: HOME_ADVERTISEMENT_PLACEMENT,
       latitude,
       longitude,
       userId,

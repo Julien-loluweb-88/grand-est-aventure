@@ -44,6 +44,12 @@ import {
   type AdvertisementFormInput,
 } from "../advertisement.action";
 import { LocationPicker } from "@/components/location/LocationPicker";
+import {
+  ADVERTISEMENT_PLACEMENTS,
+  ADVERTISEMENT_PLACEMENT_VALUES,
+  normalizeAdvertisementPlacement,
+  type AdvertisementPlacement,
+} from "@/lib/advertisements/advertisement-placements";
 
 const DEFAULT_MAP_LAT = 48.4072318295932;
 const DEFAULT_MAP_LNG = 6.843844487240165;
@@ -62,6 +68,8 @@ const advertiserKindSchema = z.enum([
   "OTHER",
 ]);
 
+const placementSchema = z.enum(ADVERTISEMENT_PLACEMENT_VALUES);
+
 const schema = z.object({
   name: z
     .string()
@@ -76,7 +84,7 @@ const schema = z.object({
   body: z.string().max(ADVERTISEMENT_BODY_MAX_CHARS).optional().default(""),
   imageUrl: z.string().max(2048).optional().default(""),
   targetUrl: z.string().max(2048).optional().default(""),
-  placement: z.string().min(1, "Placement requis.").max(64),
+  placement: placementSchema,
   active: z.boolean(),
   startsAt: z.string().optional().default(""),
   endsAt: z.string().optional().default(""),
@@ -94,7 +102,11 @@ const schema = z.object({
   partnerClaimsOpen: z.boolean(),
 });
 
-export type AdvertisementFormDefaultValues = Partial<z.infer<typeof schema>> & {
+export type AdvertisementFormDefaultValues = Partial<
+  Omit<z.infer<typeof schema>, "placement">
+> & {
+  /** Valeur BDD ; normalisée au chargement si hors liste connue. */
+  placement?: string;
   targetCityIds?: string[];
   merchantUserIds?: string[];
 };
@@ -176,7 +188,7 @@ export function AdvertisementForm({
       body: defaultValues.body ?? "",
       imageUrl: defaultValues.imageUrl ?? "",
       targetUrl: defaultValues.targetUrl ?? "",
-      placement: defaultValues.placement ?? "home",
+      placement: normalizeAdvertisementPlacement(defaultValues.placement),
       active: defaultValues.active ?? true,
       startsAt: defaultValues.startsAt ?? "",
       endsAt: defaultValues.endsAt ?? "",
@@ -481,12 +493,33 @@ export function AdvertisementForm({
             control={form.control}
             render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="ad-placement">Placement (code appli)</FieldLabel>
-                <p className="mb-1 text-xs text-muted-foreground">
-                  Ex. <code className="rounded bg-muted px-1">home</code>,{" "}
-                  <code className="rounded bg-muted px-1">library</code> — aligné avec les appels API.
+                <FieldLabel htmlFor="ad-placement">Placement (écran appli)</FieldLabel>
+                <p className="mb-2 text-xs text-muted-foreground">
+                  Valeurs reconnues par l&apos;API — alignées avec les appels mobile :
                 </p>
-                <Input id="ad-placement" {...field} autoComplete="off" />
+                <Select
+                  value={field.value}
+                  onValueChange={(v) => field.onChange(v as AdvertisementPlacement)}
+                >
+                  <SelectTrigger id="ad-placement" aria-invalid={fieldState.invalid}>
+                    <SelectValue placeholder="Choisir un emplacement" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ADVERTISEMENT_PLACEMENTS.map((p) => (
+                      <SelectItem key={p.value} value={p.value}>
+                        {p.label} ({p.value})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <ul className="mt-2 space-y-1.5 text-xs text-muted-foreground">
+                  {ADVERTISEMENT_PLACEMENTS.map((p) => (
+                    <li key={p.value}>
+                      <code className="rounded bg-muted px-1">{p.value}</code> — {p.screen}.{" "}
+                      <span className="font-mono text-[11px]">{p.apiCall}</span>
+                    </li>
+                  ))}
+                </ul>
                 {fieldState.invalid ? <FieldError errors={[fieldState.error]} /> : null}
               </Field>
             )}

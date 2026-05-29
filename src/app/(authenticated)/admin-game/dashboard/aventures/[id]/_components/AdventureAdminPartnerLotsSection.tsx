@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -26,6 +26,13 @@ import {
 } from "../_lib/partner-lots.action";
 import type { PartnerWheelStatsPayload } from "../_lib/partner-lots-queries";
 import { PARTNER_WHEEL_TERMS_MAX_CHARS } from "@/lib/dashboard-text-limits";
+import {
+  PARTNER_LOT_CHANCE_PERCENT_TOTAL,
+  formatPartnerLotChancePercentTotalMessage,
+  projectedPartnerLotChancePercentTotal,
+  suggestPartnerLotChancePercentForNew,
+  sumPartnerLotChancePercents,
+} from "@/lib/adventure-partner-lots/partner-lot-chance-percent";
 
 export type PartnerLotClientRow = {
   id: string;
@@ -51,14 +58,14 @@ function toDateInput(iso: string | null): string {
 
 type LotFormState = PartnerLotWriteInput & { id: string | null };
 
-function emptyForm(): LotFormState {
+function emptyForm(lots: PartnerLotClientRow[]): LotFormState {
   return {
     id: null,
     partnerName: "",
     title: "",
     description: "",
     redemptionHint: "",
-    weight: 1,
+    weight: suggestPartnerLotChancePercentForNew(lots),
     quantityRemaining: null,
     active: true,
     validFromIso: null,
@@ -112,7 +119,7 @@ export function AdventureAdminPartnerLotsSection({
   const caps = useAdminCapabilities();
   const canUpdate = caps.adventure.update;
   const [pending, startTransition] = useTransition();
-  const [editing, setEditing] = useState<LotFormState>(emptyForm());
+  const [editing, setEditing] = useState<LotFormState>(() => emptyForm(initialLots));
   const [stockText, setStockText] = useState("");
   const [wheelTermsText, setWheelTermsText] = useState(initialWheelTerms ?? "");
 
@@ -121,9 +128,27 @@ export function AdventureAdminPartnerLotsSection({
   }, [initialWheelTerms]);
 
   const resetForm = () => {
-    setEditing(emptyForm());
+    setEditing(emptyForm(initialLots));
     setStockText("");
   };
+
+  const savedPercentTotal = useMemo(
+    () => sumPartnerLotChancePercents(initialLots),
+    [initialLots]
+  );
+
+  const projectedPercentTotal = useMemo(
+    () =>
+      projectedPartnerLotChancePercentTotal(initialLots, {
+        id: editing.id,
+        weight: editing.weight,
+      }),
+    [initialLots, editing.id, editing.weight]
+  );
+
+  const percentTotalIsValid = savedPercentTotal === PARTNER_LOT_CHANCE_PERCENT_TOTAL;
+  const projectedPercentTotalIsValid =
+    projectedPercentTotal === PARTNER_LOT_CHANCE_PERCENT_TOTAL;
 
   const loadFromRow = (row: PartnerLotClientRow) => {
     const f = rowToForm(row);
@@ -157,6 +182,10 @@ export function AdventureAdminPartnerLotsSection({
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!canUpdate) return;
+    if (!projectedPercentTotalIsValid) {
+      toast.error(formatPartnerLotChancePercentTotalMessage(projectedPercentTotal));
+      return;
+    }
     startTransition(async () => {
       const payload = buildPayload();
       if (editing.id) {
@@ -238,8 +267,9 @@ export function AdventureAdminPartnerLotsSection({
         <CardDescription>
           Lots optionnels affichés sur la roue après une réussite : liés à{" "}
           <strong>cette aventure</strong> ou à <strong>toute la ville</strong> ({cityName}
-          ). Sans lot actif, la roue n&apos;apparaît pas côté joueur. Les tirages et validations
-          magasin sont comptabilisés ci-dessous.
+          ). Les probabilités de tous les lots listés ci-dessous doivent totaliser{" "}
+          <strong>{PARTNER_LOT_CHANCE_PERCENT_TOTAL} %</strong>. Sans lot actif, la roue
+          n&apos;apparaît pas côté joueur.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -341,6 +371,22 @@ export function AdventureAdminPartnerLotsSection({
         ) : null}
 
         {initialLots.length > 0 ? (
+          <div
+            className={
+              percentTotalIsValid
+                ? "rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground"
+                : "rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            }
+          >
+            Total des probabilités enregistrées :{" "}
+            <strong className="tabular-nums">{savedPercentTotal} %</strong>
+            {!percentTotalIsValid ? (
+              <span> — {formatPartnerLotChancePercentTotalMessage(savedPercentTotal)}</span>
+            ) : null}
+          </div>
+        ) : null}
+
+        {initialLots.length > 0 ? (
           <ul className="space-y-3 border-t border-border pt-6 text-sm">
             {initialLots.map((row) => {
               const scopeLabel =
@@ -358,7 +404,7 @@ export function AdventureAdminPartnerLotsSection({
                       <span className="text-muted-foreground">— {row.partnerName}</span>
                     </p>
                     <p className="text-muted-foreground">
-                      {scopeLabel} · poids {row.weight}
+                      {scopeLabel} · <strong className="text-foreground">{row.weight} %</strong>
                       {row.quantityRemaining == null
                         ? " · stock illimité"
                         : ` · reste ${row.quantityRemaining}`}
@@ -452,22 +498,39 @@ export function AdventureAdminPartnerLotsSection({
             </Field>
             <div className="grid gap-4 sm:grid-cols-3">
               <Field>
-                <FieldLabel htmlFor="pl-weight">Poids (probabilité relative)</FieldLabel>
+                <FieldLabel htmlFor="pl-weight">Probabilité (%)</FieldLabel>
                 <Input
                   id="pl-weight"
                   type="number"
                   min={1}
-                  max={1000}
+                  max={PARTNER_LOT_CHANCE_PERCENT_TOTAL}
                   value={editing.weight}
-                  onChange={(e) =>
-                    setEditing((s) => ({
-                      ...s,
-                      weight: Math.max(1, Number(e.target.value) || 1),
-                    }))
-                  }
+                  onChange={(e) => {
+                    const raw = Number(e.target.value);
+                    const next = Number.isFinite(raw)
+                      ? Math.min(
+                          PARTNER_LOT_CHANCE_PERCENT_TOTAL,
+                          Math.max(1, Math.round(raw))
+                        )
+                      : 1;
+                    setEditing((s) => ({ ...s, weight: next }));
+                  }}
                   disabled={pending}
                   required
                 />
+                <p
+                  className={
+                    projectedPercentTotalIsValid
+                      ? "mt-1 text-xs text-muted-foreground"
+                      : "mt-1 text-xs text-destructive"
+                  }
+                >
+                  Total après enregistrement :{" "}
+                  <span className="font-medium tabular-nums">{projectedPercentTotal} %</span>
+                  {projectedPercentTotalIsValid
+                    ? ` / ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} %`
+                    : ` — ${formatPartnerLotChancePercentTotalMessage(projectedPercentTotal)}`}
+                </p>
               </Field>
               <Field>
                 <FieldLabel htmlFor="pl-stock">Stock restant (vide = illimité)</FieldLabel>
@@ -559,7 +622,7 @@ export function AdventureAdminPartnerLotsSection({
               </div>
             </Field>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={pending}>
+              <Button type="submit" disabled={pending || !projectedPercentTotalIsValid}>
                 {editing.id ? "Enregistrer" : "Créer le lot"}
               </Button>
               {editing.id ? (
