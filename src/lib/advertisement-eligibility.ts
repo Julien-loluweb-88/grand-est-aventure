@@ -1,7 +1,7 @@
 import type { Advertisement, City } from "../../generated/prisma/client";
 import { haversineMeters } from "@/lib/geo/haversine-meters";
 
-type AdWithTargets = Advertisement & {
+export type AdWithTargets = Advertisement & {
   targetCities: Pick<City, "id">[];
   partnerBadgeDefinition?: { title: string; imageUrl: string | null } | null;
 };

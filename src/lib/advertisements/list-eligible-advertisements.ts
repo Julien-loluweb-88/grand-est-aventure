@@ -1,7 +1,7 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { filterEligibleAdvertisements } from "@/lib/advertisement-eligibility";
+import { filterEligibleAdvertisements, type AdWithTargets } from "@/lib/advertisement-eligibility";
 import { resolvePartnerBadgeImageUrl } from "@/lib/advertisements/resolve-partner-badge-image-url";
 import {
   resolveCityFromCoordinates,
@@ -51,9 +51,7 @@ function emptyLocationContext(): AdvertisementLocationContext {
   return { cityId: null, cityName: null, source: null };
 }
 
-type AdRow = Awaited<ReturnType<typeof loadActiveAdvertisements>>[number];
-
-function serializeAdvertisement(a: AdRow): MobileAdvertisementItem {
+function serializeAdvertisement(a: AdWithTargets): MobileAdvertisementItem {
   const badgeImageUrl = resolvePartnerBadgeImageUrl({
     advertisementImageUrl: a.imageUrl,
     badgeDefinitionImageUrl: a.partnerBadgeDefinition?.imageUrl,
