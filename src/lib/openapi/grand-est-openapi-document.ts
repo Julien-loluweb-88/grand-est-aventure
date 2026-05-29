@@ -737,11 +737,12 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Jeu"],
           summary: "Accueil mobile agrégé (public)",
           description:
-            "Route sans authentification obligatoire : stats communauté globales, **toutes** les aventures catalogue pour la carte, " +
+            "Route sans authentification obligatoire : **toutes** les aventures catalogue pour la carte, " +
             "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés. " +
             "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
-            "Ne contient pas de gamification niveau / XP utilisateur. " +
-            "Les agrégats `communityStats` sont des `COUNT(*)` globaux mis en cache mémoire côté serveur (TTL ~5 min).",
+            "**`communityStats`** : totaux plateforme si anonyme (`scope: global`, cache TTL ~5 min) ; " +
+            "compteurs du joueur si session / `Authorization: Bearer` valide (`scope: user`). Session invalide → `global`, pas de **401**. " +
+            "Ne contient pas de gamification niveau / XP.",
           parameters: [
             { name: "latitude", in: "query", required: false, schema: { type: "number" } },
             { name: "longitude", in: "query", required: false, schema: { type: "number" } },
@@ -775,11 +776,18 @@ export function buildGrandEstOpenApiDocument() {
                       communityStats: {
                         type: "object",
                         required: [
+                          "scope",
                           "totalEnigmasSolved",
                           "totalAdventuresCompleted",
                           "totalBadgesEarned",
                         ],
                         properties: {
+                          scope: {
+                            type: "string",
+                            enum: ["global", "user"],
+                            description:
+                              "`global` sans session ; `user` si joueur authentifié (mêmes clés numériques, sémantique personnelle).",
+                          },
                           totalEnigmasSolved: { type: "integer", minimum: 0 },
                           totalAdventuresCompleted: { type: "integer", minimum: 0 },
                           totalBadgesEarned: { type: "integer", minimum: 0 },

@@ -3,8 +3,10 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { UserAdventurePlaySessionStatus } from "@/lib/badges/prisma-enums";
 
-/** Recalcul au plus toutes les 5 minutes (évite 3× COUNT(*) à chaque GET /api/game/home). */
-const CACHE_TTL_MS = 5 * 60 * 1000;
+/** Recalcul au plus toutes les 5 minutes (évite 3× COUNT(*) à chaque GET /api/game/home anonyme). */
+const GLOBAL_CACHE_TTL_MS = 5 * 60 * 1000;
+
+export type CommunityStatsScope = "global" | "user";
 
 export type CommunityStats = {
   totalEnigmasSolved: number;
@@ -12,21 +14,20 @@ export type CommunityStats = {
   totalBadgesEarned: number;
 };
 
-let cached: { stats: CommunityStats; expiresAt: number } | null = null;
+export type HomeCommunityStats = CommunityStats & {
+  scope: CommunityStatsScope;
+};
+
+let globalCached: { stats: CommunityStats; expiresAt: number } | null = null;
 
 /**
- * Règles de comptage (stats globales, tous joueurs) :
+ * Règles de comptage **globales** (tous joueurs) :
  *
- * - **totalEnigmasSolved** : `COUNT` sur `UserAdventureStepValidation` où `stepKey` commence par `enigma:`.
- *   Unique `(userId, adventureId, stepKey)` → rejouer la même énigme sur le **même** parcours ne recompte pas ;
- *   une énigme validée sur un **autre** parcours compte à nouveau (+1).
- *
- * - **totalAdventuresCompleted** : `COUNT` sur `UserAdventurePlaySession` en `COMPLETED_SUCCESS`
- *   (parcours terminé avec succès ; chaque partie compte, y compris un rejou).
- *
- * - **totalBadgesEarned** : `COUNT` sur `UserBadge` (badges effectivement attribués).
+ * - **totalEnigmasSolved** : validations `stepKey` `enigma:*` (toutes parties).
+ * - **totalAdventuresCompleted** : sessions `COMPLETED_SUCCESS` (chaque partie terminée compte).
+ * - **totalBadgesEarned** : lignes `UserBadge`.
  */
-async function countCommunityStatsFromDb(): Promise<CommunityStats> {
+async function countGlobalCommunityStatsFromDb(): Promise<CommunityStats> {
   const [totalEnigmasSolved, totalAdventuresCompleted, totalBadgesEarned] = await Promise.all([
     prisma.userAdventureStepValidation.count({
       where: { stepKey: { startsWith: "enigma:" } },
@@ -44,14 +45,66 @@ async function countCommunityStatsFromDb(): Promise<CommunityStats> {
   };
 }
 
-/** Stats communauté : comptage direct en base, mis en cache mémoire (TTL 5 min). */
-export async function getCommunityStats(): Promise<CommunityStats> {
+/**
+ * Règles de comptage **utilisateur** (session valide sur `GET /api/game/home`) :
+ *
+ * - **totalEnigmasSolved** : validations `enigma:*` du joueur (même règle unicité par parcours).
+ * - **totalAdventuresCompleted** : lignes `UserAdventures` avec `success: true` (parcours distincts terminés au moins une fois — aligné badges / progression).
+ * - **totalBadgesEarned** : `UserBadge` du joueur (cohérent avec `GET /api/user/badges`).
+ */
+async function countUserCommunityStats(userId: string): Promise<CommunityStats> {
+  const [totalEnigmasSolved, totalAdventuresCompleted, totalBadgesEarned] = await Promise.all([
+    prisma.userAdventureStepValidation.count({
+      where: { userId, stepKey: { startsWith: "enigma:" } },
+    }),
+    prisma.userAdventures.count({
+      where: { userId, success: true },
+    }),
+    prisma.userBadge.count({
+      where: { userId },
+    }),
+  ]);
+
+  return {
+    totalEnigmasSolved,
+    totalAdventuresCompleted,
+    totalBadgesEarned,
+  };
+}
+
+async function getGlobalCommunityStats(): Promise<HomeCommunityStats> {
   const now = Date.now();
-  if (cached && now < cached.expiresAt) {
-    return cached.stats;
+  if (globalCached && now < globalCached.expiresAt) {
+    return { ...globalCached.stats, scope: "global" };
   }
 
-  const stats = await countCommunityStatsFromDb();
-  cached = { stats, expiresAt: now + CACHE_TTL_MS };
+  const stats = await countGlobalCommunityStatsFromDb();
+  globalCached = { stats, expiresAt: now + GLOBAL_CACHE_TTL_MS };
+  return { ...stats, scope: "global" };
+}
+
+/**
+ * Stats barre d’accueil : globales si anonyme / session invalide, personnelles si connecté.
+ *
+ * @example Anonyme
+ * `{ scope: "global", totalEnigmasSolved: 12847, totalAdventuresCompleted: 3421, totalBadgesEarned: 890 }`
+ *
+ * @example Connecté
+ * `{ scope: "user", totalEnigmasSolved: 13, totalAdventuresCompleted: 6, totalBadgesEarned: 14 }`
+ */
+export async function getHomeCommunityStats(
+  userId: string | null | undefined
+): Promise<HomeCommunityStats> {
+  if (!userId) {
+    return getGlobalCommunityStats();
+  }
+
+  const stats = await countUserCommunityStats(userId);
+  return { ...stats, scope: "user" };
+}
+
+/** @deprecated Préférer `getHomeCommunityStats`. Conservé si appel interne sans scope. */
+export async function getCommunityStats(): Promise<CommunityStats> {
+  const { scope: _scope, ...stats } = await getGlobalCommunityStats();
   return stats;
 }

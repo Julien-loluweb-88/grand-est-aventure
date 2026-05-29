@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { auth } from "@/lib/auth";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
-import { getCommunityStats } from "@/lib/game/community-stats";
+import { getHomeCommunityStats } from "@/lib/game/community-stats";
 import { loadApprovedReviewAggregatesByAdventureIds, reviewAggregateForAdventure } from "@/lib/game/adventure-review-aggregates";
 import {
   attachDistanceFromUser,
@@ -36,6 +38,9 @@ function parseIntParam(value: string | null, fallback: number): number {
  * - latitude, longitude — distance utilisateur + sélection `featuredAdventures`
  * - reviewsLimit (défaut 25, max 50)
  * - featuredLimit (défaut 3)
+ *
+ * Auth optionnelle : si session / Bearer valide, `communityStats` = chiffres du joueur (`scope: "user"`) ;
+ * sinon totaux plateforme (`scope: "global"`). Pas de 401 — l’accueil reste public.
  */
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
@@ -73,8 +78,11 @@ export async function GET(request: NextRequest) {
   const catalogRows = await fetchPublicCatalogAdventures();
   const adventureIds = catalogRows.map((r) => r.id);
 
+  const session = await auth.api.getSession({ headers: await headers() });
+  const userId = session?.user?.id ?? null;
+
   const [communityStats, recentReviews, reviewAggregates] = await Promise.all([
-    getCommunityStats(),
+    getHomeCommunityStats(userId),
     listRecentPublicAdventureReviews(reviewsLimit),
     loadApprovedReviewAggregatesByAdventureIds(adventureIds),
   ]);
