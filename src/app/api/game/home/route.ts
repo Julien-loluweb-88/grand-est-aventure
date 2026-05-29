@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import { getHomeCommunityStats } from "@/lib/game/community-stats";
@@ -78,8 +77,7 @@ export async function GET(request: NextRequest) {
   const catalogRows = await fetchPublicCatalogAdventures();
   const adventureIds = catalogRows.map((r) => r.id);
 
-  const session = await auth.api.getSession({ headers: await headers() });
-  const userId = session?.user?.id ?? null;
+  const userId = await getOptionalUserIdFromApiRequest(request);
 
   const [communityStats, recentReviews, reviewAggregates] = await Promise.all([
     getHomeCommunityStats(userId),
@@ -98,7 +96,12 @@ export async function GET(request: NextRequest) {
   const featuredAdventures = selectFeaturedAdventures(adventures, featuredLimit);
 
   return NextResponse.json({
-    communityStats,
+    communityStats: {
+      scope: communityStats.scope,
+      totalEnigmasSolved: communityStats.totalEnigmasSolved,
+      totalAdventuresCompleted: communityStats.totalAdventuresCompleted,
+      totalBadgesEarned: communityStats.totalBadgesEarned,
+    },
     adventures,
     featuredAdventures,
     recentReviews,
