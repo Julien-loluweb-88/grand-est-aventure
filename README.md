@@ -279,7 +279,7 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 | GET | `/api/game/cities` | Référentiel villes |
 | GET | `/api/game/avatars` | Catalogue avatars compagnon (`slug` → fichier **glb** dans l’app) |
 | GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) |
-| GET | `/api/game/home` | Accueil public agrégé ; `communityStats` global ou perso (`scope`) si session/Bearer valide |
+| GET | `/api/game/home` | Accueil agrégé : stats (`scope`), **pubs `home`**, `locationContext`, aventures, avis — GPS infère la ville pour le ciblage pub |
 | GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** ; démo → session + droit requis |
 | GET | `/api/game/progress` | Progression joueur (`adventureId`) |
 | POST | `/api/game/start-adventure` | Ouvre la session de jeu au « Commencer » (idempotent) ; **400** `EMPTY_ADVENTURE` si ni énigme ni trésor |
@@ -326,7 +326,7 @@ Implémentation : **`src/lib/advertisement-eligibility.ts`** (`filterEligibleAdv
 
 **Règles de géolocalisation (cumulatives sur une même publicité) :**
 
-1. **Ciblage par villes** — Si la publicité a au moins une ville cible dans l’admin : le joueur doit envoyer un **`cityId`** qui figure dans cette liste. Sinon la pub est **exclue**.
+1. **Ciblage par villes** — Si la publicité a au moins une ville cible dans l’admin : le serveur utilise un **`cityId`** explicite (query) **ou inféré depuis `latitude`/`longitude`** (API Gouv INSEE → `City.inseeCode`, repli : ville catalogue la plus proche ≤ 15 km). Sinon la pub est **exclue**.
 2. **Ciblage par disque** — Si la publicité a un **centre** (lat/lon) et un **rayon en mètres** renseignés : le joueur doit envoyer **`latitude` et `longitude`** ; la distance (Haversine, mètres) doit être **≤ rayon**. Si la pub a un disque mais que l’app **n’envoie pas les deux coordonnées**, la pub est **exclue**.
 3. **Les deux à la fois** — Si une pub a **villes ET disque**, il faut **satisfaire les deux** conditions.
 4. **Aucun ciblage** — Si la pub n’a **ni** ville **ni** disque complet en base, elle n’est filtrée que par placement / dates / actif.
@@ -460,7 +460,8 @@ flowchart LR
 
 ### Publicités
 
-- [ ] `GET /api/advertisements` : **`placement`** obligatoire ; **`cityId`** si le joueur a une ville (requis pour les campagnes avec villes cibles) ; **`latitude` + `longitude`** si le GPS est dispo (requis pour les campagnes avec disque centre + rayon).  
+- [ ] **`GET /api/game/home`** — un seul appel accueil : stats, **`advertisements[]`**, **`locationContext`**, carte, carrousel, avis ; GPS suffit pour le ciblage pub par ville (pas de `cityId` requis côté app).
+- [ ] `GET /api/advertisements` : **`placement`** obligatoire ; **`latitude` + `longitude`** recommandés (inférence ville + disque) ; **`cityId`** optionnel en override.  
 - [ ] Même appel **avec session** pour exclure les encarts masqués ; **`POST /api/user/advertisement-dismissals`** quand l’utilisateur ferme un encart (401 si non connecté).  
 - [ ] `partnerOffer` : si `null`, pas d’offre ; si `open: false`, pas de bouton demande ; visuel **`badgeImageUrl`**.  
 - [ ] `POST /api/advertisements/events` — IMPRESSION / CLICK (rate limit).

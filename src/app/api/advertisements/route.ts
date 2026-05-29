@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { getSession } from "@/lib/auth/auth-user";
-import { filterEligibleAdvertisements } from "@/lib/advertisement-eligibility";
-import { resolvePartnerBadgeImageUrl } from "@/lib/advertisements/resolve-partner-badge-image-url";
+import { listEligibleAdvertisements } from "@/lib/advertisements/list-eligible-advertisements";
+import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 
 /**
  * Liste les publicités éligibles pour l’appli joueur.
  * Query : `placement` (obligatoire), `cityId`, `latitude`, `longitude`.
- * Ciblage : voir `filterEligibleAdvertisements` — villes (cityId dans la liste cible)
- * et/ou disque (lat+lon à distance ≤ rayon si centre + rayon configurés).
- * Si une **session** joueur est envoyée, les publicités masquées (`POST …/user/advertisement-dismissals`) sont exclues.
+ * Sans `cityId` mais avec GPS : la ville est **inférée** (API Gouv INSEE + repli catalogue).
+ * Si session / Bearer valide, les encarts masqués sont exclus.
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
@@ -21,7 +18,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const cityId = searchParams.get("cityId") ?? undefined;
+  const cityId = (searchParams.get("cityId") ?? "").trim() || undefined;
   const latRaw = searchParams.get("latitude");
   const lonRaw = searchParams.get("longitude");
   let latitude: number | undefined;
@@ -39,73 +36,16 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const now = new Date();
+  const userId = await getOptionalUserIdFromApiRequest(request);
 
-  const ads = await prisma.advertisement.findMany({
-    where: {
-      active: true,
-      placement,
-      AND: [
-        { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
-        { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-      ],
-    },
-    include: {
-      targetCities: { select: { id: true } },
-      partnerBadgeDefinition: { select: { title: true, imageUrl: true } },
-    },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-  });
-
-  const eligible = filterEligibleAdvertisements(
-    ads,
+  const { advertisements } = await listEligibleAdvertisements({
     placement,
-    now,
     cityId,
-    latitude ?? null,
-    longitude ?? null
-  );
-
-  const session = await getSession();
-  const userId = session?.user?.id;
-  let dismissedIds = new Set<string>();
-  if (userId) {
-    const rows = await prisma.userAdvertisementDismissal.findMany({
-      where: { userId },
-      select: { advertisementId: true },
-    });
-    dismissedIds = new Set(rows.map((r) => r.advertisementId));
-  }
-
-  const visible = dismissedIds.size
-    ? eligible.filter((a) => !dismissedIds.has(a.id))
-    : eligible;
-
-  return NextResponse.json({
-    advertisements: visible.map((a) => {
-      const badgeImageUrl = resolvePartnerBadgeImageUrl({
-        advertisementImageUrl: a.imageUrl,
-        badgeDefinitionImageUrl: a.partnerBadgeDefinition?.imageUrl,
-      });
-
-      return {
-        id: a.id,
-        title: a.title,
-        body: a.body,
-        imageUrl: a.imageUrl,
-        targetUrl: a.targetUrl,
-        advertiserName: a.advertiserName,
-        sortOrder: a.sortOrder,
-        partnerOffer:
-          a.partnerBadgeDefinitionId == null
-            ? null
-            : {
-                open: a.partnerClaimsOpen,
-                maxRedemptionsPerUser: a.partnerMaxRedemptionsPerUser,
-                badgeTitle: a.partnerBadgeDefinition?.title ?? null,
-                badgeImageUrl,
-              },
-      };
-    }),
+    latitude,
+    longitude,
+    userId,
+    inferCityFromCoordinates: true,
   });
+
+  return NextResponse.json({ advertisements });
 }

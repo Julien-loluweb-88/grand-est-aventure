@@ -742,6 +742,8 @@ export function buildGrandEstOpenApiDocument() {
             "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
             "**`communityStats`** : totaux plateforme si anonyme (`scope: global`, cache TTL ~5 min) ; " +
             "compteurs du joueur si session / `Authorization: Bearer` valide (`scope: user`). Session invalide → `global`, pas de **401**. " +
+            "**`advertisements`** : encarts `placement=home` (même schéma que `GET /api/advertisements`) ; ville cible inférée depuis GPS " +
+            "(API Gouv INSEE → `City`, repli ville catalogue la plus proche ≤ 15 km). **`locationContext`** indique la ville utilisée pour le ciblage. " +
             "Ne contient pas de gamification niveau / XP.",
           parameters: [
             { name: "latitude", in: "query", required: false, schema: { type: "number" } },
@@ -768,6 +770,8 @@ export function buildGrandEstOpenApiDocument() {
                     type: "object",
                     required: [
                       "communityStats",
+                      "advertisements",
+                      "locationContext",
                       "adventures",
                       "featuredAdventures",
                       "recentReviews",
@@ -791,6 +795,26 @@ export function buildGrandEstOpenApiDocument() {
                           totalEnigmasSolved: { type: "integer", minimum: 0 },
                           totalAdventuresCompleted: { type: "integer", minimum: 0 },
                           totalBadgesEarned: { type: "integer", minimum: 0 },
+                        },
+                      },
+                      advertisements: {
+                        type: "array",
+                        description:
+                          "Pubs `placement=home` éligibles (global, ville inférée, disque). Même objet que `GET /api/advertisements`.",
+                        items: { type: "object", additionalProperties: true },
+                      },
+                      locationContext: {
+                        type: "object",
+                        required: ["cityId", "cityName", "source"],
+                        properties: {
+                          cityId: { type: ["string", "null"] },
+                          cityName: { type: ["string", "null"] },
+                          source: {
+                            type: ["string", "null"],
+                            enum: ["insee", "nearest", null],
+                            description:
+                              "Méthode d’inférence ville pour le ciblage pub ; `null` si pas de GPS ou ville non résolue.",
+                          },
                         },
                       },
                       adventures: {
@@ -1769,10 +1793,10 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Liste des publicités éligibles",
           description:
             "**Publique** (pas de session requise). Pubs `active`, bon `placement`, fenêtre de dates. " +
-            "Puis `filterEligibleAdvertisements` : si la pub cible des **villes**, `cityId` doit être dans la liste ; " +
-            "si elle définit un **disque** (centre lat/lon + rayon m), le client doit envoyer **latitude et longitude** " +
-            "et la distance Haversine doit être ≤ rayon (sinon la pub est exclue). Les deux filtres sont **cumulatifs** si configurés ensemble. " +
-            "Si le client envoie la **session** du joueur, les encarts enregistrés comme masqués via `POST /api/user/advertisement-dismissals` sont **exclus**.",
+            "Ciblage : villes ( **`cityId` explicite** ou **inféré depuis latitude/longitude** via API Gouv INSEE + repli catalogue ), " +
+            "disque (centre + rayon m), cumulatif si les deux sont configurés. " +
+            "Session / Bearer : exclusion des encarts masqués (`POST /api/user/advertisement-dismissals`). " +
+            "Sur l’accueil, préférer `GET /api/game/home` qui inclut déjà `advertisements` + `locationContext`.",
           parameters: [
             {
               name: "placement",
@@ -1787,7 +1811,7 @@ export function buildGrandEstOpenApiDocument() {
               required: false,
               schema: { type: "string" },
               description:
-                "Id `City` du référentiel. Requis côté effet si la publicité a des villes cibles : sans `cityId` ou hors liste, la pub est exclue.",
+                "Override explicite. Sinon, si latitude+longitude sont fournis, le serveur infère la ville (Gouv INSEE → référentiel).",
             },
             {
               name: "latitude",

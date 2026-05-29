@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { listEligibleAdvertisements } from "@/lib/advertisements/list-eligible-advertisements";
 import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
@@ -17,6 +18,7 @@ const MAX_PER_WINDOW = 60;
 const DEFAULT_REVIEWS_LIMIT = 25;
 const MAX_REVIEWS_LIMIT = 50;
 const DEFAULT_FEATURED_LIMIT = 3;
+const HOME_AD_PLACEMENT = "home";
 
 function parseNumber(value: string | null): number | null {
   if (value == null || value.trim() === "") return null;
@@ -34,12 +36,12 @@ function parseIntParam(value: string | null, fallback: number): number {
  * Agrégat accueil app mobile (sans authentification obligatoire).
  *
  * Query :
- * - latitude, longitude — distance utilisateur + sélection `featuredAdventures`
+ * - latitude, longitude — distance utilisateur, sélection `featuredAdventures`, ciblage pub + inférence ville
  * - reviewsLimit (défaut 25, max 50)
  * - featuredLimit (défaut 3)
  *
- * Auth optionnelle : si session / Bearer valide, `communityStats` = chiffres du joueur (`scope: "user"`) ;
- * sinon totaux plateforme (`scope: "global"`). Pas de 401 — l’accueil reste public.
+ * Auth optionnelle : stats perso (`communityStats.scope: user`), exclusion pubs masquées.
+ * Pas de 401 — l’accueil reste public.
  */
 export async function GET(request: NextRequest) {
   const ip = getClientIp(request);
@@ -74,15 +76,22 @@ export async function GET(request: NextRequest) {
     parseIntParam(p.get("featuredLimit"), DEFAULT_FEATURED_LIMIT)
   );
 
+  const userId = await getOptionalUserIdFromApiRequest(request);
+
   const catalogRows = await fetchPublicCatalogAdventures();
   const adventureIds = catalogRows.map((r) => r.id);
 
-  const userId = await getOptionalUserIdFromApiRequest(request);
-
-  const [communityStats, recentReviews, reviewAggregates] = await Promise.all([
+  const [communityStats, recentReviews, reviewAggregates, adResult] = await Promise.all([
     getHomeCommunityStats(userId),
     listRecentPublicAdventureReviews(reviewsLimit),
     loadApprovedReviewAggregatesByAdventureIds(adventureIds),
+    listEligibleAdvertisements({
+      placement: HOME_AD_PLACEMENT,
+      latitude,
+      longitude,
+      userId,
+      inferCityFromCoordinates: true,
+    }),
   ]);
 
   const withDistance = attachDistanceFromUser(catalogRows, latitude, longitude);
@@ -102,6 +111,8 @@ export async function GET(request: NextRequest) {
       totalAdventuresCompleted: communityStats.totalAdventuresCompleted,
       totalBadgesEarned: communityStats.totalBadgesEarned,
     },
+    advertisements: adResult.advertisements,
+    locationContext: adResult.locationContext,
     adventures,
     featuredAdventures,
     recentReviews,

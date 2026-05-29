@@ -118,3 +118,37 @@ export async function fetchCommuneByInseeFromGeoApi(
 
   return null;
 }
+
+/** Commune la plus proche d’un point WGS84 (reverse géocodage API État). */
+export async function fetchCommuneAtCoordinatesFromGeoApi(
+  latitude: number,
+  longitude: number,
+  signal?: AbortSignal
+): Promise<GeoCommuneDto | null> {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return null;
+  }
+
+  const url = new URL(`${GEO_API_BASE}/communes`);
+  url.searchParams.set("lat", String(latitude));
+  url.searchParams.set("lon", String(longitude));
+  url.searchParams.set("limit", "1");
+  url.searchParams.set("fields", COMMUNE_FIELDS);
+
+  const res = await fetch(url.toString(), {
+    signal,
+    headers: { Accept: "application/json" },
+    next: { revalidate: 3600 },
+  });
+
+  if (!res.ok) {
+    return null;
+  }
+
+  const data: unknown = await res.json();
+  if (!Array.isArray(data) || data.length === 0) {
+    return null;
+  }
+
+  return parseCommune(data[0]);
+}
