@@ -3,6 +3,7 @@ import {
   CONTACT_EMAIL_MAX_CHARS,
   CONTACT_MESSAGE_MAX_CHARS,
   CONTACT_NAME_MAX_CHARS,
+  CONTACT_PHONE_MAX_CHARS,
 } from "@/lib/contact-text-limits";
 
 export const contactRequestSchema = z.object({
@@ -19,6 +20,17 @@ export const contactRequestSchema = z.object({
     .trim()
     .email("Adresse e-mail invalide.")
     .max(CONTACT_EMAIL_MAX_CHARS, "Adresse e-mail invalide."),
+  phone: z.preprocess(
+    (val) => (val == null ? "" : val),
+    z
+      .string()
+      .trim()
+      .max(
+        CONTACT_PHONE_MAX_CHARS,
+        `Le numéro ne peut pas dépasser ${CONTACT_PHONE_MAX_CHARS} caractères.`
+      )
+      .transform((v) => (v.length > 0 ? v : undefined))
+  ),
   message: z
     .string()
     .trim()

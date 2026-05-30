@@ -19,6 +19,7 @@ const CONTACT_SOURCE_LABEL: Record<ContactSource, string> = {
 export type ContactDiscordPayload = {
   name: string;
   email: string;
+  phone?: string;
   message: string;
   source: ContactSource;
 };
@@ -56,6 +57,15 @@ export async function sendContactDiscordWebhook(
             value: discordFieldValue(data.email),
             inline: true,
           },
+          ...(data.phone
+            ? [
+                {
+                  name: "Téléphone",
+                  value: discordFieldValue(data.phone),
+                  inline: true,
+                },
+              ]
+            : []),
           {
             name: "Message",
             value: discordFieldValue(data.message),

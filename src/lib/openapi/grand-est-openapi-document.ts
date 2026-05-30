@@ -1968,7 +1968,7 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Contact"],
           summary: "Envoyer un message contact (Discord)",
           description:
-            "Public, sans session. Corps JSON `{ name, email, message }` — mêmes limites que le formulaire web (`/contact`). " +
+            "Public, sans session. Corps JSON `{ name, email, message, phone? }` — mêmes limites que le formulaire web (`/contact`). " +
             "Notification Discord : champ **Origine** = **Application mobile** (cette route) ; le formulaire web envoie **Site web**. " +
             "Ne pas envoyer `source` dans le JSON (ignoré / non prévu — l’origine est imposée par le canal d’appel). " +
             "**Rate limit** partagé avec le web : 3 requêtes / 10 min par e-mail et par IP.",
@@ -1982,6 +1982,11 @@ export function buildGrandEstOpenApiDocument() {
                   properties: {
                     name: { type: "string", minLength: 2, maxLength: 120 },
                     email: { type: "string", format: "email", maxLength: 254 },
+                    phone: {
+                      type: "string",
+                      maxLength: 32,
+                      description: "Optionnel — espaces et + autorisés.",
+                    },
                     message: { type: "string", minLength: 10, maxLength: 4000 },
                   },
                 },

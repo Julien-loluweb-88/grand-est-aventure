@@ -1,5 +1,16 @@
 import Image from "next/image";
 import type { Metadata } from "next";
+import Link from "next/link";
+import {
+  Compass,
+  MapPin,
+  MessageCircle,
+  Puzzle,
+  Smartphone,
+  Sparkles,
+  Trees,
+  Users,
+} from "lucide-react";
 import {
   Accordion,
   AccordionContent,
@@ -15,21 +26,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { getFiveStarReviews, getSampleAdventures } from "./acceuil.action";
 import AdventureMapClient from "./_components/adventureMap";
-import Link from "next/link";
 
 const PLAY_STORE_URL =
   process.env.NEXT_PUBLIC_PLAY_STORE_URL?.trim() ?? "";
+const APP_IS_LIVE = Boolean(PLAY_STORE_URL);
 
 const shell = "mx-auto w-full max-w-5xl px-4 sm:px-6";
 
 const sectionTitle =
-  "scroll-mt-24 border-b border-[#281401]/12 pb-3 text-2xl font-semibold tracking-tight text-[#39951a] sm:text-3xl";
+  "text-balance text-center text-2xl font-semibold tracking-tight text-[#281401] sm:text-3xl";
 
-const stepH3 =
-  "text-xl font-semibold tracking-tight text-[#281401] sm:text-2xl";
-
-const quote =
-  "rounded-r-lg border-l-4 border-[#68a618] bg-[#fef0c7]/50 py-3 pl-4 pr-3 text-left text-sm leading-relaxed text-[#281401]/90 sm:pl-5 sm:text-base";
+const sectionLead =
+  "mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-[#281401]/75 sm:text-base";
 
 /** Données catalogue à jour après publication / changement d’audience (évite cache RSC obsolète). */
 export const dynamic = "force-dynamic";
@@ -37,40 +45,110 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Chasse au trésor dans le Grand Est",
   description:
-    "Balad'indice : chasse au trésor urbaine sur smartphone. Télécharge l'app sur Google Play (Android). Parcours déployés progressivement près de chez toi. iOS prévu ensuite.",
+    "Balad'indice : chasse au trésor urbaine sur smartphone. Énigmes, indices et trésor au bout du parcours — application mobile bientôt sur Android, iOS ensuite. Parcours déployés progressivement dans le Grand Est.",
   openGraph: {
     title: "Balad'indice — chasse au trésor · Grand Est",
     description:
-      "Énigmes, indices et trésor au bout du parcours. App mobile Android (Play Store), iOS bientôt.",
+      "La ville devient une chasse au trésor. Application mobile prochainement — parcours qui s’étendent zone par zone.",
   },
 };
 
-function PlayStoreBadgeLink() {
-  const inner = (
+const FEATURES = [
+  {
+    icon: Trees,
+    title: "Dehors, ensemble",
+    body: "Un jeu qui se joue en marchant — idéal pour une sortie entre parents et enfants ou entre amis.",
+  },
+  {
+    icon: Puzzle,
+    title: "Énigmes & indices",
+    body: "Chaque bonne réponse t’oriente vers l’étape suivante, jusqu’au trésor final.",
+  },
+  {
+    icon: MapPin,
+    title: "Ton territoire",
+    body: "Des parcours ancrés dans de vraies villes ; la carte s’enrichit au fil des semaines.",
+  },
+] as const;
+
+const STEPS = [
+  {
+    n: 1,
+    title: APP_IS_LIVE ? "Télécharge l’app" : "L’app arrive bientôt",
+    body: APP_IS_LIVE
+      ? "Installe Balad'indice sur Google Play (Android). La version iOS suivra."
+      : "Balad'indice sort prochainement sur Android (Google Play), puis sur iPhone. Inscris-toi à nos actus pour être prévenu.",
+  },
+  {
+    n: 2,
+    title: "Choisis ton parcours",
+    body: "Repère une aventure sur la carte et rends-toi au point de départ avec ta troupe.",
+  },
+  {
+    n: 3,
+    title: "Résous les énigmes",
+    body: "Chaque bonne réponse dans l’app t’indique où aller pour l’étape suivante.",
+  },
+  {
+    n: 4,
+    title: "À ton rythme",
+    body: "Compte en général 30 minutes à 1 heure selon le parcours.",
+  },
+  {
+    n: 5,
+    title: "Le trésor t’attend",
+    body: "Badges, surprises partenaires et récompense au bout du chemin.",
+  },
+] as const;
+
+function PlayStoreBadge({ live }: { live: boolean }) {
+  const badge = (
     <Image
       src="/images/google-play.png"
-      alt="Télécharger sur Google Play"
+      alt={
+        live
+          ? "Télécharger sur Google Play"
+          : "Bientôt disponible sur Google Play"
+      }
       width={200}
       height={100}
-      className="max-w-[200px]"
+      className={`max-w-[200px] ${live ? "" : "opacity-55 grayscale"}`}
       style={{ width: "auto", height: "auto" }}
     />
   );
-  if (PLAY_STORE_URL) {
+
+  if (live) {
     return (
       <a
         href={PLAY_STORE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-block rounded-lg ring-2 ring-transparent transition hover:ring-[#68a618]/40 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#68a618]"
+        className="inline-block rounded-xl ring-2 ring-transparent transition hover:ring-[#68a618]/40 focus-visible:outline focus-visible:ring-2 focus-visible:ring-[#68a618]"
       >
-        {inner}
+        {badge}
       </a>
     );
   }
+
   return (
-    <div className="inline-block rounded-lg ring-2 ring-[#281401]/10">
-      {inner}
+    <div className="relative inline-block rounded-xl ring-2 ring-[#281401]/10">
+      {badge}
+      <span className="absolute -right-2 -top-2 rounded-full bg-[#68a618] px-2.5 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-white shadow-md">
+        Bientôt
+      </span>
+    </div>
+  );
+}
+
+function SectionDivider() {
+  return (
+    <div
+      className="mx-auto mt-4 flex items-center justify-center gap-2"
+      aria-hidden
+    >
+      <span className="h-px w-10 bg-[#68a618]/35" />
+      <span className="size-1.5 rounded-full bg-[#68a618]/50" />
+      <span className="h-px w-10 bg-[#68a618]/35" />
     </div>
   );
 }
@@ -83,144 +161,179 @@ export default async function Home() {
   return (
     <div className="flex w-full flex-1 flex-col">
       {/* Hero */}
-      <div className="relative mb-6 flex min-h-[min(62vw,22rem)] w-full flex-col justify-center overflow-hidden sm:mb-8 sm:min-h-96 md:min-h-[28rem]">
+      <div className="relative mb-6 flex min-h-[min(70vw,24rem)] w-full flex-col justify-center overflow-hidden sm:mb-8 sm:min-h-[26rem] md:min-h-[32rem]">
         <Image
           src="/images/Ville-Pres-Geo-1720509386955.webp"
           alt=""
           fill
-          className="object-cover sepia-[0.12]"
+          className="object-cover sepia-[0.1] saturate-[1.05]"
           priority
           sizes="100vw"
         />
         <div
-          className="absolute inset-0 bg-linear-to-b from-[#281401]/70 via-[#281401]/45 to-[#1a0d00]/85"
+          className="absolute inset-0 bg-linear-to-b from-[#281401]/75 via-[#281401]/50 to-[#120a04]/90"
           aria-hidden
         />
         <div
-          className={`relative z-10 flex w-full flex-col gap-5 py-12 text-center sm:gap-6 sm:py-16 md:py-20 ${shell}`}
+          className="pointer-events-none absolute -left-24 top-1/4 size-64 rounded-full bg-[#68a618]/20 blur-3xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -right-16 bottom-1/4 size-56 rounded-full bg-[#fef0c7]/15 blur-3xl"
+          aria-hidden
+        />
+
+        <div
+          className={`relative z-10 flex w-full flex-col gap-5 py-14 text-center sm:gap-6 sm:py-18 md:py-22 ${shell}`}
         >
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-[#c8e89f] sm:text-xs">
-            Nouveau · Grand Est
-          </p>
-          <h1 className="text-balance text-3xl font-bold tracking-tight text-white drop-shadow-md sm:text-4xl md:text-5xl lg:text-[3.25rem] lg:leading-tight">
-            La ville devient une chasse au trésor
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#c8e89f]/30 bg-[#68a618]/25 px-3 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#e8f5d8] backdrop-blur-sm sm:text-xs">
+              {!APP_IS_LIVE ? (
+                <>
+                  <Sparkles className="size-3.5" aria-hidden />
+                  Bientôt disponible
+                </>
+              ) : (
+                "Grand Est · En ligne"
+              )}
+            </span>
+            <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[0.65rem] font-medium uppercase tracking-wider text-white/85 backdrop-blur-sm sm:text-xs">
+              Lancement progressif
+            </span>
+          </div>
+
+          <h1 className="text-balance text-3xl font-bold tracking-tight text-white drop-shadow-lg sm:text-4xl md:text-5xl lg:text-[3.35rem] lg:leading-[1.12]">
+            La ville devient une{" "}
+            <span className="text-[#c8e89f]">chasse au trésor</span>
           </h1>
-          <p className="mx-auto max-w-2xl text-pretty text-base font-medium leading-relaxed text-white/95 drop-shadow sm:text-lg md:text-xl">
-            Avec <strong className="font-semibold text-white">Balad&apos;indice</strong>, marche,
-            suis les indices et résous les énigmes dans l&apos;app jusqu&apos;au trésor. Les parcours se déploient
-            <strong className="font-semibold text-[#d4f0a8]"> progressivement</strong>, au plus près de
+
+          <p className="mx-auto max-w-2xl text-pretty text-base font-medium leading-relaxed text-white/92 drop-shadow sm:text-lg md:text-xl">
+            Avec <strong className="font-semibold text-white">Balad&apos;indice</strong>,
+            marche, suis les indices et résous les énigmes jusqu&apos;au trésor. Les parcours
+            arrivent{" "}
+            <strong className="font-semibold text-[#d4f0a8]">progressivement</strong> près de
             chez toi — la carte s&apos;enrichit au fil des semaines.
           </p>
+
           <div
             className="mx-auto flex flex-wrap items-center justify-center gap-2 text-xs text-white/90 sm:text-sm"
             role="list"
           >
-            <span
-              role="listitem"
-              className="rounded-full border border-white/25 bg-white/10 px-3 py-1 backdrop-blur-sm"
-            >
-              Gratuit
-            </span>
-            <span
-              role="listitem"
-              className="rounded-full border border-white/25 bg-white/10 px-3 py-1 backdrop-blur-sm"
-            >
-              App mobile
-            </span>
-            <span
-              role="listitem"
-              className="rounded-full border border-white/25 bg-white/10 px-3 py-1 backdrop-blur-sm"
-            >
-              Famille &amp; amis
-            </span>
+            {[
+              { icon: Sparkles, label: "Gratuit" },
+              { icon: Smartphone, label: "App mobile" },
+              { icon: Users, label: "Famille & amis" },
+            ].map(({ icon: Icon, label }) => (
+              <span
+                key={label}
+                role="listitem"
+                className="inline-flex items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 py-1.5 backdrop-blur-sm"
+              >
+                <Icon className="size-3.5 opacity-90" aria-hidden />
+                {label}
+              </span>
+            ))}
           </div>
-          <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4">
-            <Button
-              size="lg"
-              className="h-11 rounded-lg border-0 bg-[#68a618] px-6 text-sm font-semibold text-white shadow-lg shadow-[#281401]/20 hover:bg-[#5a9015] sm:h-12 sm:px-8"
-              asChild
-            >
-              <Link href="#telecharger">Télécharger sur Android</Link>
-            </Button>
+
+          <div className="flex flex-col items-center justify-center gap-3 pt-1 sm:flex-row sm:gap-4">
+            {APP_IS_LIVE ? (
+              <Button
+                size="lg"
+                className="h-11 rounded-xl border-0 bg-[#68a618] px-7 text-sm font-semibold text-white shadow-lg shadow-black/20 hover:bg-[#5a9015] sm:h-12"
+                asChild
+              >
+                <Link href="#telecharger">Télécharger sur Android</Link>
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                className="h-11 rounded-xl border-0 bg-[#68a618] px-7 text-sm font-semibold text-white shadow-lg shadow-black/20 hover:bg-[#5a9015] sm:h-12"
+                asChild
+              >
+                <Link href="/contact">Me tenir informé</Link>
+              </Button>
+            )}
             <Button
               size="lg"
               variant="outline"
-              className="h-11 rounded-lg border-white/40 bg-white/10 px-6 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20 sm:h-12 sm:px-8"
+              className="h-11 rounded-xl border-white/45 bg-white/10 px-7 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20 sm:h-12"
               asChild
             >
-              <Link href="#carte-aventures">Voir la carte</Link>
+              <Link href="#carte-aventures">
+                <Compass className="mr-2 size-4" aria-hidden />
+                Explorer la carte
+              </Link>
             </Button>
           </div>
-          <p className="text-xs text-white/65 sm:text-sm">
-            Disponible sur{" "}
-            <strong className="text-white/90">Google Play</strong> pour commencer ·{" "}
-            <strong className="text-white/90">iPhone (App Store)</strong> dans un second temps.
+
+          <p className="text-xs text-white/60 sm:text-sm">
+            {APP_IS_LIVE ? (
+              <>
+                Disponible sur <strong className="text-white/85">Google Play</strong> ·{" "}
+                <strong className="text-white/85">iPhone</strong> prochainement
+              </>
+            ) : (
+              <>
+                Application <strong className="text-white/85">Android</strong> en préparation ·{" "}
+                <strong className="text-white/85">iOS</strong> dans un second temps
+              </>
+            )}
           </p>
         </div>
       </div>
 
       {/* Bandeau territoire */}
-      <div className="border-y border-[#68a618]/20 bg-linear-to-r from-[#e8f5e0]/90 via-[#fef0c7]/60 to-[#e8f5e0]/90 py-4">
+      <div className="border-y border-[#68a618]/25 bg-linear-to-r from-[#e8f5e0] via-[#fef0c7]/80 to-[#e8f5e0] py-5">
         <div
-          className={`${shell} flex flex-col items-center gap-2 text-center sm:flex-row sm:justify-center sm:gap-6 sm:text-left`}
+          className={`${shell} flex flex-col items-center gap-3 text-center sm:flex-row sm:justify-center sm:gap-8 sm:text-left`}
         >
-          <p className="text-sm font-semibold text-[#281401] sm:shrink-0">
-            Lancement progressif
-          </p>
-          <p className="max-w-3xl text-pretty text-sm leading-relaxed text-[#281401]/85">
-            On ouvre le jeu <strong className="font-medium text-[#281401]">zone par zone</strong> dans
-            le Grand Est. Peu d&apos;aventures au début, c&apos;est normal — la carte se remplit avec
-            vous.
-          </p>
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-[#68a618]/15 text-[#39951a] shadow-inner">
+            <MapPin className="size-5" aria-hidden />
+          </div>
+          <div className="max-w-3xl space-y-0.5">
+            <p className="text-sm font-semibold text-[#281401]">Ouverture zone par zone</p>
+            <p className="text-pretty text-sm leading-relaxed text-[#281401]/80">
+              On déploie le jeu dans le Grand Est avec vous. Peu de parcours au début, c&apos;est
+              normal — la carte grandit au rythme des équipes locales.{" "}
+              <Link
+                href="/communes"
+                className="font-medium text-[#39951a] underline-offset-2 hover:underline"
+              >
+                Vous êtes une commune&nbsp;? Parlons-en.
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="flex w-full flex-col gap-16 pb-16 pt-10 sm:gap-20 sm:pb-20 sm:pt-12 md:gap-24">
-        {/* Pourquoi jouer */}
+      <div className="flex w-full flex-col gap-16 pb-16 pt-12 sm:gap-20 sm:pb-22 sm:pt-14 md:gap-24">
+        {/* Pourquoi */}
         <section className={shell} aria-labelledby="pourquoi-titre">
-          <h2 id="pourquoi-titre" className={`${sectionTitle} mb-8 text-center`}>
+          <h2 id="pourquoi-titre" className={sectionTitle}>
             Pourquoi se lancer&nbsp;?
           </h2>
-          <ul className="grid gap-4 sm:grid-cols-3 sm:gap-5">
-            <li>
-              <Card className="h-full border-[#281401]/10 bg-white/80 shadow-sm transition-shadow hover:shadow-md">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-[#281401]">
-                    Dehors, ensemble
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm leading-relaxed text-[#281401]/80">
-                  Un jeu qui se joue en marchant, sans écran toute la journée — idéal pour une sortie
-                  entre parents et enfants ou entre amis.
-                </CardContent>
-              </Card>
-            </li>
-            <li>
-              <Card className="h-full border-[#281401]/10 bg-white/80 shadow-sm transition-shadow hover:shadow-md">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-[#281401]">
-                    Énigmes &amp; indices
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm leading-relaxed text-[#281401]/80">
-                  Chaque bonne réponse t&apos;oriente vers l&apos;étape suivante. Simple, ludique,
-                  avec un vrai fil conducteur jusqu&apos;au trésor.
-                </CardContent>
-              </Card>
-            </li>
-            <li>
-              <Card className="h-full border-[#281401]/10 bg-white/80 shadow-sm transition-shadow hover:shadow-md">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg text-[#281401]">
-                    Ton territoire
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-sm leading-relaxed text-[#281401]/80">
-                  Des parcours pensés pour des territoires réels, pas une carte vide : au fur et à
-                  mesure, tu pourras jouer près de chez toi.
-                </CardContent>
-              </Card>
-            </li>
+          <SectionDivider />
+          <p className={sectionLead}>
+            Une aventure urbaine pensée pour sortir, réfléchir et s&apos;amuser — sans rester
+            scotché à l&apos;écran.
+          </p>
+          <ul className="mt-10 grid gap-5 sm:grid-cols-3">
+            {FEATURES.map(({ icon: Icon, title, body }) => (
+              <li key={title}>
+                <Card className="group h-full overflow-hidden border-[#281401]/10 bg-white/85 shadow-sm transition hover:-translate-y-0.5 hover:border-[#68a618]/25 hover:shadow-md">
+                  <div className="h-1 bg-linear-to-r from-[#68a618]/0 via-[#68a618]/60 to-[#68a618]/0 opacity-0 transition group-hover:opacity-100" />
+                  <CardHeader className="pb-2">
+                    <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#e8f5e0] text-[#39951a]">
+                      <Icon className="size-5" aria-hidden />
+                    </div>
+                    <CardTitle className="text-lg text-[#281401]">{title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm leading-relaxed text-[#281401]/78">
+                    {body}
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
           </ul>
         </section>
 
@@ -230,229 +343,195 @@ export default async function Home() {
           id="carte-aventures"
           aria-labelledby="adventures-heading"
         >
-          <div className="flex flex-col items-center gap-4 text-center sm:gap-5">
-            <h2
-              id="adventures-heading"
-              className="text-balance text-2xl font-semibold tracking-tight text-[#281401] sm:text-3xl"
-            >
-              Où jouer en famille&nbsp;?
-            </h2>
-            <p className="max-w-2xl text-pretty text-sm leading-relaxed text-[#281401]/80 sm:text-base">
-              {adventureCount > 0 ? (
-                adventureCount === 1 ? (
-                  <>
-                    Une aventure vous attend déjà&nbsp;! La{" "}
-                    <strong className="font-semibold text-[#281401]">pastille</strong> sur la carte,
-                    c&apos;est le petit coin où tout commence. Repérez-la ensemble, puis ouvrez
-                    l&apos;app une fois sur place — parfait pour une sortie avec les enfants ou entre
-                    amis.
-                  </>
-                ) : (
-                  <>
-                    Pour l&apos;instant, il y a{" "}
-                    <strong className="font-semibold text-[#281401]">
-                      {adventureCount} aventures
-                    </strong>{" "}
-                    à partager : chaque pastille, c&apos;est un départ différent. Regardez la carte,
-                    choisissez celle qui vous tente, et tout se joue dans l&apos;app quand vous y
-                    êtes.
-                  </>
-                )
+          <h2 id="adventures-heading" className={sectionTitle}>
+            {adventureCount > 0 ? "Où jouer bientôt ?" : "La carte se prépare"}
+          </h2>
+          <SectionDivider />
+          <p className={sectionLead}>
+            {adventureCount > 0 ? (
+              adventureCount === 1 ? (
+                <>
+                  Une aventure est déjà prête sur le territoire — repérez la pastille sur la
+                  carte. Dès la sortie de l&apos;app, il suffira d&apos;y aller et de lancer le
+                  parcours sur place.
+                </>
               ) : (
                 <>
-                  De nouvelles sorties arriveront ici petit à petit. En attendant, installez
-                  l&apos;app Android : le jour venu, il n&apos;y aura plus qu&apos;à vous y rendre et
-                  à profiter ensemble&nbsp;!
+                  <strong className="font-semibold text-[#281401]">
+                    {adventureCount} parcours
+                  </strong>{" "}
+                  sont en préparation ou déjà publiés. Chaque pastille est un futur départ en
+                  famille.
                 </>
-              )}
-            </p>
-            <AdventureMapClient adventures={adventures} />
-            <p className="max-w-md text-xs leading-relaxed text-[#281401]/55 sm:text-sm">
-              Petit conseil avant le départ : avoir l&apos;app sur le téléphone, comme ça toute la
-              troupe est prête à jouer dès qu&apos;on arrive&nbsp;!
-            </p>
+              )
+            ) : (
+              <>
+                Les premières aventures apparaîtront ici au fil des semaines. Suivez nos actus pour
+                savoir quand l&apos;application ouvre dans votre secteur.
+              </>
+            )}
+          </p>
+          <div className="mt-8">
+            <AdventureMapClient adventures={adventures} appIsLive={APP_IS_LIVE} />
           </div>
         </section>
 
         {/* Comment ça marche */}
         <section className={shell} aria-labelledby="comment-ca-marche">
-          <h2 id="comment-ca-marche" className={`${sectionTitle} mb-10`}>
+          <h2 id="comment-ca-marche" className={sectionTitle}>
             Comment ça marche&nbsp;?
           </h2>
+          <SectionDivider />
+          <p className={sectionLead}>
+            Cinq étapes simples — de l&apos;installation (bientôt) au trésor final.
+          </p>
 
-          <div className="flex flex-col items-center gap-10 lg:flex-row lg:items-start lg:gap-12">
-            <div className="relative aspect-square w-full max-w-[280px] shrink-0 sm:max-w-xs">
-              <Image
-                src="/images/scanQr.png"
-                alt="Smartphone avec l&apos;application Balad&apos;indice"
-                fill
-                className="object-contain drop-shadow-md"
-                sizes="(max-width: 1024px) 280px, 320px"
-                loading="eager"
-              />
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-6 text-left">
-              <div className="space-y-3">
-                <h3 className={stepH3}>Étape 1</h3>
-                <blockquote className={quote}>
-                  Télécharge <strong>Balad&apos;indice</strong> sur le{" "}
-                  <strong>Google Play Store</strong> (Android). La version{" "}
-                  <strong>iOS</strong> suivra.
-                </blockquote>
+          <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start lg:gap-14">
+            <div className="relative mx-auto w-full max-w-sm lg:mx-0 lg:max-w-none">
+              <div className="relative aspect-[4/5] w-full max-w-[280px] mx-auto lg:max-w-xs">
+                <Image
+                  src="/images/scanQr.png"
+                  alt="Smartphone avec l'application Balad'indice"
+                  fill
+                  className="object-contain drop-shadow-xl"
+                  sizes="280px"
+                  priority
+                />
               </div>
-              <div className="space-y-3">
-                <h3 className={stepH3}>Étape 2</h3>
-                <blockquote className={quote}>
-                  Choisis une aventure sur la carte et rends-toi au point de départ.
-                </blockquote>
-              </div>
-              <div className="space-y-3">
-                <h3 className={stepH3}>Étape 3</h3>
-                <blockquote className={quote}>
-                  Avance dans le parcours : réponds aux énigmes dans l&apos;app — chaque bonne réponse
-                  t&apos;indique où aller pour la suivante.
-                </blockquote>
+              <div className="relative mx-auto mt-6 aspect-square w-full max-w-[200px] lg:absolute lg:-bottom-6 lg:-right-4 lg:mt-0 lg:max-w-[140px]">
+                <Image
+                  src="/images/treasureia.png"
+                  alt="Trésor à la fin du parcours"
+                  fill
+                  className="object-contain drop-shadow-lg"
+                  sizes="200px"
+                />
               </div>
             </div>
-          </div>
 
-          <div className="mt-14 flex flex-col-reverse items-center gap-10 lg:mt-16 lg:flex-row lg:items-start lg:gap-12">
-            <div className="flex min-w-0 flex-1 flex-col gap-6 text-left">
-              <div className="space-y-3">
-                <h3 className={stepH3}>Étape 4</h3>
-                <blockquote className={quote}>
-                  Enchaîne les énigmes à ton rythme — en général entre 30&nbsp;minutes et
-                  1&nbsp;heure selon le parcours.
-                </blockquote>
-              </div>
-              <div className="space-y-3">
-                <h3 className={stepH3}>Étape 5</h3>
-                <blockquote className={quote}>
-                  Atteins le trésor final : la récompense t&apos;attend au bout du chemin.
-                </blockquote>
-              </div>
-            </div>
-            <div className="relative aspect-square w-full max-w-[280px] shrink-0 sm:max-w-xs">
-              <Image
-                src="/images/treasureia.png"
-                alt="Trésor à la fin du parcours"
-                fill
-                className="object-contain drop-shadow-md"
-                sizes="(max-width: 1024px) 280px, 320px"
-              />
-            </div>
+            <ol className="relative space-y-0">
+              {STEPS.map((step, i) => (
+                <li key={step.n} className="relative flex gap-4 pb-8 last:pb-0">
+                  {i < STEPS.length - 1 ? (
+                    <span
+                      className="absolute left-5 top-10 bottom-0 w-px bg-linear-to-b from-[#68a618]/50 to-[#68a618]/10"
+                      aria-hidden
+                    />
+                  ) : null}
+                  <span className="relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full bg-[#68a618] text-sm font-bold text-white shadow-md ring-4 ring-[#fffaeb]">
+                    {step.n}
+                  </span>
+                  <div className="min-w-0 pt-1">
+                    <h3 className="text-lg font-semibold text-[#281401]">{step.title}</h3>
+                    <p className="mt-1.5 text-sm leading-relaxed text-[#281401]/78 sm:text-base">
+                      {step.body}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ol>
           </div>
         </section>
 
         {/* FAQ */}
         <section className={shell} aria-labelledby="questions">
-          <h2 id="questions" className={`${sectionTitle} mb-8 text-center`}>
+          <h2 id="questions" className={sectionTitle}>
             Questions fréquentes
           </h2>
+          <SectionDivider />
           <Accordion
             type="single"
             collapsible
-            className="mx-auto w-full max-w-2xl rounded-xl border border-[#281401]/10 bg-white/50 px-1 shadow-sm sm:px-2"
+            className="mx-auto mt-10 w-full max-w-2xl rounded-2xl border border-[#281401]/10 bg-white/60 px-1 shadow-sm backdrop-blur-sm sm:px-2"
           >
             <AccordionItem value="q-android-ios" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                Sur quel téléphone puis-je jouer&nbsp;?
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
+                L&apos;application est-elle déjà disponible&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Pour l&apos;instant, télécharge l&apos;application sur{" "}
-                <strong className="text-[#281401]">Google Play (Android)</strong>. Une version{" "}
-                <strong className="text-[#281401]">iPhone (App Store)</strong> est prévue dans un
-                second temps — reste informé&nbsp;!
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
+                {APP_IS_LIVE ? (
+                  <>
+                    Oui sur <strong className="text-[#281401]">Google Play (Android)</strong>.
+                    La version <strong className="text-[#281401]">iPhone</strong> arrive ensuite.
+                  </>
+                ) : (
+                  <>
+                    Pas encore — l&apos;application mobile est en cours de finalisation. Sortie{" "}
+                    <strong className="text-[#281401]">Android</strong> prochainement, puis{" "}
+                    <strong className="text-[#281401]">iOS</strong>.{" "}
+                    <Link href="/contact" className="font-medium underline-offset-4 hover:underline">
+                      Contactez-nous
+                    </Link>{" "}
+                    pour être tenu informé.
+                  </>
+                )}
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question1" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                L&apos;application est-elle gratuite&nbsp;?
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
+                Le jeu sera-t-il gratuit&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                <strong className="text-[#281401]">Oui&nbsp;!</strong> Tu peux télécharger
-                l&apos;application gratuitement et commencer tout de suite.
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
+                <strong className="text-[#281401]">Oui.</strong> L&apos;application sera
+                téléchargeable gratuitement ; les parcours publics le seront aussi.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question2" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
                 À partir de quel âge peut-on jouer&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Balad&apos;indice est pensé pour les enfants, mais toute la famille peut jouer
-                ensemble&nbsp;!
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
+                Pensé pour les enfants, avec toute la famille — les adultes aident pour les
+                énigmes les plus corsées.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question3" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
                 Comment commencer une aventure&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Installe l&apos;app depuis le Play Store, choisis une aventure sur la carte puis
-                suis les indications jusqu&apos;au point de départ.
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
+                Choisis un parcours sur la carte, installe l&apos;app dès qu&apos;elle est en
+                ligne, puis rends-toi au point de départ pour lancer la partie sur place.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question4" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
                 Faut-il une connexion Internet&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Oui, une connexion est recommandée pour charger le parcours, valider les étapes et
-                accéder aux énigmes dans l&apos;application.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="question5" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                Je suis bloqué sur une énigme, que faire&nbsp;?
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Pas de panique&nbsp;! Relis bien l&apos;indice, observe autour de toi, reprends le
-                fil depuis l&apos;étape précédente ou demande de l&apos;aide à un adulte.
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
+                Oui, une connexion mobile est recommandée pour charger le parcours et valider les
+                étapes.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question6" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
                 Combien de temps dure une aventure&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Cela dépend du parcours, mais en général entre 30&nbsp;minutes et 1&nbsp;heure.
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
+                En général entre 30&nbsp;minutes et 1&nbsp;heure, selon le parcours et votre
+                rythme.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question7" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                Peut-on jouer plusieurs fois&nbsp;?
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
+                Peut-on rejouer une aventure&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Une seule fois par aventure.
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="question8" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                Que gagne-t-on à la fin&nbsp;?
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                À la fin de l&apos;aventure, tu découvriras un trésor&nbsp;!
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="question9" className="border-[#281401]/10">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                Est-ce sécurisé pour les enfants&nbsp;?
-              </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Oui, les parcours sont conçus pour être sûrs et adaptés aux enfants.
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
+                La victoire officielle et la récompense associée ne comptent qu&apos;une fois ;
+                vous pouvez refaire le parcours pour le plaisir selon les règles du jeu.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="question10" className="border-b-0">
-              <AccordionTrigger className="px-3 text-left text-[#281401] hover:no-underline sm:px-4">
-                Que faire si l&apos;application ne fonctionne pas&nbsp;?
+              <AccordionTrigger className="px-4 text-left text-[#281401] hover:no-underline">
+                Une question ou un partenariat&nbsp;?
               </AccordionTrigger>
-              <AccordionContent className="px-3 pb-4 text-left text-[#281401]/85 sm:px-4">
-                Essaie de redémarrer l&apos;application ou ton téléphone. Si le problème continue,{" "}
+              <AccordionContent className="px-4 pb-4 text-left text-[#281401]/85">
                 <Link
                   href="/contact"
-                  className="text-[#281401]/85 underline-offset-4 hover:text-[#281401] hover:underline"
+                  className="inline-flex items-center gap-1.5 font-medium underline-offset-4 hover:underline"
                 >
-                  contacte-nous
+                  <MessageCircle className="size-4" aria-hidden />
+                  Écrivez-nous via le formulaire de contact
                 </Link>
                 .
               </AccordionContent>
@@ -462,27 +541,27 @@ export default async function Home() {
 
         {/* Témoignages */}
         <section className={shell} aria-labelledby="reviews">
-          <h2 id="reviews" className={`${sectionTitle} mb-8 text-center`}>
+          <h2 id="reviews" className={sectionTitle}>
             Ils se sont lancés
           </h2>
+          <SectionDivider />
           {reviews.length === 0 ? (
-            <p className="mx-auto max-w-lg text-center text-sm leading-relaxed text-[#281401]/70">
-              Les premiers avis cinq étoiles apparaîtront ici. En attendant, télécharge l&apos;app
-              et sois parmi les premiers aventuriers sur le territoire&nbsp;!
-            </p>
+            <div className="mx-auto mt-10 max-w-lg rounded-2xl border border-dashed border-[#281401]/15 bg-white/50 px-6 py-10 text-center">
+              <p className="text-sm leading-relaxed text-[#281401]/70">
+                Les premiers avis apparaîtront ici après les premières parties. Soyez parmi les
+                pionniers du territoire&nbsp;!
+              </p>
+            </div>
           ) : (
-            <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {reviews.map((review) => (
-                <li key={review.id} className="break-inside-avoid">
-                  <Card className="h-full border-[#281401]/10 bg-white/70 shadow-sm transition-shadow hover:shadow-md">
+                <li key={review.id}>
+                  <Card className="h-full border-[#281401]/10 bg-white/75 shadow-sm transition hover:shadow-md">
                     <CardHeader className="space-y-3 pb-2">
                       <CardTitle className="text-lg text-[#281401]">
                         {review.user.name}
                       </CardTitle>
-                      <div
-                        className="flex gap-0.5"
-                        aria-label="5 étoiles sur 5"
-                      >
+                      <div className="flex gap-0.5" aria-label="5 étoiles sur 5">
                         {[...Array(5)].map((_, i) => (
                           <Image
                             key={i}
@@ -495,9 +574,9 @@ export default async function Home() {
                         ))}
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3 text-left text-sm leading-relaxed text-[#281401]/85 sm:text-base">
+                    <CardContent className="space-y-3 text-left text-sm leading-relaxed text-[#281401]/85">
                       <p>{review.content}</p>
-                      {review.image && (
+                      {review.image ? (
                         <Image
                           src={review.image}
                           alt={`Photo partagée par ${review.user.name}`}
@@ -506,7 +585,7 @@ export default async function Home() {
                           className="mt-2 w-full rounded-lg object-cover"
                           style={{ height: "auto", maxHeight: "12rem" }}
                         />
-                      )}
+                      ) : null}
                     </CardContent>
                   </Card>
                 </li>
@@ -515,57 +594,80 @@ export default async function Home() {
           )}
         </section>
 
-        {/* CTA téléchargement */}
+        {/* CTA */}
         <section
           id="telecharger"
           className={`${shell} max-w-3xl scroll-mt-24`}
           aria-labelledby="cta-heading"
         >
-          <div className="rounded-2xl border border-[#281401]/10 bg-linear-to-br from-[#fef0c7]/90 via-white to-[#e8f5e0]/50 px-6 py-10 text-center shadow-md ring-1 ring-[#68a618]/15 sm:px-10 sm:py-12">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#68a618]">
-              Application mobile
+          <div className="relative overflow-hidden rounded-3xl border border-[#281401]/10 bg-linear-to-br from-[#fef0c7] via-white to-[#e8f5e0] px-6 py-12 text-center shadow-lg ring-1 ring-[#68a618]/15 sm:px-12 sm:py-14">
+            <div
+              className="pointer-events-none absolute -right-20 -top-20 size-48 rounded-full bg-[#68a618]/10 blur-2xl"
+              aria-hidden
+            />
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#68a618]">
+              {APP_IS_LIVE ? "Application mobile" : "Prochainement"}
             </p>
             <h2
               id="cta-heading"
-              className="mt-2 text-balance text-2xl font-bold tracking-tight text-[#281401] sm:text-3xl"
+              className="mt-3 text-balance text-2xl font-bold tracking-tight text-[#281401] sm:text-3xl"
             >
-              Télécharge Balad&apos;indice sur Android
+              {APP_IS_LIVE
+                ? "Télécharge Balad'indice"
+                : "L'application arrive très bientôt"}
             </h2>
-            <p className="mt-3 text-pretty text-[#281401]/80 sm:text-lg">
-              Commence sur <strong className="text-[#281401]">Google Play</strong>. La version{" "}
-              <strong className="text-[#281401]/80">iOS (App Store)</strong> arrivera ensuite — on te
-              tiendra au courant.
+            <p className="mx-auto mt-3 max-w-lg text-pretty text-[#281401]/78 sm:text-lg">
+              {APP_IS_LIVE ? (
+                <>
+                  Disponible sur <strong className="text-[#281401]">Google Play</strong>. iOS
+                  suivra.
+                </>
+              ) : (
+                <>
+                  Android en premier sur le <strong className="text-[#281401]">Play Store</strong>,
+                  puis iPhone. La carte ci-dessus montre déjà ce qui se prépare sur le terrain.
+                </>
+              )}
             </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-10">
-              <PlayStoreBadgeLink />
-              <div className="flex flex-col items-center gap-2">
-                <Image
-                  src="/images/icons8-qr-code-50.png"
-                  alt="Accès rapide au téléchargement sur mobile"
-                  width={120}
-                  height={120}
-                  className="rounded-lg bg-white p-2 shadow-sm ring-1 ring-[#281401]/10"
-                />
-                <span className="text-xs text-[#281401]/60">
-                  Ouvre depuis ton mobile pour télécharger
-                </span>
-              </div>
+
+            <div className="mt-10 flex flex-col items-center justify-center gap-8 sm:flex-row sm:gap-12">
+              <PlayStoreBadge live={APP_IS_LIVE} />
+              {!APP_IS_LIVE ? (
+                <div className="flex max-w-xs flex-col items-center gap-4 text-left sm:items-start">
+                  <Button
+                    className="w-full rounded-xl bg-[#281401] text-white hover:bg-[#3d1f06] sm:w-auto"
+                    asChild
+                  >
+                    <Link href="/contact">
+                      <MessageCircle className="mr-2 size-4" aria-hidden />
+                      Me tenir informé
+                    </Link>
+                  </Button>
+                  <p className="text-center text-xs leading-relaxed text-[#281401]/60 sm:text-left">
+                    Une question, une commune ou un commerce partenaire ? On vous répond via le
+                    formulaire contact.
+                  </p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2">
+                  <Image
+                    src="/images/icons8-qr-code-50.png"
+                    alt="QR code vers le Play Store"
+                    width={120}
+                    height={120}
+                    className="rounded-xl bg-white p-2 shadow-sm ring-1 ring-[#281401]/10"
+                  />
+                  <span className="text-xs text-[#281401]/60">
+                    Scannez depuis votre mobile
+                  </span>
+                </div>
+              )}
             </div>
-            <div className="mt-8 rounded-xl border border-dashed border-[#281401]/20 bg-white/50 px-4 py-3 text-sm text-[#281401]/65">
-              <p>
-                <strong className="text-[#281401]/85">iPhone</strong> : l&apos;app n&apos;est pas
-                encore sur l&apos;App Store — suivez nos actus pour la sortie iOS.
-              </p>
+
+            <div className="mt-10 rounded-xl border border-[#281401]/10 bg-white/60 px-4 py-3 text-sm text-[#281401]/70">
+              <strong className="text-[#281401]/90">iPhone</strong> — version App Store prévue
+              après la sortie Android.
             </div>
-            {process.env.NODE_ENV === "development" && !PLAY_STORE_URL ? (
-              <p className="mt-4 text-xs text-[#281401]/55">
-                Lien Play Store : définir{" "}
-                <code className="rounded bg-[#281401]/10 px-1.5 py-0.5 font-mono text-[0.7rem]">
-                  NEXT_PUBLIC_PLAY_STORE_URL
-                </code>{" "}
-                pour un badge cliquable.
-              </p>
-            ) : null}
           </div>
         </section>
       </div>

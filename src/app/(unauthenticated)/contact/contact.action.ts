@@ -12,6 +12,7 @@ export async function contactForm(formData: FormData) {
   const parsed = contactRequestSchema.safeParse({
     name: formData.get("name"),
     email: formData.get("email"),
+    phone: formData.get("phone"),
     message: formData.get("message"),
   });
 
@@ -22,7 +23,7 @@ export async function contactForm(formData: FormData) {
   const { name, email, message } = parsed.data;
   const ip = getClientIpFromHeaders(await headers());
   const result = await submitContactMessage(
-    { name, email, message },
+    parsed.data,
     contactRateLimitKeys(email, ip),
     "web"
   );

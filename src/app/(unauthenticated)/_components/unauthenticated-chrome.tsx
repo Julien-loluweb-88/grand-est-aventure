@@ -98,6 +98,9 @@ function LandingHeader() {
       </Link>
 
       <nav className="hidden items-center gap-x-5 text-[0.9375rem] md:flex">
+        <HomeSectionLink href="/#carte-aventures" className="hover:underline">
+          Carte
+        </HomeSectionLink>
         <HomeSectionLink href="/#comment-ca-marche" className="hover:underline">
           Comment ça marche ?
         </HomeSectionLink>
@@ -108,10 +111,11 @@ function LandingHeader() {
           Avis
         </HomeSectionLink>
         <HomeSectionLink
-          href="/#cta-download"
-          className="text-[#68a618] text-base font-semibold"
-          onAfterNavigate={closeMobile}>
-          Télécharger l&apos;application
+          href="/#telecharger"
+          className="text-base font-semibold text-[#68a618]"
+          onAfterNavigate={closeMobile}
+        >
+          Prochainement
         </HomeSectionLink>
       </nav>
 
@@ -143,6 +147,13 @@ function LandingHeader() {
             </SheetHeader>
             <nav className="flex flex-col gap-0.5 px-2 py-4">
               <HomeSectionLink
+                href="/#carte-aventures"
+                className={mobileNavLinkClass}
+                onAfterNavigate={closeMobile}
+              >
+                Carte
+              </HomeSectionLink>
+              <HomeSectionLink
                 href="/#comment-ca-marche"
                 className={mobileNavLinkClass}
                 onAfterNavigate={closeMobile}
@@ -164,10 +175,11 @@ function LandingHeader() {
                 Avis
               </HomeSectionLink>
               <HomeSectionLink
-                href="/#cta-download"
-                className="text-[#68a618] text-base font-semibold"
-                onAfterNavigate={closeMobile}>
-                Télécharger l&apos;application
+                href="/#telecharger"
+                className={`${mobileNavLinkClass} font-semibold text-[#68a618]`}
+                onAfterNavigate={closeMobile}
+              >
+                Prochainement
               </HomeSectionLink>
             </nav>
             <SheetFooter className="border-t border-[#281401]/10">
@@ -213,6 +225,12 @@ function PublicFooter() {
                 className="flex flex-col gap-2.5 text-sm"
                 aria-label="Liens du pied de page"
               >
+                <Link
+                  href="/communes"
+                  className="text-[#281401]/85 underline-offset-4 hover:text-[#281401] hover:underline"
+                >
+                  Communes &amp; territoires
+                </Link>
                 <Link
                   href="/contact"
                   className="text-[#281401]/85 underline-offset-4 hover:text-[#281401] hover:underline"

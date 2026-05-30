@@ -17,6 +17,7 @@ import {
   CONTACT_EMAIL_MAX_CHARS,
   CONTACT_MESSAGE_MAX_CHARS,
   CONTACT_NAME_MAX_CHARS,
+  CONTACT_PHONE_MAX_CHARS,
 } from "@/lib/contact-text-limits";
 import { LegalPageShell } from "../_components/legal-document-shell";
 import { contactForm } from "./contact.action";
@@ -27,6 +28,7 @@ export default function ContactPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [nameLen, setNameLen] = useState(0);
   const [emailLen, setEmailLen] = useState(0);
+  const [phoneLen, setPhoneLen] = useState(0);
   const [messageLen, setMessageLen] = useState(0);
 
   const handleSubmit = async (formData: FormData) => {
@@ -39,6 +41,7 @@ export default function ContactPage() {
       formRef.current?.reset();
       setNameLen(0);
       setEmailLen(0);
+      setPhoneLen(0);
       setMessageLen(0);
       setTimeout(() => router.push("/contact"), 3000);
     }
@@ -49,8 +52,8 @@ export default function ContactPage() {
 
   return (
     <LegalPageShell
-      title="Contacte Nous"
-      lead={<p>Remplie le formulaire et envoie-nous un message</p>}
+      title="Contactez-nous"
+      lead={<p>Remplissez le formulaire et envoyez-nous un message.</p>}
     >
       <form
         ref={formRef}
@@ -58,6 +61,7 @@ export default function ContactPage() {
         onReset={() => {
           setNameLen(0);
           setEmailLen(0);
+          setPhoneLen(0);
           setMessageLen(0);
         }}
       >
@@ -66,7 +70,7 @@ export default function ContactPage() {
             <FieldGroup>
               <Field>
                 <FieldLabel className="text-lg text-[#68a618]" htmlFor="name">
-                  Ton nom
+                  Votre nom
                 </FieldLabel>
                 <Input
                   id="name"
@@ -101,6 +105,26 @@ export default function ContactPage() {
                   <FieldCharacterCount length={emailLen} max={CONTACT_EMAIL_MAX_CHARS} />
                 </div>
               </Field>
+              <Field>
+                <FieldLabel className="text-lg text-[#68a618]" htmlFor="phone">
+                  Numéro de téléphone{" "}
+                  <span className="text-sm font-normal text-[#281401]/55">(optionnel)</span>
+                </FieldLabel>
+                <Input
+                  id="phone"
+                  name="phone"
+                  type="tel"
+                  placeholder="06 12 34 56 78"
+                  maxLength={CONTACT_PHONE_MAX_CHARS}
+                  disabled={loading}
+                  autoComplete="tel"
+                  inputMode="tel"
+                  onChange={(e) => setPhoneLen(e.target.value.length)}
+                />
+                <div className="flex justify-end pt-0.5">
+                  <FieldCharacterCount length={phoneLen} max={CONTACT_PHONE_MAX_CHARS} />
+                </div>
+              </Field>
             </FieldGroup>
           </FieldSet>
           <FieldSet>
@@ -112,7 +136,7 @@ export default function ContactPage() {
                 <Textarea
                   id="message"
                   name="message"
-                  placeholder="Écrire un message"
+                  placeholder="Votre message"
                   className="h-32 resize-none"
                   required
                   minLength={10}

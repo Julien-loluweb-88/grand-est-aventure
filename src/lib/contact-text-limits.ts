@@ -8,3 +8,6 @@ export const CONTACT_NAME_MAX_CHARS = 120;
 export const CONTACT_EMAIL_MAX_CHARS = 254;
 
 export const CONTACT_MESSAGE_MAX_CHARS = 4000;
+
+/** Téléphone optionnel (espaces, +, chiffres). */
+export const CONTACT_PHONE_MAX_CHARS = 32;

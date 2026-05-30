@@ -7,7 +7,7 @@ import {
 } from "@/lib/submit-contact-message";
 
 /**
- * Formulaire contact (app mobile, clients HTTP). Corps JSON : `{ name, email, message }`.
+ * Formulaire contact (app mobile, clients HTTP). Corps JSON : `{ name, email, message, phone? }`.
  * Notification Discord via `DISCORD_CONTACT_WEBHOOK_URL` (secret côté serveur).
  */
 export async function POST(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const { name, email, message } = parsed.data;
   const ip = getClientIp(request);
   const result = await submitContactMessage(
-    { name, email, message },
+    parsed.data,
     contactRateLimitKeys(email, ip),
     "mobile"
   );
