@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { SHOW_PUBLIC_HOME_MAP } from "../_lib/show-public-home-map";
 import {
   Card,
   CardContent,
@@ -137,14 +138,25 @@ export default function CommunesPage() {
                 Nous contacter
               </Link>
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="h-11 rounded-xl border-[#281401]/20 bg-white/60 px-7 text-[#281401] hover:bg-white"
-              asChild
-            >
-              <Link href="/#carte-aventures">Voir la carte publique</Link>
-            </Button>
+            {SHOW_PUBLIC_HOME_MAP ? (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-11 rounded-xl border-[#281401]/20 bg-white/60 px-7 text-[#281401] hover:bg-white"
+                asChild
+              >
+                <Link href="/#carte-aventures">Voir la carte publique</Link>
+              </Button>
+            ) : (
+              <Button
+                size="lg"
+                variant="outline"
+                className="h-11 rounded-xl border-[#281401]/20 bg-white/60 px-7 text-[#281401] hover:bg-white"
+                asChild
+              >
+                <Link href="/#comment-ca-marche">Comment ça marche</Link>
+              </Button>
+            )}
           </div>
           <p className="mt-6 text-sm text-[#281401]/65">
             Mairies, communautés de communes, offices de tourisme — parlons de votre projet.

@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getFiveStarReviews, getSampleAdventures } from "./acceuil.action";
+import { SHOW_PUBLIC_HOME_MAP } from "./_lib/show-public-home-map";
 import AdventureMapClient from "./_components/adventureMap";
 
 const PLAY_STORE_URL =
@@ -155,7 +156,7 @@ function SectionDivider() {
 
 export default async function Home() {
   const reviews = await getFiveStarReviews(5);
-  const adventures = await getSampleAdventures();
+  const adventures = SHOW_PUBLIC_HOME_MAP ? await getSampleAdventures() : [];
   const adventureCount = adventures.length;
 
   return (
@@ -259,9 +260,9 @@ export default async function Home() {
               className="h-11 rounded-xl border-white/45 bg-white/10 px-7 text-sm font-medium text-white backdrop-blur-sm hover:bg-white/20 sm:h-12"
               asChild
             >
-              <Link href="#carte-aventures">
+              <Link href="#comment-ca-marche">
                 <Compass className="mr-2 size-4" aria-hidden />
-                Explorer la carte
+                Comment ça marche
               </Link>
             </Button>
           </div>
@@ -337,44 +338,45 @@ export default async function Home() {
           </ul>
         </section>
 
-        {/* Carte */}
-        <section
-          className={shell}
-          id="carte-aventures"
-          aria-labelledby="adventures-heading"
-        >
-          <h2 id="adventures-heading" className={sectionTitle}>
-            {adventureCount > 0 ? "Où jouer bientôt ?" : "La carte se prépare"}
-          </h2>
-          <SectionDivider />
-          <p className={sectionLead}>
-            {adventureCount > 0 ? (
-              adventureCount === 1 ? (
-                <>
-                  Une aventure est déjà prête sur le territoire — repérez la pastille sur la
-                  carte. Dès la sortie de l&apos;app, il suffira d&apos;y aller et de lancer le
-                  parcours sur place.
-                </>
+        {SHOW_PUBLIC_HOME_MAP ? (
+          <section
+            className={shell}
+            id="carte-aventures"
+            aria-labelledby="adventures-heading"
+          >
+            <h2 id="adventures-heading" className={sectionTitle}>
+              {adventureCount > 0 ? "Où jouer bientôt ?" : "La carte se prépare"}
+            </h2>
+            <SectionDivider />
+            <p className={sectionLead}>
+              {adventureCount > 0 ? (
+                adventureCount === 1 ? (
+                  <>
+                    Une aventure est déjà prête sur le territoire — repérez la pastille sur la
+                    carte. Dès la sortie de l&apos;app, il suffira d&apos;y aller et de lancer le
+                    parcours sur place.
+                  </>
+                ) : (
+                  <>
+                    <strong className="font-semibold text-[#281401]">
+                      {adventureCount} parcours
+                    </strong>{" "}
+                    sont en préparation ou déjà publiés. Chaque pastille est un futur départ en
+                    famille.
+                  </>
+                )
               ) : (
                 <>
-                  <strong className="font-semibold text-[#281401]">
-                    {adventureCount} parcours
-                  </strong>{" "}
-                  sont en préparation ou déjà publiés. Chaque pastille est un futur départ en
-                  famille.
+                  Les premières aventures apparaîtront ici au fil des semaines. Suivez nos actus pour
+                  savoir quand l&apos;application ouvre dans votre secteur.
                 </>
-              )
-            ) : (
-              <>
-                Les premières aventures apparaîtront ici au fil des semaines. Suivez nos actus pour
-                savoir quand l&apos;application ouvre dans votre secteur.
-              </>
-            )}
-          </p>
-          <div className="mt-8">
-            <AdventureMapClient adventures={adventures} appIsLive={APP_IS_LIVE} />
-          </div>
-        </section>
+              )}
+            </p>
+            <div className="mt-8">
+              <AdventureMapClient adventures={adventures} appIsLive={APP_IS_LIVE} />
+            </div>
+          </section>
+        ) : null}
 
         {/* Comment ça marche */}
         <section className={shell} aria-labelledby="comment-ca-marche">
@@ -625,7 +627,7 @@ export default async function Home() {
               ) : (
                 <>
                   Android en premier sur le <strong className="text-[#281401]">Play Store</strong>,
-                  puis iPhone. La carte ci-dessus montre déjà ce qui se prépare sur le terrain.
+                  puis iPhone. Les parcours seront déployés progressivement sur le territoire.
                 </>
               )}
             </p>

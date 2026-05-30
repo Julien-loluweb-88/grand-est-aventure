@@ -16,6 +16,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { publicSocialLinks } from "../_lib/public-social-links";
+import { SHOW_PUBLIC_HOME_MAP } from "../_lib/show-public-home-map";
 import { AuthCallbackQueryToasts } from "@/components/auth-callback-query-toasts";
 
 function DiscordIcon({ className }: { className?: string }) {
@@ -98,9 +99,11 @@ function LandingHeader() {
       </Link>
 
       <nav className="hidden items-center gap-x-5 text-[0.9375rem] md:flex">
-        <HomeSectionLink href="/#carte-aventures" className="hover:underline">
-          Carte
-        </HomeSectionLink>
+        {SHOW_PUBLIC_HOME_MAP ? (
+          <HomeSectionLink href="/#carte-aventures" className="hover:underline">
+            Carte
+          </HomeSectionLink>
+        ) : null}
         <HomeSectionLink href="/#comment-ca-marche" className="hover:underline">
           Comment ça marche ?
         </HomeSectionLink>
@@ -146,13 +149,15 @@ function LandingHeader() {
               </SheetDescription>
             </SheetHeader>
             <nav className="flex flex-col gap-0.5 px-2 py-4">
-              <HomeSectionLink
-                href="/#carte-aventures"
-                className={mobileNavLinkClass}
-                onAfterNavigate={closeMobile}
-              >
-                Carte
-              </HomeSectionLink>
+              {SHOW_PUBLIC_HOME_MAP ? (
+                <HomeSectionLink
+                  href="/#carte-aventures"
+                  className={mobileNavLinkClass}
+                  onAfterNavigate={closeMobile}
+                >
+                  Carte
+                </HomeSectionLink>
+              ) : null}
               <HomeSectionLink
                 href="/#comment-ca-marche"
                 className={mobileNavLinkClass}
