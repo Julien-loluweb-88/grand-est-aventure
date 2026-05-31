@@ -1,4 +1,5 @@
 import type { Advertisement, City } from "../../generated/prisma/client";
+import { isAdvertisementVisibleToPlayer } from "@/lib/advertisements/advertisement-player-visibility";
 import { haversineMeters } from "@/lib/geo/haversine-meters";
 
 export type AdWithTargets = Advertisement & {
@@ -21,7 +22,8 @@ export function filterEligibleAdvertisements(
 ): AdWithTargets[] {
   const p = placement.trim();
   return ads.filter((ad) => {
-    if (!ad.active || ad.placement !== p) return false;
+    if (!isAdvertisementVisibleToPlayer(ad)) return false;
+    if (ad.placement !== p) return false;
     if (ad.startsAt && now < ad.startsAt) return false;
     if (ad.endsAt && now > ad.endsAt) return false;
 

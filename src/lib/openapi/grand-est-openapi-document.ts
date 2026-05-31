@@ -404,8 +404,8 @@ export function buildGrandEstOpenApiDocument() {
                 ],
                 properties: {
                   id: { type: "string" },
-                  title: { type: "string" },
-                  body: { type: "string" },
+                  title: { type: ["string", "null"] },
+                  body: { type: ["string", "null"] },
                   imageUrl: { type: ["string", "null"] },
                   targetUrl: { type: ["string", "null"] },
                   advertiserName: { type: ["string", "null"] },
