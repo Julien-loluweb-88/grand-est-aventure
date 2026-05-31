@@ -149,6 +149,7 @@ export type MerchantSelectOption = {
   id: string;
   email: string;
   name: string | null;
+  merchantMaxAdvertisementSlots?: number | null;
 };
 
 export function AdvertisementForm({
@@ -589,12 +590,11 @@ export function AdvertisementForm({
         <Field>
           <FieldLabel>Offre partenaire & badge</FieldLabel>
           <p className="mb-3 text-xs text-muted-foreground">
-            Renseignez un titre de badge pour activer l’offre : les joueurs pourront demander une
-            validation, les comptes commerçant cochés ci‑dessous pourront approuver. Vous pouvez
-            définir une{" "}
-            <span className="font-medium text-foreground">image dédiée</span> pour le badge (sinon
-            l’image de la campagne, ci‑dessus, est réutilisée). Fermer les demandes ne
-            retire pas les badges déjà obtenus.
+            Le <span className="font-medium text-foreground">nom du badge</span> est stable en
+            collection joueur (ex. commerce + emplacement). Les promos (-15 %, etc.) se mettent dans
+            le contenu de la pub, renseigné par le commerçant. Téléversez une{" "}
+            <span className="font-medium text-foreground">image dédiée</span> pour le badge. Fermer
+            les demandes ne retire pas les badges déjà obtenus.
           </p>
           <div className="space-y-4 rounded-md border border-input p-4">
             <Controller
@@ -603,12 +603,16 @@ export function AdvertisementForm({
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor="ad-partner-badge-title">
-                    Titre du badge (offre partenaire)
+                    Nom du badge (collection joueur)
                   </FieldLabel>
+                  <p className="text-xs text-muted-foreground">
+                    Libellé fixe affiché dans la collection — pas la promo du moment. Ex. : « PMU
+                    Raon · EMP1 ».
+                  </p>
                   <Input
                     id="ad-partner-badge-title"
                     {...field}
-                    placeholder="Ex. Fidèle chez …"
+                    placeholder="Ex. PMU Raon · EMP1"
                     autoComplete="off"
                   />
                   <div className="flex justify-end pt-0.5">

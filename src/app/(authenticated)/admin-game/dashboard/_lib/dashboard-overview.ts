@@ -7,6 +7,7 @@ import {
   AdminRequestStatus,
   AdventureAudience,
   AdventureReviewModerationStatus,
+  AdvertisementMerchantContentStatus,
   BadgeDefinitionKind,
   PartnerOfferClaimStatus,
 } from "@/lib/badges/prisma-enums";
@@ -33,6 +34,7 @@ export type DashboardOverview =
         pendingAdventureReviews: number;
         users?: number;
         pendingAdminRequests?: number;
+        pendingMerchantAdvertisementReviews?: number;
       };
       pendingRequestsPreview?: {
         id: string;
@@ -62,24 +64,19 @@ export async function getDashboardOverview(params: {
   const { userId, capabilities: caps } = params;
 
   if (caps.merchantPortal) {
-    const assignments = await prisma.merchantAdvertisement.findMany({
-      where: { userId },
-      select: { advertisementId: true },
-    });
-    const adIds = assignments.map((a) => a.advertisementId);
-    const pendingPartnerClaimCount =
-      adIds.length === 0
-        ? 0
-        : await prisma.partnerOfferClaim.count({
-            where: {
-              advertisementId: { in: adIds },
-              status: PartnerOfferClaimStatus.PENDING,
-            },
-          });
+    const [ownedCount, pendingPartnerClaimCount] = await Promise.all([
+      prisma.advertisement.count({ where: { ownerMerchantUserId: userId } }),
+      prisma.partnerOfferClaim.count({
+        where: {
+          advertisement: { ownerMerchantUserId: userId },
+          status: PartnerOfferClaimStatus.PENDING,
+        },
+      }),
+    ]);
 
     return {
       kind: "merchant",
-      assignedAdvertisementCount: adIds.length,
+      assignedAdvertisementCount: ownedCount,
       pendingPartnerClaimCount,
     };
   }
@@ -196,6 +193,12 @@ export async function getDashboardOverview(params: {
               actor: { select: { name: true, email: true } },
             },
           }),
+          prisma.advertisement.count({
+            where: {
+              merchantContentStatus: AdvertisementMerchantContentStatus.PENDING_REVIEW,
+              ownerMerchantUserId: { not: null },
+            },
+          }),
         ])
       : Promise.resolve(null);
 
@@ -230,6 +233,7 @@ export async function getDashboardOverview(params: {
     ...(superPack
       ? {
           pendingAdminRequests: superPack[0],
+          pendingMerchantAdvertisementReviews: superPack[3],
         }
       : {}),
   };

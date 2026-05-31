@@ -68,16 +68,16 @@ export function AdminDashboardHomeView({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <StatLink
-            href="/admin-game/dashboard/commercant"
-            label="Campagnes rattachées"
+            href="/admin-game/dashboard/commercant/publicites"
+            label="Mes publicités"
             value={overview.assignedAdvertisementCount}
-            hint="Publicités sur lesquelles vous pouvez intervenir"
+            hint="Emplacements à remplir ou modifier"
           />
           <StatLink
             href="/admin-game/dashboard/commercant"
             label="Demandes en attente"
             value={overview.pendingPartnerClaimCount}
-            hint="À traiter sur le web ou dans l&apos;app"
+            hint="Offres partenaires à valider"
           />
         </div>
 
@@ -88,12 +88,15 @@ export function AdminDashboardHomeView({
               Suite
             </CardTitle>
             <CardDescription>
-              Guide et références API sont rappelés sur la page dédiée.
+              Remplissez vos publicités et validez les offres partenaires.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link href="/admin-game/dashboard/commercant">Compte commerçant</Link>
+              <Link href="/admin-game/dashboard/commercant/publicites">Mes publicités</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link href="/admin-game/dashboard/commercant">Validations offres</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
               <Link href="/admin-game/dashboard/parametres">Paramètres</Link>
@@ -137,12 +140,23 @@ export function AdminDashboardHomeView({
             hint="Statut « en attente » — traitement dans la fiche aventure"
           />
           <StatLink href="/admin-game/dashboard/villes" label="Villes" value={stats.cities} />
-          <StatLink
-            href="/admin-game/dashboard/publicites"
-            label="Publicités actives (dates)"
-            value={stats.advertisementsActiveWindow}
-            hint={`${stats.advertisementsTotal} enregistrées au total`}
-          />
+          {caps.canAssignRolesAndScopes ? (
+            <>
+              <StatLink
+                href="/admin-game/dashboard/publicites"
+                label="Publicités actives (dates)"
+                value={stats.advertisementsActiveWindow}
+                hint={`${stats.advertisementsTotal} enregistrées au total`}
+              />
+              {typeof stats.pendingMerchantAdvertisementReviews === "number" ? (
+                <StatLink
+                  href="/admin-game/dashboard/publicites"
+                  label="Pubs commerçant à valider"
+                  value={stats.pendingMerchantAdvertisementReviews}
+                />
+              ) : null}
+            </>
+          ) : null}
           <StatLink
             href="/admin-game/dashboard/badges-globaux"
             label="Paliers badges globaux"

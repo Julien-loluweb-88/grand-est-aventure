@@ -106,21 +106,9 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Publicités (liste / stats = adventure.read, CRUD = adventure.update)
+  // Publicités — superadmin uniquement
   if (pathname.startsWith("/admin-game/dashboard/publicites")) {
-    if (pathname.startsWith("/admin-game/dashboard/publicites/create")) {
-      if (!roleHasRoutePermission(role, "adventure", "update")) {
-        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
-      }
-      return NextResponse.next();
-    }
-    if (/^\/admin-game\/dashboard\/publicites\/[^/]+$/.test(pathname)) {
-      if (!roleHasRoutePermission(role, "adventure", "update")) {
-        return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
-      }
-      return NextResponse.next();
-    }
-    if (!roleHasRoutePermission(role, "adventure", "read")) {
+    if (role !== "superadmin") {
       return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
     }
     return NextResponse.next();

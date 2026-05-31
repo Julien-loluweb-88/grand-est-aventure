@@ -1,8 +1,9 @@
 import "server-only";
 
 import { getPermissionSubjectUserId } from "@/lib/auth/permission-subject";
-import { canManageAdventure, isAdminRole } from "@/lib/admin-access";
+import { canManageAdventure, isAdminRole, isSuperadmin } from "@/lib/admin-access";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
+import { merchantOwnsAdvertisement } from "@/lib/advertisements/merchant-advertisement-authorization";
 import { prisma } from "@/lib/prisma";
 
 export type AdminActor = { id: string; role: string };
@@ -80,28 +81,55 @@ export async function gateAdvertisementDraftImageUpload(): Promise<
   AdventureGateOk | AdventureGateFail
 > {
   const actor = await getAdminActorForAuthorization();
-  if (!actor) return { ok: false };
-  if (!(await userHasPermissionServer({ permissions: { adventure: ["update"] } }))) {
+  if (actor) {
+    if (isSuperadmin(actor.role)) {
+      return { ok: true, actor };
+    }
     return { ok: false };
   }
-  return { ok: true, actor };
+
+  const session = await getPermissionSubjectUserId();
+  if (!session) return { ok: false };
+  const merchant = await prisma.user.findUnique({
+    where: { id: session },
+    select: { id: true, role: true },
+  });
+  if (merchant?.role === "merchant") {
+    return { ok: true, actor: { id: merchant.id, role: "merchant" } };
+  }
+  return { ok: false };
 }
 
 /** Téléversement image pour une publicité existante. */
 export async function gateAdvertisementImageUpload(
   advertisementId: string
 ): Promise<AdventureGateOk | AdventureGateFail> {
-  const actor = await getAdminActorForAuthorization();
-  if (!actor) return { ok: false };
-  if (!(await userHasPermissionServer({ permissions: { adventure: ["update"] } }))) {
-    return { ok: false };
-  }
   const row = await prisma.advertisement.findUnique({
     where: { id: advertisementId },
-    select: { id: true },
+    select: { id: true, ownerMerchantUserId: true },
   });
   if (!row) return { ok: false };
-  return { ok: true, actor };
+
+  const actor = await getAdminActorForAuthorization();
+  if (actor && isSuperadmin(actor.role)) {
+    return { ok: true, actor };
+  }
+
+  const subjectId = await getPermissionSubjectUserId();
+  if (!subjectId) return { ok: false };
+  if (
+    row.ownerMerchantUserId === subjectId &&
+    (await merchantOwnsAdvertisement(subjectId, advertisementId))
+  ) {
+    const merchant = await prisma.user.findUnique({
+      where: { id: subjectId },
+      select: { role: true },
+    });
+    if (merchant?.role === "merchant") {
+      return { ok: true, actor: { id: subjectId, role: "merchant" } };
+    }
+  }
+  return { ok: false };
 }
 
 /** Téléversement image pour un badge palier global (`BadgeDefinition` sans aventure). */

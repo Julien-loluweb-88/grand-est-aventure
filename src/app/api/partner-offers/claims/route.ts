@@ -88,39 +88,45 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = session.user.id;
-  const [claims, pendingRows, approvedGroups] = await Promise.all([
-    prisma.partnerOfferClaim.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 80,
-      select: {
-        id: true,
-        advertisementId: true,
-        status: true,
-        createdAt: true,
-        resolvedAt: true,
-        rejectionReason: true,
-        advertisement: {
-          select: {
-            advertiserName: true,
-            title: true,
-            imageUrl: true,
-            partnerBadgeDefinition: { select: { title: true, imageUrl: true } },
+  const [claims, pendingRows, approvedGroups, approvedByGeneration] =
+    await Promise.all([
+      prisma.partnerOfferClaim.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 80,
+        select: {
+          id: true,
+          advertisementId: true,
+          status: true,
+          createdAt: true,
+          resolvedAt: true,
+          rejectionReason: true,
+          advertisement: {
+            select: {
+              advertiserName: true,
+              title: true,
+              imageUrl: true,
+              partnerBadgeDefinition: { select: { title: true, imageUrl: true } },
+            },
           },
         },
-      },
-    }),
-    prisma.partnerOfferClaim.findMany({
-      where: { userId, status: PartnerOfferClaimStatus.PENDING },
-      select: { advertisementId: true },
-      distinct: ["advertisementId"],
-    }),
-    prisma.partnerOfferClaim.groupBy({
-      by: ["advertisementId"],
-      where: { userId, status: PartnerOfferClaimStatus.APPROVED },
-      _count: { _all: true },
-    }),
-  ]);
+      }),
+      prisma.partnerOfferClaim.findMany({
+        where: { userId, status: PartnerOfferClaimStatus.PENDING },
+        select: { advertisementId: true },
+        distinct: ["advertisementId"],
+      }),
+      prisma.partnerOfferClaim.groupBy({
+        by: ["advertisementId"],
+        where: { userId, status: PartnerOfferClaimStatus.APPROVED },
+        _count: { _all: true },
+      }),
+      prisma.partnerOfferClaim.groupBy({
+        by: ["advertisementId", "offerGeneration"],
+        where: { userId, status: PartnerOfferClaimStatus.APPROVED },
+        _count: { _all: true },
+      }),
+    ]);
 
   const byAd = new Map<string, { pending: boolean; approvedCount: number }>();
   for (const p of pendingRows) {
@@ -135,6 +141,30 @@ export async function GET(request: NextRequest) {
       pending: prev?.pending ?? false,
       approvedCount: g._count._all,
     });
+  }
+
+  const adIds = [...byAd.keys()];
+  const currentGenerationByAdId =
+    adIds.length === 0
+      ? new Map<string, number>()
+      : new Map(
+          (
+            await prisma.advertisement.findMany({
+              where: { id: { in: adIds } },
+              select: { id: true, partnerOfferGeneration: true },
+            })
+          ).map((ad) => [ad.id, ad.partnerOfferGeneration])
+        );
+
+  const approvedCountForCurrentOfferByAdId = new Map<string, number>();
+  for (const row of approvedByGeneration) {
+    const currentGeneration = currentGenerationByAdId.get(row.advertisementId);
+    if (currentGeneration !== row.offerGeneration) continue;
+    approvedCountForCurrentOfferByAdId.set(
+      row.advertisementId,
+      (approvedCountForCurrentOfferByAdId.get(row.advertisementId) ?? 0) +
+        row._count._all
+    );
   }
 
   return NextResponse.json({
@@ -157,6 +187,15 @@ export async function GET(request: NextRequest) {
         badgeImageUrl,
       };
     }),
-    summaryByAdvertisementId: Object.fromEntries(byAd.entries()),
+    summaryByAdvertisementId: Object.fromEntries(
+      [...byAd.entries()].map(([advertisementId, summary]) => [
+        advertisementId,
+        {
+          ...summary,
+          approvedCountForCurrentOffer:
+            approvedCountForCurrentOfferByAdId.get(advertisementId) ?? 0,
+        },
+      ])
+    ),
   });
 }

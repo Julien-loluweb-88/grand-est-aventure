@@ -8,6 +8,7 @@ import {
 } from "../_lib/advertisement-admin-queries";
 import { toDatetimeLocalValue } from "../_lib/datetime-local";
 import { AdvertisementForm } from "../_components/AdvertisementForm";
+import { AdvertisementReviewPanel } from "../_components/AdvertisementReviewPanel";
 
 export default async function EditPublicitePage({
   params,
@@ -43,6 +44,7 @@ export default async function EditPublicitePage({
           <CardDescription className="font-mono text-xs">id {ad.id}</CardDescription>
         </CardHeader>
         <CardContent className="px-0 pb-0">
+          <AdvertisementReviewPanel ad={ad} />
           <AdvertisementForm
             mode="edit"
             advertisementId={ad.id}

@@ -365,10 +365,20 @@ export function buildGrandEstOpenApiDocument() {
               type: "object",
               additionalProperties: {
                 type: "object",
-                required: ["pending", "approvedCount"],
+                required: ["pending", "approvedCount", "approvedCountForCurrentOffer"],
                 properties: {
                   pending: { type: "boolean" },
-                  approvedCount: { type: "integer" },
+                  approvedCount: {
+                    type: "integer",
+                    description:
+                      "Validations approuvées toutes générations confondues (historique).",
+                  },
+                  approvedCountForCurrentOffer: {
+                    type: "integer",
+                    description:
+                      "Validations approuvées pour la génération d’offre courante (`partnerOfferGeneration`). " +
+                      "À comparer à `partnerOffer.maxRedemptionsPerUser` pour afficher ou masquer le CTA validation.",
+                  },
                 },
               },
             },
@@ -1847,6 +1857,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Mes demandes d’offre",
           description:
             "Joueur connecté : historique récent + résumé par publicité. " +
+            "`summaryByAdvertisementId` inclut `approvedCountForCurrentOffer` (plafond promo en cours) " +
+            "en plus de `approvedCount` (total historique). " +
             `**Rate limit** : ~${120}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           responses: {

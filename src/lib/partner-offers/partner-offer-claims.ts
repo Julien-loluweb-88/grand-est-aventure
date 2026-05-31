@@ -5,6 +5,19 @@ import { prisma } from "@/lib/prisma";
 
 export const PARTNER_CLAIM_EXPIRATION_MS = 24 * 60 * 60 * 1000;
 
+function approvedClaimsForOfferGeneration(
+  userId: string,
+  advertisementId: string,
+  offerGeneration: number
+) {
+  return {
+    userId,
+    advertisementId,
+    status: PartnerOfferClaimStatus.APPROVED,
+    offerGeneration,
+  } as const;
+}
+
 export async function merchantManagesAdvertisement(
   merchantUserId: string,
   advertisementId: string
@@ -70,6 +83,7 @@ export async function createPartnerOfferClaim(input: {
       partnerBadgeDefinitionId: true,
       partnerClaimsOpen: true,
       partnerMaxRedemptionsPerUser: true,
+      partnerOfferGeneration: true,
     },
   });
   if (!ad) {
@@ -83,6 +97,7 @@ export async function createPartnerOfferClaim(input: {
     };
   }
 
+  const offerGeneration = ad.partnerOfferGeneration;
   const maxR = Math.max(1, ad.partnerMaxRedemptionsPerUser);
   const [pending, approvedCount] = await Promise.all([
     prisma.partnerOfferClaim.findFirst({
@@ -94,11 +109,11 @@ export async function createPartnerOfferClaim(input: {
       select: { id: true },
     }),
     prisma.partnerOfferClaim.count({
-      where: {
-        userId: input.userId,
-        advertisementId: input.advertisementId,
-        status: PartnerOfferClaimStatus.APPROVED,
-      },
+      where: approvedClaimsForOfferGeneration(
+        input.userId,
+        input.advertisementId,
+        offerGeneration
+      ),
     }),
   ]);
 
@@ -122,6 +137,7 @@ export async function createPartnerOfferClaim(input: {
       userId: input.userId,
       advertisementId: input.advertisementId,
       status: PartnerOfferClaimStatus.PENDING,
+      offerGeneration,
     },
     select: { id: true },
   });
@@ -149,6 +165,7 @@ export async function resolvePartnerOfferClaim(input: {
           id: true,
           partnerBadgeDefinitionId: true,
           partnerMaxRedemptionsPerUser: true,
+          partnerOfferGeneration: true,
         },
       },
     },
@@ -192,11 +209,11 @@ export async function resolvePartnerOfferClaim(input: {
 
   const maxR = Math.max(1, ad.partnerMaxRedemptionsPerUser);
   const approvedCount = await prisma.partnerOfferClaim.count({
-    where: {
-      userId: claim.userId,
-      advertisementId: claim.advertisementId,
-      status: PartnerOfferClaimStatus.APPROVED,
-    },
+    where: approvedClaimsForOfferGeneration(
+      claim.userId,
+      claim.advertisementId,
+      claim.offerGeneration
+    ),
   });
   if (approvedCount >= maxR) {
     return {

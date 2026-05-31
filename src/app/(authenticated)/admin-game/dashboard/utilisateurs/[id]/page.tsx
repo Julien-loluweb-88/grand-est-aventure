@@ -16,6 +16,9 @@ import { SetUserPasswordForm } from "./_components/SetUserPasswordForm";
 import { UserSessionsPanel } from "./_components/UserSessionsPanel";
 import { UserGameAvatarCard } from "./_components/UserGameAvatarCard";
 import { ImpersonateUserButton } from "./_components/ImpersonateUserButton";
+import { MerchantAdvertisementQuotaForm } from "./_components/MerchantAdvertisementQuotaForm";
+import { countMerchantOwnedSlots } from "@/lib/advertisements/merchant-advertisement-authorization";
+import { prisma } from "@/lib/prisma";
 import {
   Card,
   CardContent,
@@ -44,10 +47,19 @@ export default async function UserPage({
 
   const displayName = user.name ?? user.email ?? "cet utilisateur";
   const canManageAdminScopes = currentUser?.role === "superadmin" && user.role === "admin";
-  const [rightsData, sessionRows, avatarPref] = await Promise.all([
+  const canManageMerchantQuota = currentUser?.role === "superadmin" && user.role === "merchant";
+  const [rightsData, sessionRows, avatarPref, merchantQuotaRow, usedMerchantSlots] =
+    await Promise.all([
     canManageAdminScopes ? getAdminAdventureRights(user.id) : Promise.resolve(null),
     getUserSessionsForAdminPage(user.id),
     getUserSelectedAvatarForAdmin(user.id),
+    canManageMerchantQuota
+      ? prisma.user.findUnique({
+          where: { id: user.id },
+          select: { merchantMaxAdvertisementSlots: true },
+        })
+      : Promise.resolve(null),
+    canManageMerchantQuota ? countMerchantOwnedSlots(user.id) : Promise.resolve(0),
   ]);
 
   return (
@@ -112,6 +124,23 @@ export default async function UserPage({
               </CardHeader>
               <CardContent>
                 <UserSessionsPanel userId={user.id} rows={sessionRows} />
+              </CardContent>
+            </Card>
+          )}
+          {canManageMerchantQuota && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Publicités commerçant</CardTitle>
+                <CardDescription>
+                  Nombre d&apos;emplacements que le super admin peut créer pour ce commerçant.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MerchantAdvertisementQuotaForm
+                  userId={user.id}
+                  initialMaxSlots={merchantQuotaRow?.merchantMaxAdvertisementSlots ?? null}
+                  usedSlots={usedMerchantSlots}
+                />
               </CardContent>
             </Card>
           )}

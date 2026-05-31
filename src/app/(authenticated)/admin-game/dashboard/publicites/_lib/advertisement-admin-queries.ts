@@ -1,9 +1,9 @@
 import "server-only";
 
 import { prisma } from "@/lib/prisma";
-import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
-import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
+import { assertSuperadminForAdvertisements } from "@/lib/advertisements/merchant-advertisement-authorization";
 import type { Prisma } from "../../../../../../../generated/prisma/client";
+import { AdvertisementMerchantContentStatus } from "@/lib/badges/prisma-enums";
 
 export type AdvertisementListRow = {
   id: string;
@@ -15,16 +15,16 @@ export type AdvertisementListRow = {
   endsAt: Date | null;
   impressionCount: number;
   clickCount: number;
+  ownerMerchantUserId: string | null;
+  merchantContentStatus: AdvertisementMerchantContentStatus;
+  ownerMerchant: { email: string; name: string | null } | null;
 };
 
 export async function listAdvertisementsForAdminTable(): Promise<
   AdvertisementListRow[] | null
 > {
-  const actor = await getAdminActorForAuthorization();
-  if (!actor) return null;
-  if (!(await userHasPermissionServer({ permissions: { adventure: ["read"] } }))) {
-    return null;
-  }
+  const gate = await assertSuperadminForAdvertisements();
+  if (!gate.ok) return null;
 
   const [ads, stats] = await Promise.all([
     prisma.advertisement.findMany({
@@ -36,6 +36,9 @@ export async function listAdvertisementsForAdminTable(): Promise<
         active: true,
         startsAt: true,
         endsAt: true,
+        ownerMerchantUserId: true,
+        merchantContentStatus: true,
+        ownerMerchant: { select: { email: true, name: true } },
       },
       orderBy: [{ placement: "asc" }, { sortOrder: "asc" }, { name: "asc" }],
     }),
@@ -65,6 +68,7 @@ export type AdvertisementEditRow = Prisma.AdvertisementGetPayload<{
     targetCities: { select: { id: true } };
     partnerBadgeDefinition: { select: { id: true; title: true; imageUrl: true } };
     merchantAssignments: { select: { userId: true } };
+    ownerMerchant: { select: { id: true; email: true; name: true } };
   };
 }>;
 
@@ -72,19 +76,22 @@ export type MerchantUserOption = {
   id: string;
   email: string;
   name: string | null;
+  merchantMaxAdvertisementSlots: number | null;
 };
 
 export async function listMerchantUsersForAdvertisementForm(): Promise<
   MerchantUserOption[] | null
 > {
-  const actor = await getAdminActorForAuthorization();
-  if (!actor) return null;
-  if (!(await userHasPermissionServer({ permissions: { adventure: ["read"] } }))) {
-    return null;
-  }
+  const gate = await assertSuperadminForAdvertisements();
+  if (!gate.ok) return null;
   return prisma.user.findMany({
     where: { role: "merchant" },
-    select: { id: true, email: true, name: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      merchantMaxAdvertisementSlots: true,
+    },
     orderBy: { email: "asc" },
   });
 }
@@ -95,11 +102,8 @@ export async function getAdvertisementForAdminEdit(
   | { ok: true; data: AdvertisementEditRow }
   | { ok: false; reason: "auth" | "missing" }
 > {
-  const actor = await getAdminActorForAuthorization();
-  if (!actor) {
-    return { ok: false, reason: "auth" };
-  }
-  if (!(await userHasPermissionServer({ permissions: { adventure: ["read"] } }))) {
+  const gate = await assertSuperadminForAdvertisements();
+  if (!gate.ok) {
     return { ok: false, reason: "auth" };
   }
 
@@ -109,6 +113,7 @@ export async function getAdvertisementForAdminEdit(
       targetCities: { select: { id: true } },
       partnerBadgeDefinition: { select: { id: true, title: true, imageUrl: true } },
       merchantAssignments: { select: { userId: true } },
+      ownerMerchant: { select: { id: true, email: true, name: true } },
     },
   });
   if (!row) {

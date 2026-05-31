@@ -241,6 +241,10 @@ export function MerchantPartnerClaimsPanel({
 
   return (
     <>
+      <p className="mb-4 rounded-md border border-sky-200 bg-sky-50/80 px-3 py-2 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-100">
+        Chaque demande indique la campagne et le joueur — approuvez si l&apos;offre a été honorée
+        en caisse.
+      </p>
       <Tabs value={status} onValueChange={handleTabChange}>
         <TabsList variant="line" className="mb-4 w-full justify-start">
           {STATUS_TABS.map((tab) => (

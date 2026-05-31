@@ -15,9 +15,14 @@ import {
   ADVERTISEMENT_PLACEMENTS,
   labelForAdvertisementPlacement,
 } from "@/lib/advertisements/advertisement-placements";
+import { labelForAdvertisementMerchantContentStatus } from "@/lib/advertisements/merchant-advertisement-labels";
+import { countPendingMerchantAdvertisementReviews } from "@/lib/advertisements/merchant-advertisement-queries";
 
 export default async function PublicitesPage() {
-  const rows = await listAdvertisementsForAdminTable();
+  const [rows, pendingReviewCount] = await Promise.all([
+    listAdvertisementsForAdminTable(),
+    countPendingMerchantAdvertisementReviews(),
+  ]);
   if (!rows) {
     redirect("/admin-game/dashboard/acces-refuse");
   }
@@ -40,9 +45,21 @@ export default async function PublicitesPage() {
               .
             </CardDescription>
           </div>
-          <Button asChild className="shrink-0">
-            <Link href="/admin-game/dashboard/publicites/create">Nouvelle publicité</Link>
-          </Button>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {typeof pendingReviewCount === "number" && pendingReviewCount > 0 ? (
+              <Button variant="secondary" asChild>
+                <Link href="/admin-game/dashboard/publicites?filter=pending">
+                  À valider ({pendingReviewCount})
+                </Link>
+              </Button>
+            ) : null}
+            <Button asChild variant="outline">
+              <Link href="/admin-game/dashboard/publicites/create-slot">Emplacement commerçant</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/admin-game/dashboard/publicites/create">Nouvelle publicité</Link>
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="px-0 pb-0">
           {rows.length === 0 ? (
@@ -56,6 +73,8 @@ export default async function PublicitesPage() {
                 <TableRow>
                   <TableHead>Nom</TableHead>
                   <TableHead>Partenaire</TableHead>
+                  <TableHead>Commerçant</TableHead>
+                  <TableHead>Statut contenu</TableHead>
                   <TableHead>Placement</TableHead>
                   <TableHead>Actif</TableHead>
                   <TableHead className="text-right tabular-nums">Impr.</TableHead>
@@ -68,6 +87,14 @@ export default async function PublicitesPage() {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.name}</TableCell>
                     <TableCell>{r.advertiserName}</TableCell>
+                    <TableCell className="text-sm">
+                      {r.ownerMerchant
+                        ? (r.ownerMerchant.name ?? r.ownerMerchant.email)
+                        : "—"}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {labelForAdvertisementMerchantContentStatus(r.merchantContentStatus)}
+                    </TableCell>
                     <TableCell>
                       <span className="text-sm">{labelForAdvertisementPlacement(r.placement)}</span>
                     </TableCell>

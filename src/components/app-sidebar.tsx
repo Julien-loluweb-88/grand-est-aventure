@@ -64,6 +64,10 @@ function buildNavMain(caps: AdminSessionCapabilities) {
             title: "Validations (app mobile)",
             url: "/admin-game/dashboard/commercant",
           },
+          {
+            title: "Mes publicités",
+            url: "/admin-game/dashboard/commercant/publicites",
+          },
         ],
       },
     ];
@@ -146,6 +150,31 @@ function buildNavMain(caps: AdminSessionCapabilities) {
 
   const aventuresOpenByDefault = !caps.user.get
 
+  const publicitesNav = caps.canAssignRolesAndScopes
+    ? [
+        {
+          title: "Publicités",
+          url: "/admin-game/dashboard/publicites",
+          icon: <MegaphoneSimpleIcon />,
+          isActive: false,
+          items: [
+            {
+              title: "Liste",
+              url: "/admin-game/dashboard/publicites",
+            },
+            {
+              title: "Emplacement commerçant",
+              url: "/admin-game/dashboard/publicites/create-slot",
+            },
+            {
+              title: "Nouvelle publicité",
+              url: "/admin-game/dashboard/publicites/create",
+            },
+          ],
+        },
+      ]
+    : []
+
   return [
     ...utilisateursNav,
     ...demandesNav,
@@ -222,30 +251,7 @@ function buildNavMain(caps: AdminSessionCapabilities) {
         },
       ],
     },
-    {
-      title: "Publicités",
-      url: "/admin-game/dashboard/publicites",
-      icon: <MegaphoneSimpleIcon />,
-      isActive: false,
-      items: [
-        {
-          title: "Liste",
-          url: "/admin-game/dashboard/publicites",
-          disabled: !caps.adventure.read,
-          disabledReason: !caps.adventure.read
-            ? "Vous ne pouvez pas consulter les publicités."
-            : undefined,
-        },
-        {
-          title: "Nouvelle publicité",
-          url: "/admin-game/dashboard/publicites/create",
-          disabled: !caps.adventure.update,
-          disabledReason: !caps.adventure.update
-            ? "Vous ne pouvez pas gérer les publicités."
-            : DEFAULT_DENY_MESSAGE,
-        },
-      ],
-    },
+    ...publicitesNav,
     {
       title: "Badges globaux",
       url: "/admin-game/dashboard/badges-globaux",

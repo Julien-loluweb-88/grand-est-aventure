@@ -5,6 +5,7 @@ export {
   AdventureBadgeInstanceStatus,
   AdventureBadgeStockEventKind,
   AdventureReviewModerationStatus,
+  AdvertisementMerchantContentStatus,
   BadgeDefinitionKind,
   PartnerOfferClaimStatus,
   UserAdventurePlaySessionStatus,

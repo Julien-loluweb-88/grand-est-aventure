@@ -20,6 +20,20 @@ enum PartnerOfferClaimStatus {
   EXPIRED
 }
 
+/// Workflow contenu commerçant sur un emplacement créé par le superadmin.
+enum AdvertisementMerchantContentStatus {
+  /// Emplacement créé, contenu non rempli.
+  SLOT_EMPTY
+  /// Brouillon commerçant (non soumis).
+  DRAFT
+  /// En attente de validation superadmin.
+  PENDING_REVIEW
+  /// Contenu validé (éligible à l’affichage si `active` + dates OK).
+  APPROVED
+  /// Refusé par le superadmin ; le commerçant peut corriger.
+  REJECTED
+}
+
 /// Utilisateur `role = merchant` autorisé à valider les demandes pour une publicité donnée.
 model MerchantAdvertisement {
   id              String        @id @default(cuid())
@@ -45,11 +59,14 @@ model PartnerOfferClaim {
   resolvedAt       DateTime?
   resolvedByUserId String?
   resolvedBy       User?                   @relation("PartnerOfferClaimResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  /// Génération d’offre au moment de la demande (promo pub) — le plafond joueur est évalué par génération.
+  offerGeneration  Int                     @default(0)
   createdAt        DateTime                @default(now())
   updatedAt        DateTime                @updatedAt
 
   @@index([advertisementId, status])
   @@index([userId, advertisementId])
+  @@index([userId, advertisementId, offerGeneration])
   @@index([status, createdAt])
 }
 
@@ -84,10 +101,26 @@ model Advertisement {
   /// Badge débloqué une fois l’offre validée (type `PARTNER_OFFER`). Au plus une pub par badge.
   partnerBadgeDefinitionId String?           @unique
   partnerBadgeDefinition   BadgeDefinition?  @relation(fields: [partnerBadgeDefinitionId], references: [id], onDelete: SetNull)
-  /// Nombre max de validations approuvées par joueur pour cette offre (avantage répétable) ; le badge reste unique.
+  /// Nombre max de validations approuvées par joueur **pour la promo en cours** (badge unique) ; remise à zéro quand le contenu pub change.
   partnerMaxRedemptionsPerUser Int           @default(1)
   /// Si false : plus de nouvelles demandes ; les badges déjà obtenus restent en collection.
   partnerClaimsOpen     Boolean              @default(true)
+  /// Incrémenté quand le contenu pub (titre, texte, image) est validé avec changement — nouveau cycle de validations joueur.
+  partnerOfferGeneration Int                 @default(0)
+  /// Commerçant propriétaire de l’emplacement (au plus un par pub).
+  ownerMerchantUserId   String?
+  ownerMerchant         User?                @relation("AdvertisementOwnerMerchant", fields: [ownerMerchantUserId], references: [id], onDelete: SetNull)
+  merchantContentStatus AdvertisementMerchantContentStatus @default(APPROVED)
+  merchantRejectionReason String?
+  /// Brouillon commerçant en attente de validation (ré-modération : la version live reste affichée).
+  pendingTitle          String?
+  pendingBody           String?
+  pendingImageUrl       String?
+  pendingTargetUrl      String?
+  pendingPartnerBadgeTitle String?
+  pendingPartnerBadgeImageUrl String?
+  pendingPartnerMaxRedemptionsPerUser Int?
+  pendingPartnerClaimsOpen Boolean?
   merchantAssignments   MerchantAdvertisement[]
   partnerOfferClaims    PartnerOfferClaim[]
   userDismissals        UserAdvertisementDismissal[]
@@ -96,6 +129,8 @@ model Advertisement {
 
   @@index([placement, active])
   @@index([startsAt, endsAt])
+  @@index([ownerMerchantUserId])
+  @@index([merchantContentStatus])
 }
 
 /// Masquage persistant d’une publicité par joueur (liste `GET /api/advertisements` exclut ces ids si session présente).
