@@ -10,6 +10,8 @@ import {
 import type { AdvertiserKind } from "../../../../../../generated/prisma/client";
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
 import { isAdvertisementPlacement } from "@/lib/advertisements/advertisement-placements";
+import { merchantContentStatusAfterSuperadminLivePublish } from "@/lib/advertisements/merchant-advertisement-labels";
+import { AdvertisementMerchantContentStatus } from "@/lib/badges/prisma-enums";
 
 export type AdvertisementFormInput = {
   name: string;
@@ -269,11 +271,11 @@ export async function updateAdvertisement(
   const gate = await assertCanMutateAds();
   if (!gate.ok) return { success: false, error: gate.error };
 
-  const exists = await prisma.advertisement.findUnique({
+  const existing = await prisma.advertisement.findUnique({
     where: { id },
-    select: { id: true },
+    select: { id: true, merchantContentStatus: true },
   });
-  if (!exists) {
+  if (!existing) {
     return { success: false, error: "Publicité introuvable." };
   }
 
@@ -312,6 +314,11 @@ export async function updateAdvertisement(
   }
 
   try {
+    const nextMerchantStatus = merchantContentStatusAfterSuperadminLivePublish(
+      existing.merchantContentStatus as AdvertisementMerchantContentStatus,
+      { title, body, imageUrl, targetUrl }
+    );
+
     await prisma.advertisement.update({
       where: { id },
       data: {
@@ -333,6 +340,12 @@ export async function updateAdvertisement(
         targetCities: {
           set: uniqueCityIds.map((cid) => ({ id: cid })),
         },
+        ...(nextMerchantStatus
+          ? {
+              merchantContentStatus: nextMerchantStatus,
+              merchantRejectionReason: null,
+            }
+          : {}),
       },
     });
     await syncPartnerOfferAndMerchants(id, input, {
