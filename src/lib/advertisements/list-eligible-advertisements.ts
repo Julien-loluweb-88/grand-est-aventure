@@ -16,6 +16,10 @@ export type MobileAdvertisementItem = {
   targetUrl: string | null;
   advertiserName: string;
   sortOrder: number;
+  /** Début de validité campagne (ISO 8601) ; null = pas de borne début. */
+  startsAt: string | null;
+  /** Fin de validité campagne (ISO 8601) ; null = pas de borne fin. */
+  endsAt: string | null;
   partnerOffer: {
     open: boolean;
     maxRedemptionsPerUser: number;
@@ -65,6 +69,8 @@ function serializeAdvertisement(a: AdWithTargets): MobileAdvertisementItem {
     targetUrl: a.targetUrl,
     advertiserName: a.advertiserName,
     sortOrder: a.sortOrder,
+    startsAt: a.startsAt?.toISOString() ?? null,
+    endsAt: a.endsAt?.toISOString() ?? null,
     partnerOffer:
       a.partnerBadgeDefinitionId == null
         ? null

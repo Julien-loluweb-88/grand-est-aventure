@@ -400,6 +400,8 @@ export function buildGrandEstOpenApiDocument() {
                   "targetUrl",
                   "advertiserName",
                   "sortOrder",
+                  "startsAt",
+                  "endsAt",
                   "partnerOffer",
                 ],
                 properties: {
@@ -410,6 +412,18 @@ export function buildGrandEstOpenApiDocument() {
                   targetUrl: { type: ["string", "null"] },
                   advertiserName: { type: ["string", "null"] },
                   sortOrder: { type: "integer" },
+                  startsAt: {
+                    type: ["string", "null"],
+                    format: "date-time",
+                    description:
+                      "Début de validité de la campagne ; `null` si pas de date de début.",
+                  },
+                  endsAt: {
+                    type: ["string", "null"],
+                    format: "date-time",
+                    description:
+                      "Fin de validité de la campagne ; `null` si pas de date de fin.",
+                  },
                   partnerOffer: {
                     type: ["object", "null"],
                     description:

@@ -71,6 +71,8 @@ export type AdvertisementItem = {
   targetUrl: string | null;    // Lien externe au tap (optionnel)
   advertiserName: string;
   sortOrder: number;
+  startsAt: string | null;     // ISO 8601 — début campagne ; null = pas de borne
+  endsAt: string | null;       // ISO 8601 — fin campagne ; null = pas de borne
   partnerOffer: PartnerOffer | null;  // null = pas d'offre partenaire
 };
 
@@ -145,6 +147,18 @@ export type UserBadgeCatalogItem = {
 **Alternative accueil** : `GET /api/game/home` inclut déjà `advertisements[]` (placement `home`) + `locationContext` (même schéma encart).
 
 **Écran bibliothèque** : utiliser **`placement=library`** — ne pas réutiliser les pubs de `game/home`.
+
+**Période de validité (affichage « Du … au … »)** : champs **`startsAt`** et **`endsAt`** sur l’encart racine (ISO 8601, `null` = pas de borne). Pas sur `partnerOffer`. Le serveur filtre déjà les pubs hors fenêtre ; ces dates servent à l’affichage joueur uniquement.
+
+```typescript
+function formatAdValidity(ad: AdvertisementItem): string | null {
+  const start = ad.startsAt ? new Date(ad.startsAt) : null;
+  const end = ad.endsAt ? new Date(ad.endsAt) : null;
+  if (!start && !end) return null;
+  // formater en locale fr-FR selon votre UI
+  return [start, end].filter(Boolean).map(/* … */).join(" – ");
+}
+```
 
 ---
 
