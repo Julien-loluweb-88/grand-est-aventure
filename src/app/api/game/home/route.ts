@@ -10,6 +10,7 @@ import {
   attachDistanceFromUser,
   fetchPublicCatalogAdventures,
   selectFeaturedAdventures,
+  sortCatalogRowsByDistanceFromUser,
   toMobileAdventureListItem,
 } from "@/lib/game/mobile-adventure-catalog";
 import { listRecentPublicAdventureReviews } from "@/lib/game/public-adventure-reviews";
@@ -94,7 +95,9 @@ export async function GET(request: NextRequest) {
     }),
   ]);
 
-  const withDistance = attachDistanceFromUser(catalogRows, latitude, longitude);
+  const withDistance = sortCatalogRowsByDistanceFromUser(
+    attachDistanceFromUser(catalogRows, latitude, longitude)
+  );
   const adventures = withDistance.map(({ row, distanceFromUserKm }) =>
     toMobileAdventureListItem(
       row,

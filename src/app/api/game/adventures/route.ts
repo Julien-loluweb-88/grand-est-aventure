@@ -4,7 +4,11 @@ import {
   loadApprovedReviewAggregatesByAdventureIds,
   reviewAggregateForAdventure,
 } from "@/lib/game/adventure-review-aggregates";
-import { attachDistanceFromUser, toMobileAdventureListItem } from "@/lib/game/mobile-adventure-catalog";
+import {
+  attachDistanceFromUser,
+  sortCatalogRowsByDistanceFromUser,
+  toMobileAdventureListItem,
+} from "@/lib/game/mobile-adventure-catalog";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_LIMIT = 20;
@@ -91,7 +95,9 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const withDistance = attachDistanceFromUser(adventures, latitude, longitude);
+  const withDistance = sortCatalogRowsByDistanceFromUser(
+    attachDistanceFromUser(adventures, latitude, longitude)
+  );
   const filtered = withDistance.filter(
     ({ distanceFromUserKm }) =>
       radiusKm == null ? true : (distanceFromUserKm ?? Infinity) <= radiusKm

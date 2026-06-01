@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
 import type { AdventureReviewAggregate } from "@/lib/game/adventure-review-aggregates";
 import { haversineKm } from "@/lib/game/haversine";
+import { sortByDistanceFromUser } from "@/lib/game/sort-catalog-by-distance";
 
 const publicCatalogSelect = {
   id: true,
@@ -84,11 +85,16 @@ export function toMobileAdventureListItem(
   };
 }
 
+export type CatalogRowWithUserDistance = {
+  row: PublicCatalogAdventureRow;
+  distanceFromUserKm: number | null;
+};
+
 export function attachDistanceFromUser(
   adventures: PublicCatalogAdventureRow[],
   latitude: number | null,
   longitude: number | null
-): { row: PublicCatalogAdventureRow; distanceFromUserKm: number | null }[] {
+): CatalogRowWithUserDistance[] {
   return adventures.map((row) => ({
     row,
     distanceFromUserKm:
@@ -96,6 +102,18 @@ export function attachDistanceFromUser(
         ? haversineKm(latitude, longitude, row.latitude, row.longitude)
         : null,
   }));
+}
+
+export function sortCatalogRowsByDistanceFromUser(
+  items: CatalogRowWithUserDistance[]
+): CatalogRowWithUserDistance[] {
+  return sortByDistanceFromUser(items, (i) => i.row.name);
+}
+
+export function sortAdventureListItemsByDistanceFromUser(
+  items: MobileAdventureListItem[]
+): MobileAdventureListItem[] {
+  return sortByDistanceFromUser(items, (i) => i.name);
 }
 
 /**

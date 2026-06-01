@@ -653,6 +653,7 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Liste publique \"safe\" pour app mobile (sans réponses d’énigmes ni codes trésor). " +
             "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination. " +
+            "Avec **latitude + longitude** : tri **`distanceFromUserKm` croissant** (plus proche en premier) avant pagination. " +
             "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**. " +
             "Chaque entrée peut inclure **`estimatedDurationSeconds`** (heuristique admin : marche + énigmes + trésor), " +
             "**`averagePlayDurationSeconds`** et **`playDurationSampleCount`** (moyenne temps réel après assez de parties — alimentées par le cron). " +
@@ -761,7 +762,7 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Jeu"],
           summary: "Accueil mobile agrégé (public)",
           description:
-            "Route sans authentification obligatoire : **toutes** les aventures catalogue pour la carte, " +
+            "Route sans authentification obligatoire : **toutes** les aventures catalogue pour la carte (triées du **plus proche au plus loin** si GPS fourni), " +
             "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés. " +
             "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
             "**`communityStats`** : totaux plateforme si anonyme (`scope: global`, cache TTL ~5 min) ; " +
