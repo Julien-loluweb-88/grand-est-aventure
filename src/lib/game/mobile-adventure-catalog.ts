@@ -2,6 +2,7 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
+import type { AdventurePlayerState } from "@/lib/game/adventure-player-state";
 import type { AdventureReviewAggregate } from "@/lib/game/adventure-review-aggregates";
 import { haversineKm } from "@/lib/game/haversine";
 import { sortByDistanceFromUser } from "@/lib/game/sort-catalog-by-distance";
@@ -25,7 +26,7 @@ const publicCatalogSelect = {
       postalCodes: true,
     },
   },
-  enigmas: { select: { id: true } },
+  enigmas: { select: { id: true, number: true } },
   treasure: { select: { id: true } },
 } as const;
 
@@ -58,12 +59,28 @@ export type MobileAdventureListItem = {
   averageRating: number | null;
   reviewCount: number;
   updatedAt: string;
+  playerState?: AdventurePlayerState;
 };
+
+export function catalogRowToPlayerStateBatchInput(
+  row: PublicCatalogAdventureRow
+): {
+  adventureId: string;
+  requiredEnigmaNumbers: number[];
+  hasTreasure: boolean;
+} {
+  return {
+    adventureId: row.id,
+    requiredEnigmaNumbers: row.enigmas.map((e) => e.number).sort((a, b) => a - b),
+    hasTreasure: Boolean(row.treasure),
+  };
+}
 
 export function toMobileAdventureListItem(
   a: PublicCatalogAdventureRow,
   distanceFromUserKm: number | null,
-  reviewStats: AdventureReviewAggregate = { averageRating: null, reviewCount: 0 }
+  reviewStats: AdventureReviewAggregate = { averageRating: null, reviewCount: 0 },
+  playerState?: AdventurePlayerState
 ): MobileAdventureListItem {
   return {
     id: a.id,
@@ -82,6 +99,7 @@ export function toMobileAdventureListItem(
     averageRating: reviewStats.reviewCount > 0 ? reviewStats.averageRating : null,
     reviewCount: reviewStats.reviewCount,
     updatedAt: a.updatedAt.toISOString(),
+    ...(playerState ? { playerState } : {}),
   };
 }
 

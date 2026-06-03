@@ -75,11 +75,13 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 - [ ] `GET /api/game/cities` — affichage liste / filtres ; conserver **`cityId`** pour la suite.  
 - [ ] `GET /api/game/adventures` — liste **PUBLIC** uniquement (pas les démos).  
+- [ ] Si joueur connecté (cookies ou `Authorization: Bearer`) : lire **`playerState`** sur chaque entrée (session chrono, progression, `playStatus`, compteurs d’étapes) — pas besoin d’appeler `progress` par carte.  
 - [ ] Gérer pagination / recherche si vous l’ajoutez côté API plus tard (actuellement selon réponse serveur).
 
 ### Fiche détail
 
 - [ ] `GET /api/game/adventures/{id}` — afficher nom, description, carte, durées (`estimatedDurationSeconds`, `averagePlayDurationSeconds`, etc.).  
+- [ ] Bandeau avant « Commencer » : **`playerState`** (`hasGameplayProgress` → reprise ; `hasOpenPlaySession` sans gameplay → session chrono ; `playStatus: COMPLETED` → parcours terminé).  
 - [ ] Lire **`treasure`** : `null` ou objet présent → détermine tout le flux **finish vs trésor** (indispensable avant de coder la fin).  
 - [ ] Lire **`enigmas[]`** : `number`, `multiSelect`, `choice`, textes, médias.  
 - [ ] Lire **`discoveryPoints`** (tableau ville / aventure) pour onglet ou section « découverte » sur la fiche parcours.
@@ -99,7 +101,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### État serveur
 
-- [ ] `GET /api/game/progress?adventureId=` après chargement fiche (ou au retour sur l’écran parcours) pour synchroniser **étapes déjà validées**.  
+- [ ] `GET /api/game/progress?adventureId=` pour synchro fine en jeu (étapes, `validatedStepKeys`) ; la fiche peut s’appuyer sur **`playerState`** du détail / catalogue pour l’UX pré-« Commencer ».  
 - [ ] Mapper les `stepKey` renvoyés vers votre UI (énigmes cochées, trésor carte / coffre, etc. — voir OpenAPI).
 
 ### Démarrage chrono / session jeu

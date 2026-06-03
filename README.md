@@ -278,9 +278,9 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 |---------|--------|-------------|
 | GET | `/api/game/cities` | Référentiel villes |
 | GET | `/api/game/avatars` | Catalogue avatars compagnon (`slug` → fichier **glb** dans l’app) |
-| GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) |
-| GET | `/api/game/home` | Accueil agrégé : stats (`scope`), **pubs `home`**, `locationContext`, aventures, avis — GPS infère la ville pour le ciblage pub |
-| GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** ; démo → session + droit requis |
+| GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) ; **`playerState`** si session / Bearer |
+| GET | `/api/game/home` | Accueil agrégé : stats (`scope`), **pubs `home`**, `locationContext`, aventures, avis — GPS infère la ville pour le ciblage pub ; **`playerState`** sur les aventures si auth |
+| GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** + **`playerState`** si auth ; démo → session + droit requis |
 | GET | `/api/game/progress` | Progression joueur (`adventureId`) |
 | POST | `/api/game/start-adventure` | Ouvre la session de jeu au « Commencer » (idempotent) ; **400** `EMPTY_ADVENTURE` si ni énigme ni trésor |
 | POST | `/api/game/validate-enigma` | Validation ordonnée ; `submission` ou `submissions[]` si QCM multi-sélection (`multiSelect`) |

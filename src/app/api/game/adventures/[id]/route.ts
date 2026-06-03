@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import {
-  getUserRoleForAccess,
-  userCanAccessAdventureForPlay,
-} from "@/lib/adventure-public-access";
+import { getUserRoleForAccess, userCanAccessAdventureForPlay } from "@/lib/adventure-public-access";
+import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
+import { loadAdventurePlayerStateForUser } from "@/lib/game/adventure-player-state";
 import { listDiscoveryPointsPublicByCityId } from "@/lib/game/discovery-points-public-query";
+import { prisma } from "@/lib/prisma";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -15,7 +12,7 @@ type Ctx = { params: Promise<{ id: string }> };
  * Expose énigmes + trésor sans divulguer les réponses/codes.
  * Inclut les **points de découverte** de la **ville** de l’aventure (même jeu que `GET /api/game/discovery-points?cityId=…`).
  */
-export async function GET(_request: NextRequest, context: Ctx) {
+export async function GET(request: NextRequest, context: Ctx) {
   const { id } = await context.params;
   const adventureId = id.trim();
   if (!adventureId) {
@@ -81,13 +78,8 @@ export async function GET(_request: NextRequest, context: Ctx) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
   }
 
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  const viewerUserId = session?.user?.id;
-  const viewerRole = viewerUserId
-    ? await getUserRoleForAccess(viewerUserId)
-    : null;
+  const viewerUserId = await getOptionalUserIdFromApiRequest(request);
+  const viewerRole = viewerUserId ? await getUserRoleForAccess(viewerUserId) : null;
 
   const canPlay = await userCanAccessAdventureForPlay(prisma, {
     userId: viewerUserId ?? "__no_session__",
@@ -107,6 +99,14 @@ export async function GET(_request: NextRequest, context: Ctx) {
     viewerUserId ? { userId: viewerUserId, role: viewerRole } : null
   );
 
+  const playerState = viewerUserId
+    ? await loadAdventurePlayerStateForUser(viewerUserId, {
+        adventureId: adventure.id,
+        requiredEnigmaNumbers: adventure.enigmas.map((e) => e.number),
+        hasTreasure: adventure.treasure != null,
+      })
+    : undefined;
+
   return NextResponse.json({
     id: adventure.id,
     name: adventure.name,
@@ -124,5 +124,6 @@ export async function GET(_request: NextRequest, context: Ctx) {
     treasure: adventure.treasure,
     discoveryPoints,
     updatedAt: adventure.updatedAt.toISOString(),
+    ...(playerState ? { playerState } : {}),
   });
 }

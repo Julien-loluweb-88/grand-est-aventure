@@ -19,6 +19,46 @@ const ADVENTURE_AUDIENCE_DEMO =
   " **Aventures démo** (`Adventure.audience = DEMO`) : absentes du catalogue et du comptage villes « actives » ; " +
   "accès détail / jeu / avis / POI découverte filtrés réservés aux **admin / superadmin** ou aux comptes autorisés (`AdventureDemoAccess`). Sinon **404**.";
 
+/** État joueur agrégé (session + progression) — présent uniquement si session / Bearer valide. */
+const ADVENTURE_PLAYER_STATE_SCHEMA = {
+  type: "object",
+  required: [
+    "hasOpenPlaySession",
+    "hasGameplayProgress",
+    "playStatus",
+    "validatedStepCount",
+    "totalStepCount",
+  ],
+  properties: {
+    hasOpenPlaySession: {
+      type: "boolean",
+      description:
+        "Session chrono `UserAdventurePlaySession` **IN_PROGRESS** pour ce joueur et cette aventure.",
+    },
+    hasGameplayProgress: {
+      type: "boolean",
+      description:
+        "Au moins une étape validée (`userAdventureStepValidation`) ou ligne `userAdventures` existante.",
+    },
+    playStatus: {
+      type: "string",
+      enum: ["NOT_STARTED", "SESSION_OPEN", "IN_PROGRESS", "COMPLETED"],
+      description:
+        "Priorité : **COMPLETED** > **IN_PROGRESS** (gameplay) > **SESSION_OPEN** (chrono sans étape) > **NOT_STARTED**.",
+    },
+    validatedStepCount: {
+      type: "integer",
+      minimum: 0,
+      description: "Étapes requises déjà validées (énigmes + trésor selon règles `progress`).",
+    },
+    totalStepCount: {
+      type: "integer",
+      minimum: 0,
+      description: "Nombre total d’étapes requises pour terminer le parcours.",
+    },
+  },
+} as const;
+
 /** Si API_DOCS_ENABLED vaut la chaîne « false », désactive /api/openapi et la page docs. */
 export function apiDocsDisabled(): boolean {
   return process.env.API_DOCS_ENABLED === "false";
@@ -655,6 +695,7 @@ export function buildGrandEstOpenApiDocument() {
             "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination. " +
             "Avec **latitude + longitude** : tri **`distanceFromUserKm` croissant** (plus proche en premier) avant pagination. " +
             "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**. " +
+            "Avec session ou **`Authorization: Bearer`** valide : chaque aventure inclut **`playerState`** (agrégat serveur, pas d’appel `progress` par carte). Sans auth : champ absent. " +
             "Chaque entrée peut inclure **`estimatedDurationSeconds`** (heuristique admin : marche + énigmes + trésor), " +
             "**`averagePlayDurationSeconds`** et **`playDurationSampleCount`** (moyenne temps réel après assez de parties — alimentées par le cron). " +
             "**`averageRating`** / **`reviewCount`** : moyenne et effectif des avis publics (`APPROVED`) avec note 1–5. " +
@@ -745,6 +786,7 @@ export function buildGrandEstOpenApiDocument() {
                               description: "Nombre d’avis notés inclus dans averageRating.",
                             },
                             updatedAt: { type: "string", format: "date-time" },
+                            playerState: ADVENTURE_PLAYER_STATE_SCHEMA,
                           },
                         },
                       },
@@ -767,6 +809,7 @@ export function buildGrandEstOpenApiDocument() {
             "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
             "**`communityStats`** : totaux plateforme si anonyme (`scope: global`, cache TTL ~5 min) ; " +
             "compteurs du joueur si session / `Authorization: Bearer` valide (`scope: user`). Session invalide → `global`, pas de **401**. " +
+            "Aventures / carrousel : **`playerState`** par entrée si joueur authentifié (même objet que le catalogue). " +
             "**`advertisements`** : encarts `placement=home` (même schéma que `GET /api/advertisements`) ; ville cible inférée depuis GPS " +
             "(API Gouv INSEE → `City`, repli ville catalogue la plus proche ≤ 15 km). **`locationContext`** indique la ville utilisée pour le ciblage. " +
             "Ne contient pas de gamification niveau / XP.",
@@ -881,6 +924,7 @@ export function buildGrandEstOpenApiDocument() {
             "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +
             "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`). " +
             "**Durées** : `estimatedDurationSeconds` (heuristique), `averagePlayDurationSeconds` / `playDurationSampleCount` (stats réelles via cron). " +
+            "**`playerState`** (session + progression agrégée) si joueur authentifié avec accès à l’aventure ; absent si anonyme. " +
             "Pour une aventure **`DEMO`**, session requise + droit d’accès ; sinon **404**." +
             ADVENTURE_AUDIENCE_DEMO,
           parameters: [
@@ -950,6 +994,7 @@ export function buildGrandEstOpenApiDocument() {
                         },
                       },
                       updatedAt: { type: "string", format: "date-time" },
+                      playerState: ADVENTURE_PLAYER_STATE_SCHEMA,
                     },
                   },
                 },
