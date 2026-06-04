@@ -123,11 +123,7 @@ model Treasure {
   name        String
   description Json
   latitude    Float
-  /// Combinaison / fin d’énigmes : ce que le joueur saisit pour **révéler le trésor sur la carte** (étape `treasure:map`).
-  mapRevealCode     String
-  /// Variante tolérée pour la même saisie (orthographe, etc.). Jamais exposé aux clients publics.
-  mapRevealCodeAlt  String?
-  /// Code **dans le trésor physique** (coffre, étiquette…), validé **après** la révélation sur la carte (étape `treasure`).
+  /// Code **dans le trésor physique** (coffre, étiquette…), validé à l’étape `treasure`.
   chestCode         String
   chestCodeAlt      String?
   longitude   Float

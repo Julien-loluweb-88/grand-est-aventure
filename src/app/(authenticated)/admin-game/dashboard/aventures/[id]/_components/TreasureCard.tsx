@@ -109,28 +109,6 @@ export function TreasureCard({
               <div className="mb-2 flex items-center gap-2 text-muted-foreground">
                 <KeyRound className="size-4 shrink-0 opacity-80" aria-hidden />
                 <span className="text-[11px] font-semibold uppercase tracking-wide">
-                  Révélation carte
-                </span>
-              </div>
-              <p className="break-all font-mono text-sm font-semibold tracking-wide">
-                {treasure.mapRevealCode}
-              </p>
-            </div>
-            <div className="rounded-none border p-3.5">
-              <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                <Shield className="size-4 shrink-0 opacity-80" aria-hidden />
-                <span className="text-[11px] font-semibold uppercase tracking-wide">
-                  Variante (carte)
-                </span>
-              </div>
-              <p className="break-all font-mono text-sm font-semibold tracking-wide">
-                {treasure.mapRevealCodeAlt ?? "—"}
-              </p>
-            </div>
-            <div className="rounded-none border p-3.5">
-              <div className="mb-2 flex items-center gap-2 text-muted-foreground">
-                <KeyRound className="size-4 shrink-0 opacity-80" aria-hidden />
-                <span className="text-[11px] font-semibold uppercase tracking-wide">
                   Code coffre
                 </span>
               </div>

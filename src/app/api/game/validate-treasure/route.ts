@@ -11,7 +11,6 @@ import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import {
   enigmaStepKey,
-  TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
 } from "@/lib/game/adventure-step-keys";
 import { normalizeGameSubmission } from "@/lib/game/normalize-game-submission";
@@ -39,11 +38,6 @@ function codesMatch(
   return false;
 }
 
-function parsePhase(raw: unknown): "map" | "chest" | undefined {
-  if (raw === "map" || raw === "chest") return raw;
-  return undefined;
-}
-
 function parseOptionalGiftNumber(raw: unknown): number | undefined {
   if (raw === undefined || raw === null) return undefined;
   if (typeof raw === "number" && Number.isInteger(raw) && raw >= 0) return raw;
@@ -55,9 +49,8 @@ function parseOptionalGiftNumber(raw: unknown): number | undefined {
 }
 
 /**
- * Valide le trésor : révélation carte (`treasure:map`), puis code coffre (`treasure`).
- * À l’étape **coffre**, le corps peut inclure `giftNumber` (nombre indiqué par le joueur) : enregistrement `UserAdventures`,
- * badges via `processGameFinish`.
+ * Valide le code du trésor physique (`treasure`).
+ * Enregistre `UserAdventures`, badges via `processGameFinish`.
  */
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -99,7 +92,6 @@ export async function POST(request: NextRequest) {
   const adventureId = typeof b.adventureId === "string" ? b.adventureId.trim() : "";
   const userId = typeof b.userId === "string" ? b.userId.trim() : "";
   const code = typeof b.code === "string" ? b.code : "";
-  const explicitPhase = parsePhase(b.phase);
 
   if (b.giftNumber !== undefined && b.giftNumber !== null) {
     const g = parseOptionalGiftNumber(b.giftNumber);
@@ -136,8 +128,6 @@ export async function POST(request: NextRequest) {
       audience: true,
       treasure: {
         select: {
-          mapRevealCode: true,
-          mapRevealCodeAlt: true,
           chestCode: true,
           chestCodeAlt: true,
         },
@@ -172,9 +162,7 @@ export async function POST(request: NextRequest) {
     const result = await prisma.$transaction(async (tx) => {
       const done = await getValidatedStepKeys(tx, userId, adventureId);
 
-      const legacyComplete =
-        done.has(TREASURE_STEP_KEY) && !done.has(TREASURE_MAP_STEP_KEY);
-      if (legacyComplete) {
+      if (done.has(TREASURE_STEP_KEY)) {
         const existingUa = await tx.userAdventures.findFirst({
           where: { userId, adventureId },
         });
@@ -200,14 +188,6 @@ export async function POST(request: NextRequest) {
         };
       }
 
-      if (done.has(TREASURE_MAP_STEP_KEY) && done.has(TREASURE_STEP_KEY)) {
-        return {
-          ok: true as const,
-          alreadyValidated: true as const,
-          stepKey: TREASURE_STEP_KEY,
-        };
-      }
-
       for (const { number: n } of adventure.enigmas) {
         if (!done.has(enigmaStepKey(n))) {
           return {
@@ -219,55 +199,6 @@ export async function POST(request: NextRequest) {
             },
           };
         }
-      }
-
-      const mapDone = done.has(TREASURE_MAP_STEP_KEY);
-
-      const inferredPhase: "map" | "chest" = !mapDone ? "map" : "chest";
-      const effectivePhase = explicitPhase ?? inferredPhase;
-
-      if (explicitPhase === "chest" && !mapDone) {
-        return {
-          ok: false as const,
-          status: 400,
-          body: {
-            error: "Révélez d’abord le trésor sur la carte (code de fin d’énigme).",
-            code: "MAP_REVEAL_REQUIRED",
-          },
-        };
-      }
-
-      if (explicitPhase === "map" && mapDone) {
-        return {
-          ok: false as const,
-          status: 400,
-          body: {
-            error: "Le trésor est déjà révélé sur la carte.",
-            code: "MAP_ALREADY_REVEALED",
-          },
-        };
-      }
-
-      if (effectivePhase === "map") {
-        if (
-          !codesMatch(
-            treasureRow.mapRevealCode,
-            treasureRow.mapRevealCodeAlt,
-            code
-          )
-        ) {
-          return {
-            ok: false as const,
-            status: 400,
-            body: { error: "Code incorrect.", code: "WRONG_CODE" },
-          };
-        }
-        await recordStepValidated(tx, userId, adventureId, TREASURE_MAP_STEP_KEY);
-        return {
-          ok: true as const,
-          alreadyValidated: false as const,
-          stepKey: TREASURE_MAP_STEP_KEY,
-        };
       }
 
       if (!codesMatch(treasureRow.chestCode, treasureRow.chestCodeAlt, code)) {
@@ -314,7 +245,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Progression incomplète pour finaliser (énigmes / étapes trésor). Consultez GET /api/game/progress?adventureId=…",
+            "Progression incomplète pour finaliser (énigmes / trésor). Consultez GET /api/game/progress?adventureId=…",
           code: e.code,
           detail: e.detail ?? null,
         },

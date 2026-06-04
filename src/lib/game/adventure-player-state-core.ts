@@ -1,6 +1,5 @@
 import {
   enigmaStepKey,
-  TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
 } from "@/lib/game/adventure-step-keys";
 
@@ -23,16 +22,11 @@ export type AdventureProgressShape = {
   hasTreasure: boolean;
 };
 
-function usesLegacyTreasureOnly(validated: Set<string>): boolean {
-  return validated.has(TREASURE_STEP_KEY) && !validated.has(TREASURE_MAP_STEP_KEY);
-}
-
 export function countValidatedRequiredSteps(
   input: AdventureProgressShape,
   validatedStepKeys: Iterable<string>
 ): { validatedStepCount: number; totalStepCount: number } {
   const validated = new Set(validatedStepKeys);
-  const legacyTreasureOnly = input.hasTreasure && usesLegacyTreasureOnly(validated);
 
   let total = input.requiredEnigmaNumbers.length;
   let validatedCount = 0;
@@ -44,19 +38,9 @@ export function countValidatedRequiredSteps(
   }
 
   if (input.hasTreasure) {
-    if (legacyTreasureOnly) {
-      total += 1;
-      if (validated.has(TREASURE_STEP_KEY)) {
-        validatedCount += 1;
-      }
-    } else {
-      total += 2;
-      if (validated.has(TREASURE_MAP_STEP_KEY)) {
-        validatedCount += 1;
-      }
-      if (validated.has(TREASURE_STEP_KEY)) {
-        validatedCount += 1;
-      }
+    total += 1;
+    if (validated.has(TREASURE_STEP_KEY)) {
+      validatedCount += 1;
     }
   }
 

@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Cette aventure comporte un trésor : finalisez avec POST /api/game/validate-treasure (code carte puis coffre).",
+          "Cette aventure comporte un trésor : finalisez avec POST /api/game/validate-treasure (code coffre).",
         code: "TREASURE_REQUIRED",
       },
       { status: 400 }

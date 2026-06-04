@@ -66,8 +66,6 @@ export function TreasureEditForm({
     defaultValues: {
       name: treasure.name,
       description: adventureDescriptionToTiptapJSON(treasure.description),
-      mapRevealCode: treasure.mapRevealCode,
-      mapRevealCodeAlt: treasure.mapRevealCodeAlt ?? "",
       chestCode: treasure.chestCode,
       chestCodeAlt: treasure.chestCodeAlt ?? "",
       latitude: treasure.latitude,
@@ -129,8 +127,6 @@ export function TreasureEditForm({
       form.reset({
         name: t.name,
         description: adventureDescriptionToTiptapJSON(t.description),
-        mapRevealCode: t.mapRevealCode,
-        mapRevealCodeAlt: t.mapRevealCodeAlt ?? "",
         chestCode: t.chestCode,
         chestCodeAlt: t.chestCodeAlt ?? "",
         latitude: t.latitude,
@@ -148,8 +144,6 @@ export function TreasureEditForm({
       const result = await updateTreasure(treasure.id, {
         name: plain.name,
         description: plain.description,
-        mapRevealCode: plain.mapRevealCode,
-        mapRevealCodeAlt: plain.mapRevealCodeAlt?.trim() || null,
         chestCode: plain.chestCode,
         chestCodeAlt: plain.chestCodeAlt?.trim() || null,
         latitude: Number(plain.latitude),
@@ -224,7 +218,7 @@ export function TreasureEditForm({
             displayRoutePolyline={displayRoutePolyline}
             mapHelperText={mapHelperText}
             canEdit={canEdit}
-            fieldSetDescription="Trésor : position, texte, et codes de validation finale (combinaison attendue + variante optionnelle)."
+            fieldSetDescription="Trésor : position, texte, et code de validation dans le coffre (variante optionnelle)."
             adventureId={adventureId}
           />
 

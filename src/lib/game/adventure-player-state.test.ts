@@ -5,7 +5,6 @@ import {
 } from "./adventure-player-state-core";
 import {
   enigmaStepKey,
-  TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
 } from "./adventure-step-keys";
 
@@ -61,22 +60,12 @@ describe("deriveAdventurePlayerState", () => {
 });
 
 describe("countValidatedRequiredSteps", () => {
-  it("trésor legacy : une seule étape trésor au total", () => {
+  it("trésor : une seule étape trésor au total", () => {
     const { validatedStepCount, totalStepCount } = countValidatedRequiredSteps(
       { requiredEnigmaNumbers: [1], hasTreasure: true },
       [enigmaStepKey(1), TREASURE_STEP_KEY]
     );
     expect(totalStepCount).toBe(2);
     expect(validatedStepCount).toBe(2);
-  });
-
-  it("trésor complet : carte + coffre", () => {
-    const keys = [enigmaStepKey(1), TREASURE_MAP_STEP_KEY, TREASURE_STEP_KEY];
-    const counts = countValidatedRequiredSteps(
-      { requiredEnigmaNumbers: [1], hasTreasure: true },
-      keys
-    );
-    expect(counts.totalStepCount).toBe(3);
-    expect(counts.validatedStepCount).toBe(3);
   });
 });

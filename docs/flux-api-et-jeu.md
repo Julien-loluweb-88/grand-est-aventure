@@ -45,7 +45,7 @@ Références complémentaires :
 | `POST` | `/api/game/start-adventure` | Au **« Commencer »** (recommandé) : ouvre une **`UserAdventurePlaySession`** `IN_PROGRESS` (idempotent). |
 | `POST` | `/api/game/validate-enigma` | Après chaque bonne réponse, **dans l’ordre** des énigmes imposé par le serveur. |
 | `POST` | `/api/game/validate-finish` | **Sans trésor** : lorsque **toutes** les énigmes sont validées **et** qu’il n’existe **pas** de trésor sur l’aventure. |
-| `POST` | `/api/game/validate-treasure` | **Avec trésor** : **carte** (`treasure:map`) puis **coffre** (`treasure`) — même route, codes successifs. |
+| `POST` | `/api/game/validate-treasure` | **Avec trésor** : code **coffre** (`treasure`) — finalise la partie. |
 
 **Règle importante** : si un **trésor** est configuré, la finalisation badges / `UserAdventures` passe par l’étape **coffre** de `validate-treasure`. `validate-finish` renvoie alors une erreur du type **`TREASURE_REQUIRED`**. Sans trésor, c’est **`validate-finish`** qui appelle la même finalisation que le code coffre (`processGameFinish`).
 
@@ -164,7 +164,7 @@ flowchart TB
 | Concept | Rôle |
 |--------|------|
 | **`UserAdventurePlaySession`** | Durée de partie : `IN_PROGRESS` → clôture succès / échec ; abandon au cron si trop ancien. |
-| **`UserAdventureStepValidation`** | Étapes validées serveur (`enigma:n`, `treasure:map`, `treasure`). |
+| **`UserAdventureStepValidation`** | Étapes validées serveur (`enigma:n`, `treasure`). |
 | **`UserAdventures`** | Succès / échec ; condition pour la roue et le `redeem`. |
 | **`AdventurePartnerLot`** | Segment de roue : périmètre **aventure** ou **ville**, poids, stock, dates, actif. |
 | **`UserAdventurePartnerLotWin`** | Un tirage par (utilisateur, aventure) ; **`redeemedAt`** pour usage magasin. |

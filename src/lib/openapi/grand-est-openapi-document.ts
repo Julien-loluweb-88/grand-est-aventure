@@ -176,8 +176,8 @@ export function buildGrandEstOpenApiDocument() {
             ok: { type: "boolean", const: true },
             stepKey: {
               type: "string",
-              description: "`treasure:map` après révélation sur la carte, puis `treasure` après le code coffre.",
-              example: "treasure:map",
+              description: "`treasure` après validation du code coffre.",
+              example: "treasure",
             },
             alreadyValidated: { type: "boolean" },
             awardedUserBadgeIds: {
@@ -918,7 +918,7 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Détail public d’une aventure active, incluant énigmes et trésor " +
             "sans exposer les champs sensibles : pas de `answer` / `correctAnswers` ; les codes trésor " +
-            "(`mapRevealCode`, `chestCode`, variantes) ne sont jamais renvoyés — validés uniquement via POST `/api/game/validate-treasure`. " +
+            "(`chestCode`, variante) ne sont jamais renvoyés — validés uniquement via POST `/api/game/validate-treasure`. " +
             "Chaque énigme inclut notamment **`choice`** (libellés QCM), **`uniqueResponse`**, **`multiSelect`** : si `multiSelect` est true, " +
             "le joueur envoie **`submissions`** (tableau) à POST `/api/game/validate-enigma` ; sinon **`submission`** (chaîne). " +
             "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +
@@ -1440,17 +1440,14 @@ export function buildGrandEstOpenApiDocument() {
       "/api/game/validate-treasure": {
         post: {
           tags: ["Jeu"],
-          summary: "Valider le trésor (carte puis coffre)",
+          summary: "Valider le trésor (code coffre)",
           description:
             "**Prérequis** : toutes les énigmes doivent être validées (`validate-enigma`).\n\n" +
-            "**Deux étapes** (même route, soumissions successives) :\n" +
-            "1. **Révélation sur la carte** : le joueur envoie le code de **fin d’énigme** (`Treasure.mapRevealCode`, variante `mapRevealCodeAlt`). Réponse `stepKey` : `treasure:map`.\n" +
-            "2. **Code dans le coffre** : ensuite le code **physique** (`Treasure.chestCode`, variante `chestCodeAlt`). Réponse `stepKey` : `treasure`.\n\n" +
-            "**Corps** : `adventureId`, `userId`, `code` (≤ 120 car.), optionnellement `phase` : `\"map\"` | `\"chest\"`, et **`giftNumber`** (entier ≥ 0) au moment du **code coffre** : nombre indiqué par le joueur.\n\n" +
-            "À l’étape coffre, la route exécute **`processGameFinish`** (succès, `giftNumber`, badges virtuels, instance badge physique si stock).\n\n" +
-            "Si `phase` est omis, le serveur en déduit une : carte d’abord, puis coffre.\n\n" +
-            "**Anciennes parties** (seule clé `treasure`) : une reprise envoie `giftNumber` si la ligne `UserAdventures` n’était pas encore en succès.\n\n" +
-            "Chaque aventure prévue avec **trésor** : la finalisation (badges, `UserAdventures`) se fait **uniquement** à l’étape coffre de cette route.\n\n" +
+            "Le joueur envoie le code **physique** du trésor (`Treasure.chestCode`, variante `chestCodeAlt`). Réponse `stepKey` : `treasure`.\n\n" +
+            "**Corps** : `adventureId`, `userId`, `code` (≤ 120 car.), et optionnellement **`giftNumber`** (entier ≥ 0) : nombre indiqué par le joueur.\n\n" +
+            "La route exécute **`processGameFinish`** (succès, `giftNumber`, badges virtuels, instance badge physique si stock).\n\n" +
+            "Si l’étape `treasure` est déjà validée mais que `UserAdventures` n’est pas encore en succès, une reprise avec `giftNumber` finalise la partie.\n\n" +
+            "Chaque aventure prévue avec **trésor** : la finalisation (badges, `UserAdventures`) se fait **uniquement** via cette route.\n\n" +
             "Aventure **démo** : même contrôle d’accès que `validate-enigma`.\n\n" +
             `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
@@ -1464,23 +1461,17 @@ export function buildGrandEstOpenApiDocument() {
                   properties: {
                     adventureId: { type: "string" },
                     userId: { type: "string" },
-                    phase: {
-                      type: "string",
-                      enum: ["map", "chest"],
-                      description:
-                        "Optionnel : force l’étape. Sinon déduction automatique (carte si pas encore `treasure:map`, sinon coffre).",
-                    },
                     code: {
                       type: "string",
                       maxLength: 120,
                       description:
-                        "Saisie joueur comparée aux codes trésor attendus pour l’étape (carte ou coffre), avec normalisation.",
+                        "Saisie joueur comparée au code coffre attendu, avec normalisation.",
                     },
                     giftNumber: {
                       type: "integer",
                       minimum: 0,
                       description:
-                        "À fournir avec le **code coffre** (ou legacy) : nombre de badge(s) / cadeau côté joueur (voir logique stock physique dans `processGameFinish`).",
+                        "Nombre de badge(s) / cadeau côté joueur (voir logique stock physique dans `processGameFinish`).",
                     },
                   },
                 },
@@ -1490,7 +1481,7 @@ export function buildGrandEstOpenApiDocument() {
           responses: {
             "200": {
               description:
-                "Carte : `treasure:map` seulement. Coffre : `treasure` + finalisation (`awardedUserBadgeIds`, `message` si première fois).",
+                "`treasure` + finalisation (`awardedUserBadgeIds`, `message` si première fois).",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ValidateTreasureOk" } } },
             },
             "400": {

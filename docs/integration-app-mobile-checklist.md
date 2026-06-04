@@ -102,7 +102,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 ### État serveur
 
 - [ ] `GET /api/game/progress?adventureId=` pour synchro fine en jeu (étapes, `validatedStepKeys`) ; la fiche peut s’appuyer sur **`playerState`** du détail / catalogue pour l’UX pré-« Commencer ».  
-- [ ] Mapper les `stepKey` renvoyés vers votre UI (énigmes cochées, trésor carte / coffre, etc. — voir OpenAPI).
+- [ ] Mapper les `stepKey` renvoyés vers votre UI (énigmes cochées, trésor coffre, etc. — voir OpenAPI).
 
 ### Démarrage chrono / session jeu
 
@@ -133,10 +133,9 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### Fin **avec** trésor
 
-- [ ] Phase **carte** : `POST /api/game/validate-treasure` avec code carte (et `phase: "map"` si vous le fixez explicitement — voir OpenAPI).  
-- [ ] Phase **coffre** : second appel avec code coffre + `giftNumber` si applicable.  
-- [ ] Gérer erreurs carte / coffre / ordre (`MAP_REVEAL_REQUIRED`, etc.).  
-- [ ] Succès coffre → même finalisation badges / `UserAdventures` côté serveur → **Phase 5**.
+- [ ] `POST /api/game/validate-treasure` avec le code coffre + `giftNumber` si applicable.  
+- [ ] Gérer erreurs code incorrect / énigmes incomplètes.  
+- [ ] Succès → finalisation badges / `UserAdventures` côté serveur → **Phase 5**.
 
 ### Cases récap
 

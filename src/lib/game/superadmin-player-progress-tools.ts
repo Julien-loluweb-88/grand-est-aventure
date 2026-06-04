@@ -16,7 +16,6 @@ import {
 } from "@/lib/badges/load-global-badge-stats";
 import {
   enigmaStepKey,
-  TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
 } from "@/lib/game/adventure-step-keys";
 import { recordStepValidated } from "@/lib/game/server-adventure-progress";
@@ -86,13 +85,12 @@ async function seedAllRequiredSteps(
     await recordStepValidated(tx, userId, adventureId, enigmaStepKey(e.number));
   }
   if (adventure.treasure != null) {
-    await recordStepValidated(tx, userId, adventureId, TREASURE_MAP_STEP_KEY);
     await recordStepValidated(tx, userId, adventureId, TREASURE_STEP_KEY);
   }
   await ensureActivePlaySession(tx, userId, adventureId);
 }
 
-export type ProgressStepKind = "enigma" | "treasure_map" | "treasure";
+export type ProgressStepKind = "enigma" | "treasure";
 
 export type ProgressStepItem = {
   stepKey: string;
@@ -147,12 +145,6 @@ function buildProgressSteps(input: {
     };
   });
   if (input.hasTreasure) {
-    steps.push({
-      stepKey: TREASURE_MAP_STEP_KEY,
-      label: "Trésor — carte",
-      kind: "treasure_map",
-      validated: validated.has(TREASURE_MAP_STEP_KEY),
-    });
     steps.push({
       stepKey: TREASURE_STEP_KEY,
       label: "Trésor — coffre",
@@ -213,7 +205,7 @@ function isAllowedStepKeyForAdventure(
     }
   }
   if (hasTreasure) {
-    return stepKey === TREASURE_MAP_STEP_KEY || stepKey === TREASURE_STEP_KEY;
+    return stepKey === TREASURE_STEP_KEY;
   }
   return false;
 }
@@ -289,18 +281,8 @@ export async function getPlayerAdventureProgressSnapshot(
       missingForFinish.push(key);
     }
   }
-  if (hasTreasure) {
-    const legacyTreasureOnly =
-      validatedStepKeys.includes(TREASURE_STEP_KEY) &&
-      !validatedStepKeys.includes(TREASURE_MAP_STEP_KEY);
-    if (!legacyTreasureOnly) {
-      if (!validatedStepKeys.includes(TREASURE_MAP_STEP_KEY)) {
-        missingForFinish.push(TREASURE_MAP_STEP_KEY);
-      }
-      if (!validatedStepKeys.includes(TREASURE_STEP_KEY)) {
-        missingForFinish.push(TREASURE_STEP_KEY);
-      }
-    }
+  if (hasTreasure && !validatedStepKeys.includes(TREASURE_STEP_KEY)) {
+    missingForFinish.push(TREASURE_STEP_KEY);
   }
 
   const serverReadyForSuccessFinish =

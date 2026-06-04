@@ -27,7 +27,7 @@ model UserAdventurePlaySession {
   @@index([adventureId, status])
 }
 
-/// Validation serveur d’une étape de parcours (`enigma:1`, …, `treasure:map`, `treasure`). Requis avant finalisation sur `POST /api/game/validate-treasure` (code coffre).
+/// Validation serveur d’une étape de parcours (`enigma:1`, …, `treasure`). Requis avant finalisation sur `POST /api/game/validate-treasure` (code coffre).
 model UserAdventureStepValidation {
   id           String    @id @default(cuid())
   userId       String
