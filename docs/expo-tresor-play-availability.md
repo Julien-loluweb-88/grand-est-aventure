@@ -24,11 +24,18 @@ playAvailability: {
   };
   treasureNotice: null | {
     status: "TEMPORARILY_UNAVAILABLE";
-    message: string | null;   // message admin optionnel
-    updatedAt: string;      // ISO
+    message: string | null;
+    updatedAt: string;
+  };
+  badgesNotice: null | {
+    status: "TEMPORARILY_UNAVAILABLE";
+    message: string | null;
+    updatedAt: string;
   };
 }
 ```
+
+**Activation admin** : quand tu passes un avis en **Validé** avec « Rapport de vol du trésor » ou « badges en rupture », les alertes correspondantes s’activent automatiquement sur l’aventure (`treasureNotice` / `badgesNotice`).
 
 Si session joueur :
 
@@ -72,7 +79,8 @@ myReview?: {
 - Utiliser **`playAvailability` sur chaque carte aventure** pour badges / alerte trésor.
 - Badge carte si :
   - `treasureNotice != null` → icône alerte trésor
-  - `physicalBadges?.availableCount === 0 && physicalBadges.tracked` → « Badges épuisés »
+  - `badgesNotice != null` → « Badges indisponibles »
+  - `physicalBadges?.availableCount === 0 && physicalBadges.tracked` → stock épuisé (complément)
 
 ### Fin trésor (rappel API)
 

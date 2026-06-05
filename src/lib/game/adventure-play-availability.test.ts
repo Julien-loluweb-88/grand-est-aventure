@@ -8,12 +8,16 @@ describe("buildPlayAvailability", () => {
     treasureUnavailable: false,
     treasureUnavailableMessage: null,
     treasureUnavailableUpdatedAt: null,
+    physicalBadgesUnavailable: false,
+    physicalBadgesUnavailableMessage: null,
+    physicalBadgesUnavailableUpdatedAt: null,
   };
 
   it("sans stock suivi : physicalBadges null", () => {
     const pa = buildPlayAvailability(base, 0);
     expect(pa.physicalBadges).toBeNull();
     expect(pa.treasureNotice).toBeNull();
+    expect(pa.badgesNotice).toBeNull();
   });
 
   it("stock suivi : compte disponible exposé", () => {
@@ -40,6 +44,20 @@ describe("buildPlayAvailability", () => {
       message: "Réappro bientôt",
       updatedAt: updatedAt.toISOString(),
     });
+  });
+
+  it("alerte badges admin active", () => {
+    const updatedAt = new Date("2026-06-04T12:00:00.000Z");
+    const pa = buildPlayAvailability(
+      {
+        ...base,
+        physicalBadgesUnavailable: true,
+        physicalBadgesUnavailableMessage: "Coffre vide",
+        physicalBadgesUnavailableUpdatedAt: updatedAt,
+      },
+      0
+    );
+    expect(pa.badgesNotice?.status).toBe("TEMPORARILY_UNAVAILABLE");
   });
 
   it("alerte trésor ignorée si pas de trésor configuré", () => {

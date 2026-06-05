@@ -11,9 +11,9 @@ import {
 
 export type {
   AdventureMyReviewSnapshot,
+  AdventureAvailabilityNotice,
   AdventurePhysicalBadgesAvailability,
   AdventurePlayAvailability,
-  AdventureTreasureNotice,
   PlayAvailabilitySourceRow,
 } from "./adventure-play-availability-core";
 

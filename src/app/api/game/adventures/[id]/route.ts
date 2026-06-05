@@ -42,6 +42,9 @@ export async function GET(request: NextRequest, context: Ctx) {
       treasureUnavailable: true,
       treasureUnavailableMessage: true,
       treasureUnavailableUpdatedAt: true,
+      physicalBadgesUnavailable: true,
+      physicalBadgesUnavailableMessage: true,
+      physicalBadgesUnavailableUpdatedAt: true,
       updatedAt: true,
       city: {
         select: {
@@ -124,6 +127,9 @@ export async function GET(request: NextRequest, context: Ctx) {
         treasureUnavailable: adventure.treasureUnavailable,
         treasureUnavailableMessage: adventure.treasureUnavailableMessage,
         treasureUnavailableUpdatedAt: adventure.treasureUnavailableUpdatedAt,
+        physicalBadgesUnavailable: adventure.physicalBadgesUnavailable,
+        physicalBadgesUnavailableMessage: adventure.physicalBadgesUnavailableMessage,
+        physicalBadgesUnavailableUpdatedAt: adventure.physicalBadgesUnavailableUpdatedAt,
       }),
     },
   ]);

@@ -67,8 +67,8 @@ export function AdventureAdminTreasureNoticePanel({
         <CardTitle className="text-base">Alerte joueurs — trésor indisponible</CardTitle>
         <CardDescription>
           État affiché sur l’app mobile (home, liste, fiche). À activer quand le trésor est absent ou
-          volé ; à désactiver quand il est remis en place. Les signalements joueurs restent dans la
-          modération avis — ils ne pilotent pas cette alerte.
+          volé ; à désactiver quand il est remis en place. **Activation automatique** lorsqu’un avis avec
+          « Rapport de vol du trésor » est passé en **Validé** dans la modération.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

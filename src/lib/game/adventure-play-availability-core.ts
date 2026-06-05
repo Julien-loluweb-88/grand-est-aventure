@@ -3,17 +3,18 @@ export type AdventurePhysicalBadgesAvailability = {
   availableCount: number;
 };
 
-export type AdventureTreasureNotice = {
+export type AdventureAvailabilityNotice = {
   status: "TEMPORARILY_UNAVAILABLE";
   message: string | null;
   updatedAt: string;
 };
 
-/** État courant côté joueur (badges dispo, trésor indisponible) — pas une liste de signalements. */
+/** État courant côté joueur (badges dispo, alertes trésor / badges) — pas une liste de signalements. */
 export type AdventurePlayAvailability = {
   hasTreasure: boolean;
   physicalBadges: AdventurePhysicalBadgesAvailability | null;
-  treasureNotice: AdventureTreasureNotice | null;
+  treasureNotice: AdventureAvailabilityNotice | null;
+  badgesNotice: AdventureAvailabilityNotice | null;
 };
 
 export type AdventureMyReviewSnapshot = {
@@ -28,7 +29,25 @@ export type PlayAvailabilitySourceRow = {
   treasureUnavailable: boolean;
   treasureUnavailableMessage: string | null;
   treasureUnavailableUpdatedAt: Date | null;
+  physicalBadgesUnavailable: boolean;
+  physicalBadgesUnavailableMessage: string | null;
+  physicalBadgesUnavailableUpdatedAt: Date | null;
 };
+
+function buildNotice(
+  active: boolean,
+  updatedAt: Date | null,
+  message: string | null
+): AdventureAvailabilityNotice | null {
+  if (!active || !updatedAt) {
+    return null;
+  }
+  return {
+    status: "TEMPORARILY_UNAVAILABLE",
+    message: message?.trim() || null,
+    updatedAt: updatedAt.toISOString(),
+  };
+}
 
 export function buildPlayAvailability(
   row: PlayAvailabilitySourceRow,
@@ -36,14 +55,20 @@ export function buildPlayAvailability(
 ): AdventurePlayAvailability {
   const tracked = row.physicalBadgeStockCount > 0;
 
-  let treasureNotice: AdventureTreasureNotice | null = null;
-  if (row.hasTreasure && row.treasureUnavailable && row.treasureUnavailableUpdatedAt) {
-    treasureNotice = {
-      status: "TEMPORARILY_UNAVAILABLE",
-      message: row.treasureUnavailableMessage?.trim() || null,
-      updatedAt: row.treasureUnavailableUpdatedAt.toISOString(),
-    };
-  }
+  const treasureNotice =
+    row.hasTreasure
+      ? buildNotice(
+          row.treasureUnavailable,
+          row.treasureUnavailableUpdatedAt,
+          row.treasureUnavailableMessage
+        )
+      : null;
+
+  const badgesNotice = buildNotice(
+    row.physicalBadgesUnavailable,
+    row.physicalBadgesUnavailableUpdatedAt,
+    row.physicalBadgesUnavailableMessage
+  );
 
   return {
     hasTreasure: row.hasTreasure,
@@ -51,6 +76,7 @@ export function buildPlayAvailability(
       ? { tracked: true, availableCount: availableBadgeCount }
       : null,
     treasureNotice,
+    badgesNotice,
   };
 }
 
@@ -60,6 +86,9 @@ export function playAvailabilitySourceFromCatalogRow(row: {
   treasureUnavailable: boolean;
   treasureUnavailableMessage: string | null;
   treasureUnavailableUpdatedAt: Date | null;
+  physicalBadgesUnavailable: boolean;
+  physicalBadgesUnavailableMessage: string | null;
+  physicalBadgesUnavailableUpdatedAt: Date | null;
 }): PlayAvailabilitySourceRow {
   return {
     hasTreasure: row.treasure != null,
@@ -67,5 +96,8 @@ export function playAvailabilitySourceFromCatalogRow(row: {
     treasureUnavailable: row.treasureUnavailable,
     treasureUnavailableMessage: row.treasureUnavailableMessage,
     treasureUnavailableUpdatedAt: row.treasureUnavailableUpdatedAt,
+    physicalBadgesUnavailable: row.physicalBadgesUnavailable,
+    physicalBadgesUnavailableMessage: row.physicalBadgesUnavailableMessage,
+    physicalBadgesUnavailableUpdatedAt: row.physicalBadgesUnavailableUpdatedAt,
   };
 }

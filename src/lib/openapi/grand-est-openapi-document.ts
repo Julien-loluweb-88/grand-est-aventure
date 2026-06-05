@@ -61,7 +61,7 @@ const ADVENTURE_PLAYER_STATE_SCHEMA = {
 
 const ADVENTURE_PLAY_AVAILABILITY_SCHEMA = {
   type: "object",
-  required: ["hasTreasure", "physicalBadges", "treasureNotice"],
+  required: ["hasTreasure", "physicalBadges", "treasureNotice", "badgesNotice"],
   properties: {
     hasTreasure: { type: "boolean" },
     physicalBadges: {
@@ -76,7 +76,17 @@ const ADVENTURE_PLAY_AVAILABILITY_SCHEMA = {
     treasureNotice: {
       type: ["object", "null"],
       description:
-        "Alerte admin : trésor temporairement indisponible sur le lieu. Null si jouable normalement.",
+        "Alerte trésor indisponible (admin ou activation auto à la validation d’un signalement `reportsStolenTreasure`).",
+      properties: {
+        status: { type: "string", enum: ["TEMPORARILY_UNAVAILABLE"] },
+        message: { type: ["string", "null"] },
+        updatedAt: { type: "string", format: "date-time" },
+      },
+    },
+    badgesNotice: {
+      type: ["object", "null"],
+      description:
+        "Alerte badges indisponibles (admin ou activation auto à la validation d’un signalement `reportsMissingBadge`).",
       properties: {
         status: { type: "string", enum: ["TEMPORARILY_UNAVAILABLE"] },
         message: { type: ["string", "null"] },

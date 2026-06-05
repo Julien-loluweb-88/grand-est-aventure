@@ -369,6 +369,18 @@ export async function superadminUpsertAdventureReview(input: {
         where: { id: result.id },
         data: { moderationStatus: input.moderationStatus },
       });
+      if (input.moderationStatus === "APPROVED") {
+        const { applyApprovedReviewAlerts } = await import(
+          "@/lib/game/apply-approved-review-alerts"
+        );
+        await applyApprovedReviewAlerts(tx, {
+          adventureId: input.adventureId,
+          reportsStolenTreasure: input.reportsStolenTreasure,
+          reportsMissingBadge: input.reportsMissingBadge,
+          reviewContent: input.content,
+          actorUserId: input.userId,
+        });
+      }
       return result;
     });
     return { ok: true, reviewId: id };

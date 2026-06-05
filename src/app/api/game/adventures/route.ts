@@ -92,6 +92,9 @@ export async function GET(request: NextRequest) {
       treasureUnavailable: true,
       treasureUnavailableMessage: true,
       treasureUnavailableUpdatedAt: true,
+      physicalBadgesUnavailable: true,
+      physicalBadgesUnavailableMessage: true,
+      physicalBadgesUnavailableUpdatedAt: true,
       city: {
         select: {
           id: true,

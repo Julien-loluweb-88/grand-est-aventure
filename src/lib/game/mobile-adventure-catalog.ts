@@ -31,6 +31,9 @@ const publicCatalogSelect = {
   treasureUnavailable: true,
   treasureUnavailableMessage: true,
   treasureUnavailableUpdatedAt: true,
+  physicalBadgesUnavailable: true,
+  physicalBadgesUnavailableMessage: true,
+  physicalBadgesUnavailableUpdatedAt: true,
   city: {
     select: {
       id: true,

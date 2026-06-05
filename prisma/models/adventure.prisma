@@ -35,6 +35,10 @@ model Adventure {
   /// Message court optionnel affiché aux joueurs (ex. date de réapprovisionnement).
   treasureUnavailableMessage    String?
   treasureUnavailableUpdatedAt  DateTime?
+  /// Alerte joueur : badges physiques indisponibles (validation signalement ou admin).
+  physicalBadgesUnavailable           Boolean   @default(false)
+  physicalBadgesUnavailableMessage    String?
+  physicalBadgesUnavailableUpdatedAt  DateTime?
   /// Aventure visible par tous les joueurs (`PUBLIC`) ou réservée démo (`DEMO`).
   audience         AdventureAudience      @default(PUBLIC)
   /// Règlement / mentions légales roue partenaires (texte brut ou markdown) ; affiché aux joueurs si renseigné.
