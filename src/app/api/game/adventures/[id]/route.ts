@@ -7,6 +7,10 @@ import {
   batchLoadMyReviewByUserAndAdventureIds,
   playAvailabilitySourceFromCatalogRow,
 } from "@/lib/game/adventure-play-availability";
+import {
+  loadPlayerCompletionBadgeForAdventure,
+  serializeAdventureCompletionBadge,
+} from "@/lib/badges/adventure-completion-badge-public";
 import { listDiscoveryPointsPublicByCityId } from "@/lib/game/discovery-points-public-query";
 import { prisma } from "@/lib/prisma";
 
@@ -82,6 +86,13 @@ export async function GET(request: NextRequest, context: Ctx) {
           imageUrl: true,
         },
       },
+      virtualBadge: {
+        select: {
+          id: true,
+          title: true,
+          imageUrl: true,
+        },
+      },
     },
   });
 
@@ -118,6 +129,13 @@ export async function GET(request: NextRequest, context: Ctx) {
       })
     : undefined;
 
+  const userAdventureRow = viewerUserId
+    ? await prisma.userAdventures.findFirst({
+        where: { userId: viewerUserId, adventureId: adventure.id },
+        select: { success: true, giftNumber: true, updatedAt: true },
+      })
+    : null;
+
   const playAvailabilityMap = await batchBuildPlayAvailabilityByAdventureIds([
     {
       adventureId: adventure.id,
@@ -140,6 +158,14 @@ export async function GET(request: NextRequest, context: Ctx) {
     : new Map();
   const myReview = viewerUserId ? myReviewMap.get(adventure.id) : undefined;
 
+  const completionBadge = serializeAdventureCompletionBadge(adventure.virtualBadge);
+  const playerCompletionBadge = viewerUserId
+    ? await loadPlayerCompletionBadgeForAdventure(
+        viewerUserId,
+        adventure.virtualBadge?.id
+      )
+    : null;
+
   return NextResponse.json({
     id: adventure.id,
     name: adventure.name,
@@ -154,11 +180,24 @@ export async function GET(request: NextRequest, context: Ctx) {
     playDurationSampleCount: adventure.playDurationSampleCount,
     physicalBadgeStockCount: adventure.physicalBadgeStockCount,
     playAvailability,
+    completionBadge,
+    ...(playerCompletionBadge ? { playerCompletionBadge } : {}),
     enigmas: adventure.enigmas,
     treasure: adventure.treasure,
     discoveryPoints,
     updatedAt: adventure.updatedAt.toISOString(),
     ...(playerState ? { playerState } : {}),
+    ...(viewerUserId
+      ? {
+          userAdventure: userAdventureRow
+            ? {
+                success: userAdventureRow.success,
+                giftNumber: userAdventureRow.giftNumber,
+                updatedAt: userAdventureRow.updatedAt.toISOString(),
+              }
+            : null,
+        }
+      : {}),
     ...(myReview ? { myReview } : {}),
   });
 }

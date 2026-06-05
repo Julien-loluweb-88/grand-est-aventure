@@ -177,6 +177,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 ### Badges joueur
 
 - [ ] Après victoire : lire **`awardedBadges`** (+ `giftNumber`) dans la réponse `validate-treasure` / `validate-finish` — voir `docs/expo-fin-parcours-badges-avis.md`.
+- [ ] **Rejeu** : si pas de réponse finish (`isReplay`), fallback via `GET /api/game/adventures/{id}` → **`playerCompletionBadge`** puis **`completionBadge`**.
 - [ ] Afficher ces badges sur l’écran victoire **avant** `POST /api/game/adventure-review`.
 - [ ] `GET /api/user/badges` : rafraîchir la collection (optionnel, pas requis pour l’écran avis).
 

@@ -273,6 +273,32 @@ export function buildGrandEstOpenApiDocument() {
             adventureId: { type: ["string", "null"] },
           },
         },
+        AdventureCompletionBadgePublic: {
+          type: "object",
+          required: ["badgeDefinitionId", "title", "imageUrl"],
+          description:
+            "Badge virtuel de complétion configuré pour l’aventure (catalogue, fallback UI rejeu).",
+          properties: {
+            badgeDefinitionId: { type: "string" },
+            title: { type: "string" },
+            imageUrl: { type: ["string", "null"] },
+          },
+        },
+        PlayerCompletionBadgePublic: {
+          allOf: [
+            { $ref: "#/components/schemas/AdventureCompletionBadgePublic" },
+            {
+              type: "object",
+              required: ["userBadgeId", "earnedAt"],
+              description:
+                "Badge complétion déjà acquis par le joueur connecté (rejeu, écran victoire sans `awardedBadges`).",
+              properties: {
+                userBadgeId: { type: "string" },
+                earnedAt: { type: "string", format: "date-time" },
+              },
+            },
+          ],
+        },
         GameFinishSuccessOk: {
           allOf: [
             { $ref: "#/components/schemas/ValidateTreasureOk" },
@@ -1024,6 +1050,9 @@ export function buildGrandEstOpenApiDocument() {
             "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`). " +
             "**Durées** : `estimatedDurationSeconds` (heuristique), `averagePlayDurationSeconds` / `playDurationSampleCount` (stats réelles via cron). " +
             "**`playerState`** (session + progression agrégée) si joueur authentifié avec accès à l’aventure ; absent si anonyme. " +
+            "**`userAdventure`** (session) : fin de partie serveur (`success`, `giftNumber`) — **`null` après reset admin** ; source de vérité pour `isReplay` côté app (ne pas se fier au cache local). " +
+            "**`completionBadge`** : définition du badge virtuel de complétion (titre, image) — toujours présent si configuré. " +
+            "**`playerCompletionBadge`** (session) : badge déjà gagné par le joueur pour cette aventure ; utile en **rejeu** quand POST finish ne renvoie pas `awardedBadges`. " +
             "Pour une aventure **`DEMO`**, session requise + droit d’accès ; sinon **404**." +
             ADVENTURE_AUDIENCE_DEMO,
           parameters: [
@@ -1061,6 +1090,16 @@ export function buildGrandEstOpenApiDocument() {
                       physicalBadgeStockCount: { type: "integer" },
                       playAvailability: ADVENTURE_PLAY_AVAILABILITY_SCHEMA,
                       myReview: ADVENTURE_MY_REVIEW_SCHEMA,
+                      completionBadge: {
+                        oneOf: [
+                          { $ref: "#/components/schemas/AdventureCompletionBadgePublic" },
+                          { type: "null" },
+                        ],
+                      },
+                      playerCompletionBadge: {
+                        $ref: "#/components/schemas/PlayerCompletionBadgePublic",
+                        description: "Présent si session et badge déjà acquis.",
+                      },
                       enigmas: { type: "array", items: { type: "object", additionalProperties: true } },
                       treasure: { type: ["object", "null"], additionalProperties: true },
                       discoveryPoints: {
@@ -1096,6 +1135,16 @@ export function buildGrandEstOpenApiDocument() {
                       },
                       updatedAt: { type: "string", format: "date-time" },
                       playerState: ADVENTURE_PLAYER_STATE_SCHEMA,
+                      userAdventure: {
+                        type: ["object", "null"],
+                        description:
+                          "Fin de partie serveur (session). `null` si jamais terminée ou après reset admin.",
+                        properties: {
+                          success: { type: "boolean" },
+                          giftNumber: { type: "integer" },
+                          updatedAt: { type: "string", format: "date-time" },
+                        },
+                      },
                     },
                   },
                 },
