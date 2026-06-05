@@ -234,13 +234,59 @@ export function buildGrandEstOpenApiDocument() {
               type: "array",
               items: { type: "string" },
               description:
-                "Présent après **code coffre** (ou rattrapage legacy) : ids `UserBadge` attribués.",
+                "Ids `UserBadge` nouvellement créés à cette finalisation (doublon avec `awardedBadges[].userBadgeId`).",
+            },
+            awardedBadges: {
+              type: "array",
+              description:
+                "Badges virtuels gagnés **cette finalisation**, prêts à afficher (titre, image, kind).",
+              items: { $ref: "#/components/schemas/AwardedBadgeDetail" },
+            },
+            giftNumber: {
+              type: "integer",
+              minimum: 0,
+              description:
+                "Numéro badge physique attribué (`UserAdventures.giftNumber`) — 0 si non applicable.",
             },
             message: {
               type: "string",
               description: "Présent quand l’aventure est finalisée sur cette requête.",
             },
           },
+        },
+        AwardedBadgeDetail: {
+          type: "object",
+          required: [
+            "userBadgeId",
+            "badgeDefinitionId",
+            "title",
+            "imageUrl",
+            "kind",
+            "adventureId",
+          ],
+          properties: {
+            userBadgeId: { type: "string" },
+            badgeDefinitionId: { type: "string" },
+            title: { type: "string" },
+            imageUrl: { type: ["string", "null"] },
+            kind: { type: "string" },
+            adventureId: { type: ["string", "null"] },
+          },
+        },
+        GameFinishSuccessOk: {
+          allOf: [
+            { $ref: "#/components/schemas/ValidateTreasureOk" },
+            {
+              type: "object",
+              properties: {
+                stepKey: {
+                  type: "string",
+                  description: "`treasure` ou `finish` (sans trésor).",
+                },
+                alreadyFinished: { type: "boolean" },
+              },
+            },
+          ],
         },
         ProgressPayload: {
           type: "object",
@@ -1455,22 +1501,10 @@ export function buildGrandEstOpenApiDocument() {
           responses: {
             "200": {
               description:
-                "Succès : `stepKey` : `finish`, `awardedUserBadgeIds` si première finalisation, `alreadyFinished` si déjà terminé.",
+                "Succès : finalisation avec `awardedBadges`, `giftNumber`, `awardedUserBadgeIds`. `alreadyFinished` si déjà terminé.",
               content: {
                 "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      ok: { type: "boolean" },
-                      stepKey: { type: "string" },
-                      alreadyFinished: { type: "boolean" },
-                      awardedUserBadgeIds: {
-                        type: "array",
-                        items: { type: "string" },
-                      },
-                      message: { type: "string" },
-                    },
-                  },
+                  schema: { $ref: "#/components/schemas/GameFinishSuccessOk" },
                 },
               },
             },
@@ -1536,7 +1570,7 @@ export function buildGrandEstOpenApiDocument() {
           responses: {
             "200": {
               description:
-                "`treasure` + finalisation (`awardedUserBadgeIds`, `message` si première fois).",
+                "`treasure` + finalisation (`awardedBadges`, `giftNumber`, `awardedUserBadgeIds`, `message` si première fois).",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ValidateTreasureOk" } } },
             },
             "400": {

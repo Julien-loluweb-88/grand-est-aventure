@@ -5,6 +5,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 **Références** :
 
 - [`docs/expo-better-auth.md`](expo-better-auth.md) — session, cookies, `baseURL`, deep links.  
+- [`docs/expo-fin-parcours-badges-avis.md`](expo-fin-parcours-badges-avis.md) — victoire, `awardedBadges`, écran avis (prompt Expo).
 - [`docs/expo-tresor-play-availability.md`](expo-tresor-play-availability.md) — trésor, badges, `playAvailability`, prompt Expo.  
 - [`docs/flux-api-et-jeu.md`](flux-api-et-jeu.md) — schéma global des routes et logique métier.  
 - [`README.md`](../README.md) — tableaux d’API, checklist courte, parcours joueur.  
@@ -175,7 +176,9 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### Badges joueur
 
-- [ ] `GET /api/user/badges` après victoire (ou retour collection) : lire les clés `kind` (`ADVENTURE_COMPLETE`, …) et leurs tableaux, gris si `earned === false`, couleur si acquis.
+- [ ] Après victoire : lire **`awardedBadges`** (+ `giftNumber`) dans la réponse `validate-treasure` / `validate-finish` — voir `docs/expo-fin-parcours-badges-avis.md`.
+- [ ] Afficher ces badges sur l’écran victoire **avant** `POST /api/game/adventure-review`.
+- [ ] `GET /api/user/badges` : rafraîchir la collection (optionnel, pas requis pour l’écran avis).
 
 ### Cases récap
 

@@ -7,6 +7,7 @@ import {
   userCanAccessAdventureForPlay,
 } from "@/lib/adventure-public-access";
 import { processGameFinish } from "@/lib/badges/award-on-finish";
+import { buildGameFinishSuccessPayload } from "@/lib/badges/game-finish-response";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import {
@@ -229,17 +230,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(result.body, { status: result.status });
     }
 
-    return NextResponse.json({
-      ok: true,
+    if (result.alreadyValidated) {
+      return NextResponse.json({
+        ok: true,
+        stepKey: result.stepKey,
+        alreadyValidated: true,
+      });
+    }
+
+    const payload = await buildGameFinishSuccessPayload({
       stepKey: result.stepKey,
-      ...(result.alreadyValidated ? { alreadyValidated: true } : {}),
-      ...("awardedUserBadgeIds" in result && result.awardedUserBadgeIds
-        ? {
-            awardedUserBadgeIds: result.awardedUserBadgeIds,
-            message: result.message,
-          }
-        : {}),
+      awardedUserBadgeIds: result.awardedUserBadgeIds,
+      userId,
+      adventureId,
+      message: result.message,
     });
+
+    return NextResponse.json(payload);
   } catch (e) {
     if (e instanceof GameFinishProgressError) {
       return NextResponse.json(
