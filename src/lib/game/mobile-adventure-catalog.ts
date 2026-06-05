@@ -4,6 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
 import type { AdventurePlayerState } from "@/lib/game/adventure-player-state";
 import type { AdventureReviewAggregate } from "@/lib/game/adventure-review-aggregates";
+import type {
+  AdventureMyReviewSnapshot,
+  AdventurePlayAvailability,
+} from "@/lib/game/adventure-play-availability-core";
+import {
+  batchBuildPlayAvailabilityByAdventureIds,
+  playAvailabilitySourceFromCatalogRow,
+} from "@/lib/game/adventure-play-availability";
 import { haversineKm } from "@/lib/game/haversine";
 import { sortByDistanceFromUser } from "@/lib/game/sort-catalog-by-distance";
 
@@ -19,6 +27,10 @@ const publicCatalogSelect = {
   playDurationSampleCount: true,
   coverImageUrl: true,
   updatedAt: true,
+  physicalBadgeStockCount: true,
+  treasureUnavailable: true,
+  treasureUnavailableMessage: true,
+  treasureUnavailableUpdatedAt: true,
   city: {
     select: {
       id: true,
@@ -53,6 +65,7 @@ export type MobileAdventureListItem = {
   distanceFromUserKm: number | null;
   enigmaCount: number;
   hasTreasure: boolean;
+  playAvailability: AdventurePlayAvailability;
   estimatedDurationSeconds: number | null;
   averagePlayDurationSeconds: number | null;
   playDurationSampleCount: number;
@@ -60,6 +73,7 @@ export type MobileAdventureListItem = {
   reviewCount: number;
   updatedAt: string;
   playerState?: AdventurePlayerState;
+  myReview?: AdventureMyReviewSnapshot;
 };
 
 export function catalogRowToPlayerStateBatchInput(
@@ -80,7 +94,9 @@ export function toMobileAdventureListItem(
   a: PublicCatalogAdventureRow,
   distanceFromUserKm: number | null,
   reviewStats: AdventureReviewAggregate = { averageRating: null, reviewCount: 0 },
-  playerState?: AdventurePlayerState
+  playAvailability: AdventurePlayAvailability,
+  playerState?: AdventurePlayerState,
+  myReview?: AdventureMyReviewSnapshot
 ): MobileAdventureListItem {
   return {
     id: a.id,
@@ -93,6 +109,7 @@ export function toMobileAdventureListItem(
     distanceFromUserKm,
     enigmaCount: a.enigmas.length,
     hasTreasure: Boolean(a.treasure),
+    playAvailability,
     estimatedDurationSeconds: a.estimatedPlayDurationSeconds,
     averagePlayDurationSeconds: a.averagePlayDurationSeconds,
     playDurationSampleCount: a.playDurationSampleCount,
@@ -100,7 +117,19 @@ export function toMobileAdventureListItem(
     reviewCount: reviewStats.reviewCount,
     updatedAt: a.updatedAt.toISOString(),
     ...(playerState ? { playerState } : {}),
+    ...(myReview ? { myReview } : {}),
   };
+}
+
+export async function buildPlayAvailabilityMapForCatalogRows(
+  rows: PublicCatalogAdventureRow[]
+): Promise<Map<string, AdventurePlayAvailability>> {
+  return batchBuildPlayAvailabilityByAdventureIds(
+    rows.map((row) => ({
+      adventureId: row.id,
+      source: playAvailabilitySourceFromCatalogRow(row),
+    }))
+  );
 }
 
 export type CatalogRowWithUserDistance = {

@@ -8,10 +8,12 @@ import {
 } from "@/lib/game/adventure-review-aggregates";
 import {
   attachDistanceFromUser,
+  buildPlayAvailabilityMapForCatalogRows,
   catalogRowToPlayerStateBatchInput,
   sortCatalogRowsByDistanceFromUser,
   toMobileAdventureListItem,
 } from "@/lib/game/mobile-adventure-catalog";
+import { batchLoadMyReviewByUserAndAdventureIds } from "@/lib/game/adventure-play-availability";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_LIMIT = 20;
@@ -86,6 +88,10 @@ export async function GET(request: NextRequest) {
       playDurationSampleCount: true,
       coverImageUrl: true,
       updatedAt: true,
+      physicalBadgeStockCount: true,
+      treasureUnavailable: true,
+      treasureUnavailableMessage: true,
+      treasureUnavailableUpdatedAt: true,
       city: {
         select: {
           id: true,
@@ -111,13 +117,18 @@ export async function GET(request: NextRequest) {
 
   const userId = await getOptionalUserIdFromApiRequest(request);
 
-  const [reviewAggregates, playerStateByAdventureId] = await Promise.all([
+  const [reviewAggregates, playerStateByAdventureId, playAvailabilityById, myReviewById] =
+    await Promise.all([
     loadApprovedReviewAggregatesByAdventureIds(paginatedIds),
     userId
       ? batchLoadAdventurePlayerStateByUser(
           userId,
           paginated.map(({ row }) => catalogRowToPlayerStateBatchInput(row))
         )
+      : Promise.resolve(new Map()),
+    buildPlayAvailabilityMapForCatalogRows(paginated.map(({ row }) => row)),
+    userId
+      ? batchLoadMyReviewByUserAndAdventureIds(userId, paginatedIds)
       : Promise.resolve(new Map()),
   ]);
 
@@ -130,7 +141,9 @@ export async function GET(request: NextRequest) {
         row,
         distanceFromUserKm,
         reviewAggregateForAdventure(reviewAggregates, row.id),
-        userId ? playerStateByAdventureId.get(row.id) : undefined
+        playAvailabilityById.get(row.id)!,
+        userId ? playerStateByAdventureId.get(row.id) : undefined,
+        userId ? myReviewById.get(row.id) : undefined
       )
     ),
   });

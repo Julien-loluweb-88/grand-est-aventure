@@ -30,6 +30,11 @@ model Adventure {
   coverImageUrl    String?
   /// Nombre d’exemplaires physiques numérotés (stock dans `AdventureBadgeInstance`). 0 = pas de suivi stock.
   physicalBadgeStockCount Int @default(0)
+  /// Alerte joueur : trésor absent / volé / indisponible sur le lieu (réactivée par l’admin).
+  treasureUnavailable           Boolean   @default(false)
+  /// Message court optionnel affiché aux joueurs (ex. date de réapprovisionnement).
+  treasureUnavailableMessage    String?
+  treasureUnavailableUpdatedAt  DateTime?
   /// Aventure visible par tous les joueurs (`PUBLIC`) ou réservée démo (`DEMO`).
   audience         AdventureAudience      @default(PUBLIC)
   /// Règlement / mentions légales roue partenaires (texte brut ou markdown) ; affiché aux joueurs si renseigné.

@@ -59,6 +59,46 @@ const ADVENTURE_PLAYER_STATE_SCHEMA = {
   },
 } as const;
 
+const ADVENTURE_PLAY_AVAILABILITY_SCHEMA = {
+  type: "object",
+  required: ["hasTreasure", "physicalBadges", "treasureNotice"],
+  properties: {
+    hasTreasure: { type: "boolean" },
+    physicalBadges: {
+      type: ["object", "null"],
+      description:
+        "Présent si `physicalBadgeStockCount > 0` sur l’aventure. `availableCount` = exemplaires AVAILABLE (mis à jour au réassort admin).",
+      properties: {
+        tracked: { type: "boolean", const: true },
+        availableCount: { type: "integer", minimum: 0 },
+      },
+    },
+    treasureNotice: {
+      type: ["object", "null"],
+      description:
+        "Alerte admin : trésor temporairement indisponible sur le lieu. Null si jouable normalement.",
+      properties: {
+        status: { type: "string", enum: ["TEMPORARILY_UNAVAILABLE"] },
+        message: { type: ["string", "null"] },
+        updatedAt: { type: "string", format: "date-time" },
+      },
+    },
+  },
+} as const;
+
+const ADVENTURE_MY_REVIEW_SCHEMA = {
+  type: "object",
+  required: ["reportsStolenTreasure", "reportsMissingBadge", "moderationStatus"],
+  properties: {
+    reportsStolenTreasure: { type: "boolean" },
+    reportsMissingBadge: { type: "boolean" },
+    moderationStatus: {
+      type: "string",
+      enum: ["DRAFT", "PENDING", "APPROVED", "REJECTED"],
+    },
+  },
+} as const;
+
 /** Si API_DOCS_ENABLED vaut la chaîne « false », désactive /api/openapi et la page docs. */
 export function apiDocsDisabled(): boolean {
   return process.env.API_DOCS_ENABLED === "false";
@@ -761,6 +801,8 @@ export function buildGrandEstOpenApiDocument() {
                             distanceFromUserKm: { type: ["number", "null"] },
                             enigmaCount: { type: "integer" },
                             hasTreasure: { type: "boolean" },
+                            playAvailability: ADVENTURE_PLAY_AVAILABILITY_SCHEMA,
+                            myReview: ADVENTURE_MY_REVIEW_SCHEMA,
                             estimatedDurationSeconds: {
                               type: ["integer", "null"],
                               description:
@@ -805,7 +847,8 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Accueil mobile agrégé (public)",
           description:
             "Route sans authentification obligatoire : **toutes** les aventures catalogue pour la carte (triées du **plus proche au plus loin** si GPS fourni), " +
-            "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés. " +
+            "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés (hors signalements seuls). " +
+            "Chaque aventure inclut **`playAvailability`** (badges physiques dispo, alerte trésor admin) et **`myReview`** si session. " +
             "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
             "**`communityStats`** : totaux plateforme si anonyme (`scope: global`, cache TTL ~5 min) ; " +
             "compteurs du joueur si session / `Authorization: Bearer` valide (`scope: user`). Session invalide → `global`, pas de **401**. " +
@@ -960,6 +1003,8 @@ export function buildGrandEstOpenApiDocument() {
                         description: "Nombre de parties terminées avec succès dans le calcul moyenne.",
                       },
                       physicalBadgeStockCount: { type: "integer" },
+                      playAvailability: ADVENTURE_PLAY_AVAILABILITY_SCHEMA,
+                      myReview: ADVENTURE_MY_REVIEW_SCHEMA,
                       enigmas: { type: "array", items: { type: "object", additionalProperties: true } },
                       treasure: { type: ["object", "null"], additionalProperties: true },
                       discoveryPoints: {

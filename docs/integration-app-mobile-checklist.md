@@ -5,6 +5,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 **Références** :
 
 - [`docs/expo-better-auth.md`](expo-better-auth.md) — session, cookies, `baseURL`, deep links.  
+- [`docs/expo-tresor-play-availability.md`](expo-tresor-play-availability.md) — trésor, badges, `playAvailability`, prompt Expo.  
 - [`docs/flux-api-et-jeu.md`](flux-api-et-jeu.md) — schéma global des routes et logique métier.  
 - [`README.md`](../README.md) — tableaux d’API, checklist courte, parcours joueur.  
 - OpenAPI : `GET /api/openapi` (ou Swagger UI admin si activé).
@@ -103,6 +104,8 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 - [ ] `GET /api/game/progress?adventureId=` pour synchro fine en jeu (étapes, `validatedStepKeys`) ; la fiche peut s’appuyer sur **`playerState`** du détail / catalogue pour l’UX pré-« Commencer ».  
 - [ ] Mapper les `stepKey` renvoyés vers votre UI (énigmes cochées, trésor coffre, etc. — voir OpenAPI).
+- [ ] Lire **`playAvailability`** sur home / liste / détail : alerte trésor (`treasureNotice`), badges physiques (`physicalBadges.availableCount`).
+- [ ] Si session : **`myReview`** pour afficher l’état du signalement du joueur (`PENDING`, etc.).
 
 ### Démarrage chrono / session jeu
 

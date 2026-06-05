@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUserRoleForAccess, userCanAccessAdventureForPlay } from "@/lib/adventure-public-access";
 import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 import { loadAdventurePlayerStateForUser } from "@/lib/game/adventure-player-state";
+import {
+  batchBuildPlayAvailabilityByAdventureIds,
+  batchLoadMyReviewByUserAndAdventureIds,
+  playAvailabilitySourceFromCatalogRow,
+} from "@/lib/game/adventure-play-availability";
 import { listDiscoveryPointsPublicByCityId } from "@/lib/game/discovery-points-public-query";
 import { prisma } from "@/lib/prisma";
 
@@ -34,6 +39,9 @@ export async function GET(request: NextRequest, context: Ctx) {
       playDurationSampleCount: true,
       coverImageUrl: true,
       physicalBadgeStockCount: true,
+      treasureUnavailable: true,
+      treasureUnavailableMessage: true,
+      treasureUnavailableUpdatedAt: true,
       updatedAt: true,
       city: {
         select: {
@@ -107,6 +115,25 @@ export async function GET(request: NextRequest, context: Ctx) {
       })
     : undefined;
 
+  const playAvailabilityMap = await batchBuildPlayAvailabilityByAdventureIds([
+    {
+      adventureId: adventure.id,
+      source: playAvailabilitySourceFromCatalogRow({
+        treasure: adventure.treasure,
+        physicalBadgeStockCount: adventure.physicalBadgeStockCount,
+        treasureUnavailable: adventure.treasureUnavailable,
+        treasureUnavailableMessage: adventure.treasureUnavailableMessage,
+        treasureUnavailableUpdatedAt: adventure.treasureUnavailableUpdatedAt,
+      }),
+    },
+  ]);
+  const playAvailability = playAvailabilityMap.get(adventure.id)!;
+
+  const myReviewMap = viewerUserId
+    ? await batchLoadMyReviewByUserAndAdventureIds(viewerUserId, [adventure.id])
+    : new Map();
+  const myReview = viewerUserId ? myReviewMap.get(adventure.id) : undefined;
+
   return NextResponse.json({
     id: adventure.id,
     name: adventure.name,
@@ -120,10 +147,12 @@ export async function GET(request: NextRequest, context: Ctx) {
     averagePlayDurationSeconds: adventure.averagePlayDurationSeconds,
     playDurationSampleCount: adventure.playDurationSampleCount,
     physicalBadgeStockCount: adventure.physicalBadgeStockCount,
+    playAvailability,
     enigmas: adventure.enigmas,
     treasure: adventure.treasure,
     discoveryPoints,
     updatedAt: adventure.updatedAt.toISOString(),
     ...(playerState ? { playerState } : {}),
+    ...(myReview ? { myReview } : {}),
   });
 }

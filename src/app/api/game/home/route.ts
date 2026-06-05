@@ -9,12 +9,14 @@ import { getHomeCommunityStats } from "@/lib/game/community-stats";
 import { loadApprovedReviewAggregatesByAdventureIds, reviewAggregateForAdventure } from "@/lib/game/adventure-review-aggregates";
 import {
   attachDistanceFromUser,
+  buildPlayAvailabilityMapForCatalogRows,
   catalogRowToPlayerStateBatchInput,
   fetchPublicCatalogAdventures,
   selectFeaturedAdventures,
   sortCatalogRowsByDistanceFromUser,
   toMobileAdventureListItem,
 } from "@/lib/game/mobile-adventure-catalog";
+import { batchLoadMyReviewByUserAndAdventureIds } from "@/lib/game/adventure-play-availability";
 import { listRecentPublicAdventureReviews } from "@/lib/game/public-adventure-reviews";
 
 const WINDOW_MS = 60_000;
@@ -108,12 +110,21 @@ export async function GET(request: NextRequest) {
       )
     : new Map();
 
+  const [playAvailabilityById, myReviewById] = await Promise.all([
+    buildPlayAvailabilityMapForCatalogRows(catalogRows),
+    userId
+      ? batchLoadMyReviewByUserAndAdventureIds(userId, adventureIds)
+      : Promise.resolve(new Map()),
+  ]);
+
   const adventures = withDistance.map(({ row, distanceFromUserKm }) =>
     toMobileAdventureListItem(
       row,
       distanceFromUserKm,
       reviewAggregateForAdventure(reviewAggregates, row.id),
-      userId ? playerStateByAdventureId.get(row.id) : undefined
+      playAvailabilityById.get(row.id)!,
+      userId ? playerStateByAdventureId.get(row.id) : undefined,
+      userId ? myReviewById.get(row.id) : undefined
     )
   );
   const featuredAdventures = selectFeaturedAdventures(adventures, featuredLimit);
