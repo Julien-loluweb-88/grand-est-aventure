@@ -27,6 +27,7 @@ export const SWAGGER_PATH_ORDER: readonly string[] = [
   "/api/cron/expire-partner-claims",
   "/api/cron/recompute-adventure-durations",
   "/api/user/avatar",
+  "/api/user/preferences",
   "/api/user/badges",
   "/api/user/advertisement-dismissals",
   "/api/admin-game/permission-context",

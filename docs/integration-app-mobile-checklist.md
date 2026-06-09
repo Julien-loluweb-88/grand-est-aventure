@@ -8,6 +8,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 - [`docs/expo-fin-parcours-badges-avis.md`](expo-fin-parcours-badges-avis.md) — victoire, `awardedBadges`, écran avis (prompt Expo).
 - [`docs/expo-tresor-play-availability.md`](expo-tresor-play-availability.md) — trésor, badges, `playAvailability`, prompt Expo.  
 - [`docs/flux-api-et-jeu.md`](flux-api-et-jeu.md) — schéma global des routes et logique métier.  
+- [`docs/expo-publicites-offres-partenaires.md`](expo-publicites-offres-partenaires.md) — encarts, `game/home`, dismissals, offres pub.  
 - [`README.md`](../README.md) — tableaux d’API, checklist courte, parcours joueur.  
 - OpenAPI : `GET /api/openapi` (ou Swagger UI admin si activé).
 
@@ -69,14 +70,28 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 - [ ] `GET /api/user/avatar` — préférence serveur (`selectedAvatarId` peut être `null` au premier usage).  
 - [ ] `PATCH /api/user/avatar` — corps `{ "selectedAvatarId": "…" }` ou `{ "selectedAvatarId": null }` ; gérer **404** (avatar inactif / inconnu) et **429**.
 
+### Préférences app (thème, carte, sons)
+
+- [ ] `GET /api/user/preferences` — objet `preferences` complet (défauts serveur si jamais personnalisé).  
+- [ ] `PATCH /api/user/preferences` — corps **partiel** (ex. `{ "theme": "dark", "accentHue": 60 }`) ; `accentHue` entier **0–360** (roue app : **0 = jaune**, **60 = rouge**) ; gérer **400** et **429**.  
+- [ ] Slider / roue teinte côté app : convertir `accentHue` en couleur d’UI selon votre échelle (pas le HSL CSS standard).  
+- [ ] Cache local **AsyncStorage** : appliquer le thème tout de suite, synchroniser en arrière-plan au login / à chaque changement (debounce ~300–500 ms).
+
 ---
 
 ## Phase 2 — Catalogue & fiche aventure
 
+### Écran d’accueil (agrégat)
+
+- [ ] `GET /api/game/home` — **auth optionnelle** (pas de 401) : `communityStats`, **`advertisements[]`** (placement `home`), **`locationContext`**, catalogue `adventures`, `featuredAdventures`, `recentReviews`.  
+- [ ] Query **`latitude` + `longitude`** ensemble si GPS (distance, carrousel, **ciblage pub** par ville inférée — pas de `cityId` obligatoire).  
+- [ ] Query optionnelles : `reviewsLimit` (défaut 25, max 50), `featuredLimit` (défaut 3).  
+- [ ] Avec session : stats perso (`communityStats.scope: user`) et exclusion des pubs masquées.
+
 ### Villes & liste des parcours
 
-- [ ] `GET /api/game/cities` — affichage liste / filtres ; conserver **`cityId`** pour la suite.  
-- [ ] `GET /api/game/adventures` — liste **PUBLIC** uniquement (pas les démos).  
+- [ ] `GET /api/game/cities` — affichage liste / filtres ; conserver **`cityId`** pour la suite (carte ville, `discovery-points`, override pub).  
+- [ ] `GET /api/game/adventures` — liste **PUBLIC** uniquement (pas les démos) ; alternative ou complément de `home.adventures`.  
 - [ ] Si joueur connecté (cookies ou `Authorization: Bearer`) : lire **`playerState`** sur chaque entrée (session chrono, progression, `playStatus`, compteurs d’étapes) — pas besoin d’appeler `progress` par carte.  
 - [ ] Gérer pagination / recherche si vous l’ajoutez côté API plus tard (actuellement selon réponse serveur).
 
@@ -128,18 +143,23 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 - [ ] Si `multiSelect === false` : corps **`submission`** (string).  
 - [ ] Si `multiSelect === true` : corps **`submissions`** (string[]).  
 - [ ] Gérer **400** : `WRONG_ANSWER`, `ORDER`, `SUBMISSIONS_ARRAY_REQUIRED`, etc. (libellés utilisateur + pas de fuite de la bonne réponse).  
-- [ ] Afficher `answerMessage` / retours UX selon payload de succès (voir OpenAPI).
+- [ ] Après succès `validate-enigma` : afficher **`answerMessage`** de l’énigme depuis **`GET adventures/{id}`** (la réponse POST ne contient que `ok`, `stepKey`, éventuellement `alreadyValidated` — pas de `answerMessage`).
 
 ### Fin **sans** trésor
 
 - [ ] Quand `progress` indique toutes les énigmes validées **et** `treasure` absent sur la fiche : `POST /api/game/validate-finish`.  
+- [ ] Gérer **200** idempotent avec `alreadyFinished: true` si la partie est déjà en succès.  
 - [ ] Succès → mise à jour locale « victoire », enchaînement **Phase 5**.
 
 ### Fin **avec** trésor
 
-- [ ] `POST /api/game/validate-treasure` avec le code coffre + `giftNumber` si applicable.  
-- [ ] Gérer erreurs code incorrect / énigmes incomplètes.  
-- [ ] Succès → finalisation badges / `UserAdventures` côté serveur → **Phase 5**.
+- [ ] Le code **carte** (`mapRevealCode`) n’est **jamais** renvoyé par l’API : le joueur le déduit du parcours (souvent via `answerMessage` de la dernière énigme, configuré côté admin).  
+- [ ] Phase **carte** : `POST /api/game/validate-treasure` avec `code` (+ `phase: "map"` optionnel) → `stepKey: treasure:map`.  
+- [ ] **UI carte** : masquer le marqueur trésor tant que `progress` n’inclut pas `treasure:map` (les coords sont dans la fiche mais la révélation est côté app).  
+- [ ] Phase **coffre** : second appel avec code physique + `giftNumber` si applicable (`phase: "chest"` ou phase omise après carte validée).  
+- [ ] Gérer erreurs carte / coffre / ordre (`MAP_REVEAL_REQUIRED`, `MAP_ALREADY_REVEALED`, `WRONG_CODE`, `ENIGMAS_INCOMPLETE`, etc.).  
+- [ ] Succès coffre → `processGameFinish` (badges, `UserAdventures`) → **Phase 5**.  
+- [ ] **Reprise legacy** : anciennes parties avec seule l’étape `treasure` (sans `treasure:map`) — le serveur peut finaliser au prochain appel coffre (voir OpenAPI).
 
 ### Cases récap
 
@@ -189,9 +209,12 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ## Phase 6 — Publicités & offres « encart » (hors roue)
 
+Voir aussi [`docs/expo-publicites-offres-partenaires.md`](expo-publicites-offres-partenaires.md).
+
 ### Affichage
 
-- [ ] `GET /api/advertisements` avec **`placement`** obligatoire (valeurs alignées admin : `home`, `library`, …).  
+- [ ] **Accueil** : préférer les pubs déjà dans **`GET /api/game/home`** (`advertisements[]` + `locationContext`) plutôt qu’un second appel `placement=home`.  
+- [ ] **Bibliothèque** (ou autres écrans) : `GET /api/advertisements` avec **`placement`** obligatoire (`library`, … — ne pas réutiliser les pubs de `home`).  
 - [ ] Envoyer **`cityId`** quand le joueur a une ville (requis si la pub cible des villes).  
 - [ ] Envoyer **`latitude` + `longitude`** si GPS dispo (requis si pub avec disque).  
 - [ ] **Avec session** pour exclure les pubs masquées par l’utilisateur.
@@ -220,12 +243,13 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 - [ ] Sur fiche parcours : réutiliser **`discoveryPoints`** de `adventures/{id}`.  
 - [ ] Vue « toute la ville » : `GET /api/game/discovery-points?cityId=`.  
-- [ ] Règle d’affichage : POI avec `adventureId` non null réservés aux joueurs ayant une **partie** sur cette aventure (masquer ou griser sinon).
+- [ ] **Affichage liste** : `adventureId === null` → POI ville (tous) ; POI liés à une aventure **PUBLIC** → listés pour tous ; POI liés à une aventure **DEMO** → listés seulement si le compte a le **droit de jouer** la démo (pas de filtre « partie démarrée » côté API liste).  
+- [ ] **UX claim** (optionnel) : pour un POI avec `adventureId`, griser le bouton « réclamer » tant qu’il n’existe pas de ligne **`UserAdventures`** (créée à la **finalisation** `validate-finish` / coffre `validate-treasure`, pas au seul `start-adventure`).
 
 ### Réclamation sur place
 
 - [ ] `POST /api/game/claim-discovery` avec position GPS courante + `discoveryPointId` + `userId`.  
-- [ ] Gérer **400** `TOO_FAR`, `ADVENTURE_REQUIRED`.  
+- [ ] Gérer **400** `TOO_FAR`, **`ADVENTURE_REQUIRED`** (pas encore de `UserAdventures` sur l’aventure liée — message type « Démarrez cette aventure… » côté serveur).  
 - [ ] Gérer **429** + `Retry-After`.  
 - [ ] Rafraîchir `GET /api/user/badges` après succès.
 
@@ -280,14 +304,14 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 ## Synthèse — ordre d’appel « jour 1 » joueur
 
 1. Auth → session OK  
-2. `cities` → `adventures` → `adventures/{id}`  
+2. **`home`** (accueil + pubs `home`) **ou** `cities` → `adventures` → `adventures/{id}`  
 3. `progress` → `start-adventure`  
-4. Boucle `validate-enigma`  
-5. `validate-finish` **ou** `validate-treasure` × 2  
+4. Boucle `validate-enigma` (afficher `answerMessage` depuis la fiche)  
+5. `validate-finish` **ou** `validate-treasure` (carte → révéler marqueur → coffre)  
 6. `adventure-partner-lots` → éventuellement `spin` → éventuellement `redeem`  
 7. `adventure-review` (optionnel)  
 8. `user/badges`  
-9. `advertisements` + `events` + offres / dismissals selon écrans
+9. `advertisements` (`library`, …) + `events` + offres / dismissals selon écrans (`home` déjà couvert à l’étape 2 si écran accueil)
 
 ---
 

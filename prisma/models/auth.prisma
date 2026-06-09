@@ -45,6 +45,8 @@ model User {
   /// Avatar 3D choisi dans les paramètres app (fichiers embarqués ; `slug` pour le mapping local).
   selectedAvatarId                String?
   selectedAvatar                  Avatar?                    @relation(fields: [selectedAvatarId], references: [id], onDelete: SetNull)
+  /// Préférences app mobile (thème, `accentHue` 0–360, carte, sons…) — schéma `UserAppPreferences` côté API.
+  appPreferences                  Json?
   /// Nombre max d’emplacements publicitaires (superadmin) ; null = pas de quota commerçant.
   merchantMaxAdvertisementSlots   Int?
   ownedAdvertisements             Advertisement[]            @relation("AdvertisementOwnerMerchant")

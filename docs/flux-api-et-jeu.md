@@ -5,7 +5,9 @@ Ce document décrit **l’ordre d’appel des routes**, la **logique métier** d
 Références complémentaires :
 
 - [`README.md`](../README.md) — vue d’ensemble, tableaux d’API, checklist mobile.
+- [`docs/integration-app-mobile-checklist.md`](integration-app-mobile-checklist.md) — plan d’intégration Expo (cases à cocher).
 - [`docs/expo-better-auth.md`](expo-better-auth.md) — session (web / Expo) pour les routes jeu.
+- [`docs/expo-publicites-offres-partenaires.md`](expo-publicites-offres-partenaires.md) — publicités et offres encart (distinct de la roue).
 - OpenAPI : `src/lib/openapi/grand-est-openapi-document.ts`, `GET /api/openapi`.
 - Accès public / démo : `src/lib/adventure-public-access.ts`.
 - Finalisation partie : `src/lib/badges/award-on-finish.ts` (`processGameFinish`), `src/lib/game/server-adventure-progress.ts`.
@@ -21,7 +23,7 @@ Références complémentaires :
 | **Session** | Les routes **jeu** et **utilisateur** attendent une session valide (cookies navigateur ; équivalent documenté pour Expo). |
 | **`GET /api/admin-game/permission-context`** | Contexte rôle / permissions pour le **dashboard web** admin — utile au front admin, pas au cœur du parcours terrain. |
 
-**Principe** : sans session, les routes concernées répondent **`401`**. Certaines routes **catalogue** (`GET /api/game/cities`, `GET /api/game/adventures`, …) restent accessibles sans compte selon les règles produit (voir OpenAPI et `adventure-public-access`).
+**Principe** : sans session, les routes concernées répondent **`401`**. Certaines routes **catalogue** (`GET /api/game/home`, `GET /api/game/cities`, `GET /api/game/adventures`, `GET /api/game/avatars`, …) restent accessibles sans compte ; **`GET /api/game/home`** accepte une session **optionnelle** (stats perso, pubs non masquées).
 
 ---
 
@@ -31,12 +33,12 @@ Références complémentaires :
 
 | Méthode | Route | Quand l’appeler |
 |--------|--------|------------------|
+| `GET` | `/api/game/home` | **Accueil mobile** : stats (`communityStats`), pubs placement `home`, `locationContext`, catalogue + `featuredAdventures`, `recentReviews`. GPS optionnel (`latitude`/`longitude`) pour distance et ciblage pub (ville inférée). Session optionnelle. |
 | `GET` | `/api/game/cities` | Liste des villes (référentiel). |
 | `GET` | `/api/game/adventures` | Catalogue **PUBLIC** + actives (les aventures **DEMO** n’y figurent pas). |
-| `GET` | `/api/game/adventures/{id}` | Détail : énigmes, trésor, `discoveryPoints` de la ville, durées, etc. **DEMO** : session + droit requis. |
+| `GET` | `/api/game/adventures/{id}` | Détail : énigmes (`answerMessage`, pas les réponses), trésor **sans codes**, `discoveryPoints` de la ville, durées, etc. **DEMO** : session + droit requis. |
 | `GET` | `/api/game/discovery-points?cityId=` | POI « découverte » pour une carte **ville** (usage hors fiche aventure si besoin). |
-| `GET` | `/api/game/avatars` | Avatars compagnon actifs (`id`, `slug`, `name`, …) — **sans session** ; les fichiers **3D** sont dans **l’app** (mapping par `slug`). |
-
+| `GET` | `/api/game/avatars` | Avatars compagnon actifs (`id`, `slug`, `name`, `thumbnailUrl`, `modelUrl`, …) — **sans session** ; si `modelUrl` est renseigné, charger le **.glb** depuis le serveur, sinon repli bundle local via `slug`. |
 ### 2.2 Jeu — parcours (session joueur)
 
 | Méthode | Route | Quand l’appeler |
@@ -48,6 +50,8 @@ Références complémentaires :
 | `POST` | `/api/game/validate-treasure` | **Avec trésor** : code **coffre** (`treasure`) — finalise la partie. |
 
 **Règle importante** : si un **trésor** est configuré, la finalisation badges / `UserAdventures` passe par l’étape **coffre** de `validate-treasure`. `validate-finish` renvoie alors une erreur du type **`TREASURE_REQUIRED`**. Sans trésor, c’est **`validate-finish`** qui appelle la même finalisation que le code coffre (`processGameFinish`).
+
+**Trésor sur la carte** : après toutes les énigmes, le joueur saisit le **code de fin d’énigmes** (`mapRevealCode`, jamais exposé en GET) via `validate-treasure` → étape `treasure:map`. L’app affiche alors le marqueur trésor (coords déjà dans la fiche ; masquage **côté client** avant `treasure:map`). Puis code **coffre** (`chestCode`) + éventuel `giftNumber`.
 
 ### 2.3 Jeu — après victoire (optionnel)
 
@@ -72,6 +76,8 @@ Références complémentaires :
 | `GET` | `/api/user/badges` | Catalogue badges + `earned`. |
 | `GET` | `/api/user/avatar` | Préférence avatar (`selectedAvatarId`, objet `selectedAvatar` si défini). |
 | `PATCH` | `/api/user/avatar` | Corps `{ "selectedAvatarId": "<id Prisma>" }` ou `null` pour effacer ; avatar doit être **actif** (`GET /api/game/avatars`). |
+| `GET` | `/api/user/preferences` | Préférences app (thème, accent, carte, sons, accessibilité) — objet complet avec défauts. |
+| `PATCH` | `/api/user/preferences` | Mise à jour **partielle** (`theme`, `accentHue`, `locale`, `haptics`, …) ; `accentHue` entier 0–360 (0 = jaune, 60 = rouge). |
 | `POST` | `/api/user/advertisement-dismissals` | Masquer une pub pour ce compte (persistant). |
 
 ### 2.6 Publicités et offres partenaires « encart » (distinct de la roue aventure)
@@ -113,7 +119,8 @@ flowchart TB
   end
 
   subgraph discover["2. Découverte"]
-    D1["GET …/cities — optionnel"]
+    D0["GET …/home — accueil optionnel"]
+    D0 --> D1["GET …/cities — optionnel"]
     D1 --> D2["GET …/adventures"]
     D2 --> D3["GET …/adventures/{id}"]
     D3 --> D4["GET …/progress?adventureId="]
@@ -153,7 +160,7 @@ flowchart TB
     X2 --> X3["GET …/advertisements"]
   end
 
-  A3 -->|Oui| D1
+  A3 -->|Oui| D0
   D4 --> P0
 ```
 
@@ -189,11 +196,12 @@ Plusieurs routes utilisent `src/lib/api/simple-rate-limit.ts` (mémoire **par in
 ## 7. Checklist intégrateur mobile (rappel)
 
 1. Session stable ([`expo-better-auth.md`](expo-better-auth.md)).
-2. Lire `treasure` dans `adventures/{id}` pour choisir **finish** vs **treasure**.
-3. `validate-enigma` : ordre + `multiSelect` / `submissions`.
-4. Après victoire : `adventure-partner-lots` → `spin` → affichage `validUntil` / `legalNotice` → `redeem` en boutique.
-5. Ne pas confondre **roue aventure** et **`partner-offers/claims`** (flux **Advertisement**).
-6. **Contact** : `POST /api/contact` (app) → Discord **Application mobile** ; formulaire web `/contact` → **Site web** (origine fixée serveur, pas dans le JSON).
+2. Accueil : **`GET /api/game/home`** (ou `cities` + `adventures`) ; pubs accueil dans `home` ou `placement=home`.
+3. Lire `treasure` dans `adventures/{id}` pour choisir **finish** vs **treasure** ; `answerMessage` sur la fiche (pas dans la réponse `validate-enigma`).
+4. `validate-enigma` : ordre + `multiSelect` / `submissions` ; trésor : carte (`treasure:map`) puis coffre.
+5. Après victoire : `adventure-partner-lots` → `spin` → affichage `validUntil` / `legalNotice` → `redeem` en boutique.
+6. Ne pas confondre **roue aventure** et **`partner-offers/claims`** (flux **Advertisement** — voir [`expo-publicites-offres-partenaires.md`](expo-publicites-offres-partenaires.md)).
+7. **Contact** : `POST /api/contact` (app) → Discord **Application mobile** ; formulaire web `/contact` → **Site web** (origine fixée serveur, pas dans le JSON).
 
 ---
 
