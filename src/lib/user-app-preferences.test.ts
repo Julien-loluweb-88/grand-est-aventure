@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_ACCENT_HUE,
+  DEFAULT_DICEBEAR_STYLE,
   DEFAULT_USER_APP_PREFERENCES,
   mergeUserAppPreferences,
   resolveUserAppPreferences,
@@ -32,6 +33,20 @@ describe("resolveUserAppPreferences", () => {
       accentHue: DEFAULT_ACCENT_HUE,
     });
   });
+
+  it("lit dicebearStyle parmi les bibliothèques supportées", () => {
+    expect(resolveUserAppPreferences({ dicebearStyle: "lorelei" })).toEqual({
+      ...DEFAULT_USER_APP_PREFERENCES,
+      dicebearStyle: "lorelei",
+    });
+  });
+
+  it("ignore dicebearStyle inconnu", () => {
+    expect(resolveUserAppPreferences({ dicebearStyle: "unknown-style" })).toEqual({
+      ...DEFAULT_USER_APP_PREFERENCES,
+      dicebearStyle: DEFAULT_DICEBEAR_STYLE,
+    });
+  });
 });
 
 describe("mergeUserAppPreferences", () => {
@@ -52,6 +67,15 @@ describe("userAppPreferencesPatchSchema", () => {
   it("accepte accentHue", () => {
     expect(userAppPreferencesPatchSchema.safeParse({ accentHue: 0 }).success).toBe(true);
     expect(userAppPreferencesPatchSchema.safeParse({ accentHue: 60 }).success).toBe(true);
+  });
+
+  it("accepte dicebearStyle", () => {
+    expect(userAppPreferencesPatchSchema.safeParse({ dicebearStyle: "avataaars" }).success).toBe(
+      true
+    );
+    expect(userAppPreferencesPatchSchema.safeParse({ dicebearStyle: "invalid" }).success).toBe(
+      false
+    );
   });
 
   it("rejette accentHue non entier", () => {

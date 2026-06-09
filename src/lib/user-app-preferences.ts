@@ -5,6 +5,53 @@ export const MAP_STYLES = ["standard", "satellite"] as const;
 export const LOCALES = ["fr", "en"] as const;
 export const AR_QUALITIES = ["low", "high"] as const;
 
+/**
+ * Styles DiceBear supportés (slug API : `https://api.dicebear.com/10.x/{style}/svg`).
+ * Aligné sur la collection officielle @dicebear/collection v10.
+ */
+export const DICEBEAR_STYLES = [
+  "adventurer",
+  "adventurer-neutral",
+  "avataaars",
+  "avataaars-neutral",
+  "big-ears",
+  "big-ears-neutral",
+  "big-smile",
+  "bottts",
+  "bottts-neutral",
+  "croodles",
+  "croodles-neutral",
+  "disco",
+  "dylan",
+  "fun-emoji",
+  "glass",
+  "glyphs",
+  "icons",
+  "identicon",
+  "initial-face",
+  "initials",
+  "lorelei",
+  "lorelei-neutral",
+  "micah",
+  "miniavs",
+  "notionists",
+  "notionists-neutral",
+  "open-peeps",
+  "personas",
+  "pixel-art",
+  "pixel-art-neutral",
+  "rings",
+  "shape-grid",
+  "shapes",
+  "stripes",
+  "thumbs",
+  "toon-head",
+  "triangles",
+] as const;
+
+export type DicebearStyle = (typeof DICEBEAR_STYLES)[number];
+export const DEFAULT_DICEBEAR_STYLE: DicebearStyle = "adventurer";
+
 /** Teinte d’accent stockée en base (entier 0–360). */
 export const ACCENT_HUE_MIN = 0;
 export const ACCENT_HUE_MAX = 360;
@@ -23,6 +70,7 @@ export type ArQuality = (typeof AR_QUALITIES)[number];
 export type UserAppPreferences = {
   theme: ThemeMode;
   accentHue: number;
+  dicebearStyle: DicebearStyle;
   locale: AppLocale;
   haptics: boolean;
   soundEffects: boolean;
@@ -38,6 +86,7 @@ export type UserAppPreferences = {
 export const DEFAULT_USER_APP_PREFERENCES: UserAppPreferences = {
   theme: "system",
   accentHue: DEFAULT_ACCENT_HUE,
+  dicebearStyle: DEFAULT_DICEBEAR_STYLE,
   locale: "fr",
   haptics: true,
   soundEffects: true,
@@ -59,6 +108,7 @@ const accentHueSchema = z
 const userAppPreferencesShape = {
   theme: z.enum(THEME_MODES),
   accentHue: accentHueSchema,
+  dicebearStyle: z.enum(DICEBEAR_STYLES),
   locale: z.enum(LOCALES),
   haptics: z.boolean(),
   soundEffects: z.boolean(),
@@ -87,6 +137,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function applyStoredPreference<K extends keyof UserAppPreferences>(
+  target: UserAppPreferences,
+  key: K,
+  raw: unknown
+): void {
+  const parsed = userAppPreferencesShape[key].safeParse(raw);
+  if (parsed.success) {
+    target[key] = parsed.data as UserAppPreferences[K];
+  }
+}
+
 /** Fusionne la valeur stockée (éventuellement partielle ou invalide) avec les défauts. */
 export function resolveUserAppPreferences(stored: unknown): UserAppPreferences {
   const resolved: UserAppPreferences = { ...DEFAULT_USER_APP_PREFERENCES };
@@ -96,10 +157,7 @@ export function resolveUserAppPreferences(stored: unknown): UserAppPreferences {
 
   for (const key of PREFERENCE_KEYS) {
     if (!(key in stored)) continue;
-    const parsed = userAppPreferencesShape[key].safeParse(stored[key]);
-    if (parsed.success) {
-      resolved[key] = parsed.data;
-    }
+    applyStoredPreference(resolved, key, stored[key]);
   }
 
   return resolved;

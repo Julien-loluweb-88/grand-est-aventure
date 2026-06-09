@@ -1,3 +1,5 @@
+import { DICEBEAR_STYLES } from "@/lib/user-app-preferences";
+
 /**
  * Spécification OpenAPI 3.1 de toutes les routes HTTP exposées par l’app Next.js.
  * À maintenir quand vous ajoutez ou modifiez un handler sous src/app/api/ (fichiers route.ts).
@@ -665,6 +667,7 @@ export function buildGrandEstOpenApiDocument() {
           required: [
             "theme",
             "accentHue",
+            "dicebearStyle",
             "locale",
             "haptics",
             "soundEffects",
@@ -684,6 +687,12 @@ export function buildGrandEstOpenApiDocument() {
               maximum: 360,
               description:
                 "Teinte d’accent (roue app : **0 = jaune**, **60 = rouge**, puis le reste du cercle). Entier 0–360.",
+            },
+            dicebearStyle: {
+              type: "string",
+              enum: [...DICEBEAR_STYLES],
+              description:
+                "Bibliothèque DiceBear pour l’avatar profil (slug API : `https://api.dicebear.com/10.x/{dicebearStyle}/svg`). Défaut : `adventurer`.",
             },
             locale: { type: "string", enum: ["fr", "en"] },
             haptics: { type: "boolean" },
@@ -711,6 +720,7 @@ export function buildGrandEstOpenApiDocument() {
           properties: {
             theme: { type: "string", enum: ["light", "dark", "system"] },
             accentHue: { type: "integer", minimum: 0, maximum: 360 },
+            dicebearStyle: { type: "string", enum: [...DICEBEAR_STYLES] },
             locale: { type: "string", enum: ["fr", "en"] },
             haptics: { type: "boolean" },
             soundEffects: { type: "boolean" },
