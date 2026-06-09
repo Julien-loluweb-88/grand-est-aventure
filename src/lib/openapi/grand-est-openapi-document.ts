@@ -498,6 +498,77 @@ export function buildGrandEstOpenApiDocument() {
             selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
           },
         },
+        UserAppPreferences: {
+          type: "object",
+          required: [
+            "theme",
+            "accentHue",
+            "locale",
+            "haptics",
+            "soundEffects",
+            "mapStyle",
+            "reduceMotion",
+            "showMapCompass",
+            "gpsHighAccuracy",
+            "downloadModelsOnWifiOnly",
+            "arQuality",
+            "fontScale",
+          ],
+          properties: {
+            theme: { type: "string", enum: ["light", "dark", "system"] },
+            accentHue: {
+              type: "integer",
+              minimum: 0,
+              maximum: 360,
+              description:
+                "Teinte d’accent (roue app : **0 = jaune**, **60 = rouge**, puis le reste du cercle). Entier 0–360.",
+            },
+            locale: { type: "string", enum: ["fr", "en"] },
+            haptics: { type: "boolean" },
+            soundEffects: { type: "boolean" },
+            mapStyle: { type: "string", enum: ["standard", "satellite"] },
+            reduceMotion: { type: "boolean" },
+            showMapCompass: { type: "boolean" },
+            gpsHighAccuracy: { type: "boolean" },
+            downloadModelsOnWifiOnly: { type: "boolean" },
+            arQuality: { type: "string", enum: ["low", "high"] },
+            fontScale: { type: "number", minimum: 0.85, maximum: 1.35 },
+          },
+        },
+        UserPreferencesResponse: {
+          type: "object",
+          required: ["preferences"],
+          properties: {
+            preferences: { $ref: "#/components/schemas/UserAppPreferences" },
+          },
+        },
+        UserPreferencesPatchBody: {
+          type: "object",
+          description: "Mise à jour partielle : au moins une clé parmi les champs de `UserAppPreferences`.",
+          minProperties: 1,
+          properties: {
+            theme: { type: "string", enum: ["light", "dark", "system"] },
+            accentHue: { type: "integer", minimum: 0, maximum: 360 },
+            locale: { type: "string", enum: ["fr", "en"] },
+            haptics: { type: "boolean" },
+            soundEffects: { type: "boolean" },
+            mapStyle: { type: "string", enum: ["standard", "satellite"] },
+            reduceMotion: { type: "boolean" },
+            showMapCompass: { type: "boolean" },
+            gpsHighAccuracy: { type: "boolean" },
+            downloadModelsOnWifiOnly: { type: "boolean" },
+            arQuality: { type: "string", enum: ["low", "high"] },
+            fontScale: { type: "number", minimum: 0.85, maximum: 1.35 },
+          },
+        },
+        UserPreferencesPatchOk: {
+          type: "object",
+          required: ["ok", "preferences"],
+          properties: {
+            ok: { type: "boolean", const: true },
+            preferences: { $ref: "#/components/schemas/UserAppPreferences" },
+          },
+        },
         UserBadgeCatalogItem: {
           type: "object",
           required: [
@@ -2118,6 +2189,53 @@ export function buildGrandEstOpenApiDocument() {
             "400": { description: "Corps invalide ou publicité inactive." },
             "404": { description: "Publicité introuvable." },
             "429": { description: "Trop de requêtes." },
+          },
+        },
+      },
+      "/api/user/preferences": {
+        get: {
+          tags: ["Utilisateur"],
+          summary: "Préférences app du joueur",
+          description:
+            "Retourne l’objet `preferences` complet (valeurs par défaut si jamais personnalisé). " +
+            "L’app peut aussi mettre en cache local (AsyncStorage) et fusionner au démarrage.",
+          security: [{ sessionCookie: [] }],
+          responses: {
+            "200": {
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/UserPreferencesResponse" } },
+              },
+              description: "Préférences résolues.",
+            },
+            "401": { description: "Non connecté." },
+            "404": { description: "Utilisateur introuvable." },
+          },
+        },
+        patch: {
+          tags: ["Utilisateur"],
+          summary: "Mettre à jour les préférences app",
+          description:
+            "Corps **partiel** : au moins une clé (`theme`, `accentHue`, `locale`, `haptics`, …). " +
+            "`accentHue` : entier **0–360** (roue app : 0 = jaune, 60 = rouge). " +
+            `**Rate limit** : ~${30}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
+          security: [{ sessionCookie: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": { schema: { $ref: "#/components/schemas/UserPreferencesPatchBody" } },
+            },
+          },
+          responses: {
+            "200": {
+              description: "Préférences enregistrées.",
+              content: {
+                "application/json": { schema: { $ref: "#/components/schemas/UserPreferencesPatchOk" } },
+              },
+            },
+            "400": { description: "Corps invalide ou vide." },
+            "401": { description: "Non authentifié." },
+            "404": { description: "Utilisateur introuvable." },
+            "429": { description: "Trop de requêtes.", headers: { "Retry-After": { schema: { type: "string" } } } },
           },
         },
       },

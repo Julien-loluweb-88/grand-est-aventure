@@ -277,7 +277,7 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 | Méthode | Chemin | Description |
 |---------|--------|-------------|
 | GET | `/api/game/cities` | Référentiel villes |
-| GET | `/api/game/avatars` | Catalogue avatars compagnon (`slug` → fichier **glb** dans l’app) |
+| GET | `/api/game/avatars` | Catalogue avatars compagnon (`thumbnailUrl`, `modelUrl` serveur si renseigné, sinon repli **glb** bundle via `slug`) |
 | GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) |
 | GET | `/api/game/home` | Accueil agrégé : stats (`scope`), **pubs `home`**, `locationContext`, aventures, avis — GPS infère la ville pour le ciblage pub |
 | GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** ; démo → session + droit requis |
@@ -302,6 +302,8 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 |---------|--------|-------------|
 | GET | `/api/user/avatar` | Préférence avatar 3D (`selectedAvatarId`, détail `selectedAvatar`) |
 | PATCH | `/api/user/avatar` | Choisir l’avatar ; corps `{ "selectedAvatarId" }` ou `null` ; rate limit |
+| GET | `/api/user/preferences` | Préférences app (thème, `accentHue`, carte, sons, accessibilité) |
+| PATCH | `/api/user/preferences` | Mise à jour partielle ; `accentHue` entier 0–360 (0 = jaune, 60 = rouge) ; rate limit |
 | GET | `/api/user/badges` | Catalogue badges + `earned` (acquis ou non) |
 | POST | `/api/user/advertisement-dismissals` | Masquer une pub pour le compte (persistant) ; corps `{ "advertisementId" }` ; rate limit |
 
@@ -485,7 +487,7 @@ flowchart LR
 
 - [ ] Après `GET /api/game/cities`, conserver le **`cityId`** choisi pour la carte / filtres.  
 - [ ] Sur la fiche parcours : utiliser le tableau **`discoveryPoints`** de **`GET /api/game/adventures/{id}`** (même structure que la liste ci‑dessous) pour afficher les badges « découverte » de la **ville** sans requête supplémentaire.  
-- [ ] Hors fiche parcours (ex. carte globale ville) : `GET /api/game/discovery-points?cityId=…` — afficher marqueurs (`latitude`, `longitude`, `radiusMeters`, `title`, `teaser`, `imageUrl`) ; distinguer **`adventureId === null`** (toute la ville) vs **`adventureId` renseigné** (réservé aux joueurs ayant une ligne **`UserAdventures`** sur cette aventure — à masquer ou griser si pas encore démarré).  
+- [ ] Hors fiche parcours (ex. carte globale ville) : `GET /api/game/discovery-points?cityId=…` — afficher marqueurs (`latitude`, `longitude`, `radiusMeters`, `title`, `teaser`, `imageUrl`) ; **`adventureId === null`** = POI ville ; POI liés à une aventure **PUBLIC** = listés pour tous ; POI **DEMO** = listés si droit de jouer la démo. Pour **`claim-discovery`** sur un POI lié : ligne **`UserAdventures`** requise (créée à la **finalisation**, pas au seul `start-adventure`) — griser le CTA sinon.  
 - [ ] `POST /api/game/claim-discovery` avec **cookies de session** (même mécanisme que `validate-enigma`) : corps JSON `userId` (= id session), `discoveryPointId`, `latitude`, `longitude` = **position actuelle** (WGS84). Gérer **400** (`TOO_FAR`, `ADVENTURE_REQUIRED`), **404**, **429** + `Retry-After`. Réponse **200** : `{ ok: true, userBadgeId }` ou `{ …, alreadyHad: true }` si déjà obtenu.  
 - [ ] Rafraîchir la collection avec **`GET /api/user/badges`** (clés par `kind`, champ `earned`) ; clé `DISCOVERY` si besoin (corrélation POI via `id` de définition).
 
