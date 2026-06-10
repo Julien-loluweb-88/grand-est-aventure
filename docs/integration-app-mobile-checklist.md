@@ -74,7 +74,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 - [ ] `GET /api/user/preferences` — objet `preferences` complet (défauts serveur si jamais personnalisé).  
 - [ ] `PATCH /api/user/preferences` — corps **partiel** (ex. `{ "theme": "dark", "accentHue": 60 }`) ; `accentHue` entier **0–360** (roue app : **0 = jaune**, **60 = rouge**) ; gérer **400** et **429**.  
-- [ ] `dicebearStyle` — bibliothèque DiceBear choisie par le joueur (enum OpenAPI, ex. `adventurer`, `lorelei`, `avataaars`) ; URL avatar : `https://api.dicebear.com/10.x/{dicebearStyle}/svg?seed=…`.  
+- [ ] `dicebearAvatarUrl` — URL DiceBear **complète** choisie par le joueur (HTTPS, domaine `dicebear.com`) ; `null` tant que non personnalisé ; ex. `PATCH { "dicebearAvatarUrl": "https://api.dicebear.com/10.x/lorelei/svg?seed=…" }`.  
 - [ ] Slider / roue teinte côté app : convertir `accentHue` en couleur d’UI selon votre échelle (pas le HSL CSS standard).  
 - [ ] Cache local **AsyncStorage** : appliquer le thème tout de suite, synchroniser en arrière-plan au login / à chaque changement (debounce ~300–500 ms).
 

@@ -5,52 +5,8 @@ export const MAP_STYLES = ["standard", "satellite"] as const;
 export const LOCALES = ["fr", "en"] as const;
 export const AR_QUALITIES = ["low", "high"] as const;
 
-/**
- * Styles DiceBear supportés (slug API : `https://api.dicebear.com/10.x/{style}/svg`).
- * Aligné sur la collection officielle @dicebear/collection v10.
- */
-export const DICEBEAR_STYLES = [
-  "adventurer",
-  "adventurer-neutral",
-  "avataaars",
-  "avataaars-neutral",
-  "big-ears",
-  "big-ears-neutral",
-  "big-smile",
-  "bottts",
-  "bottts-neutral",
-  "croodles",
-  "croodles-neutral",
-  "disco",
-  "dylan",
-  "fun-emoji",
-  "glass",
-  "glyphs",
-  "icons",
-  "identicon",
-  "initial-face",
-  "initials",
-  "lorelei",
-  "lorelei-neutral",
-  "micah",
-  "miniavs",
-  "notionists",
-  "notionists-neutral",
-  "open-peeps",
-  "personas",
-  "pixel-art",
-  "pixel-art-neutral",
-  "rings",
-  "shape-grid",
-  "shapes",
-  "stripes",
-  "thumbs",
-  "toon-head",
-  "triangles",
-] as const;
-
-export type DicebearStyle = (typeof DICEBEAR_STYLES)[number];
-export const DEFAULT_DICEBEAR_STYLE: DicebearStyle = "adventurer";
+/** Longueur max d’une URL DiceBear stockée (query params inclus). */
+export const DICEBEAR_AVATAR_URL_MAX_LENGTH = 2048;
 
 /** Teinte d’accent stockée en base (entier 0–360). */
 export const ACCENT_HUE_MIN = 0;
@@ -70,7 +26,8 @@ export type ArQuality = (typeof AR_QUALITIES)[number];
 export type UserAppPreferences = {
   theme: ThemeMode;
   accentHue: number;
-  dicebearStyle: DicebearStyle;
+  /** URL complète générée côté app (ex. `https://api.dicebear.com/10.x/lorelei/svg?seed=…`). */
+  dicebearAvatarUrl: string | null;
   locale: AppLocale;
   haptics: boolean;
   soundEffects: boolean;
@@ -86,7 +43,7 @@ export type UserAppPreferences = {
 export const DEFAULT_USER_APP_PREFERENCES: UserAppPreferences = {
   theme: "system",
   accentHue: DEFAULT_ACCENT_HUE,
-  dicebearStyle: DEFAULT_DICEBEAR_STYLE,
+  dicebearAvatarUrl: null,
   locale: "fr",
   haptics: true,
   soundEffects: true,
@@ -105,10 +62,27 @@ const accentHueSchema = z
   .min(ACCENT_HUE_MIN)
   .max(ACCENT_HUE_MAX);
 
+export function isDicebearAvatarUrl(value: string): boolean {
+  if (value.length > DICEBEAR_AVATAR_URL_MAX_LENGTH) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname.endsWith("dicebear.com");
+  } catch {
+    return false;
+  }
+}
+
+const dicebearAvatarUrlSchema = z
+  .string()
+  .max(DICEBEAR_AVATAR_URL_MAX_LENGTH)
+  .refine(isDicebearAvatarUrl, {
+    message: "URL DiceBear HTTPS invalide (domaine dicebear.com attendu).",
+  });
+
 const userAppPreferencesShape = {
   theme: z.enum(THEME_MODES),
   accentHue: accentHueSchema,
-  dicebearStyle: z.enum(DICEBEAR_STYLES),
+  dicebearAvatarUrl: z.union([z.null(), dicebearAvatarUrlSchema]),
   locale: z.enum(LOCALES),
   haptics: z.boolean(),
   soundEffects: z.boolean(),

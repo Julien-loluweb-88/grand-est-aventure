@@ -1,4 +1,4 @@
-import { DICEBEAR_STYLES } from "@/lib/user-app-preferences";
+import { DICEBEAR_AVATAR_URL_MAX_LENGTH } from "@/lib/user-app-preferences";
 
 /**
  * Spécification OpenAPI 3.1 de toutes les routes HTTP exposées par l’app Next.js.
@@ -667,7 +667,7 @@ export function buildGrandEstOpenApiDocument() {
           required: [
             "theme",
             "accentHue",
-            "dicebearStyle",
+            "dicebearAvatarUrl",
             "locale",
             "haptics",
             "soundEffects",
@@ -688,11 +688,13 @@ export function buildGrandEstOpenApiDocument() {
               description:
                 "Teinte d’accent (roue app : **0 = jaune**, **60 = rouge**, puis le reste du cercle). Entier 0–360.",
             },
-            dicebearStyle: {
-              type: "string",
-              enum: [...DICEBEAR_STYLES],
+            dicebearAvatarUrl: {
+              type: ["string", "null"],
+              format: "uri",
+              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
               description:
-                "Bibliothèque DiceBear pour l’avatar profil (slug API : `https://api.dicebear.com/10.x/{dicebearStyle}/svg`). Défaut : `adventurer`.",
+                "URL DiceBear complète choisie par le joueur (HTTPS, domaine `dicebear.com`). " +
+                "Ex. `https://api.dicebear.com/10.x/lorelei/svg?seed=…` — `null` si pas encore personnalisé.",
             },
             locale: { type: "string", enum: ["fr", "en"] },
             haptics: { type: "boolean" },
@@ -720,7 +722,11 @@ export function buildGrandEstOpenApiDocument() {
           properties: {
             theme: { type: "string", enum: ["light", "dark", "system"] },
             accentHue: { type: "integer", minimum: 0, maximum: 360 },
-            dicebearStyle: { type: "string", enum: [...DICEBEAR_STYLES] },
+            dicebearAvatarUrl: {
+              type: ["string", "null"],
+              format: "uri",
+              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
+            },
             locale: { type: "string", enum: ["fr", "en"] },
             haptics: { type: "boolean" },
             soundEffects: { type: "boolean" },
