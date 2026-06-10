@@ -10,6 +10,7 @@ model User {
   country                   String?
   phone                     String?
   emailVerified             Boolean                    @default(false)
+  /// Photo profil (Better Auth) : URL DiceBear complète choisie dans l’app mobile (`PATCH /api/user/avatar` → `image`).
   image                     String?
   role                      String?                    @default("user")
   banned                    Boolean?                   @default(false)

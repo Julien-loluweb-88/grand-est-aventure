@@ -74,8 +74,8 @@ Références complémentaires :
 | Méthode | Route | Rôle |
 |--------|--------|------|
 | `GET` | `/api/user/badges` | Catalogue badges + `earned`. |
-| `GET` | `/api/user/avatar` | Préférence avatar (`selectedAvatarId`, objet `selectedAvatar` si défini). |
-| `PATCH` | `/api/user/avatar` | Corps `{ "selectedAvatarId": "<id Prisma>" }` ou `null` pour effacer ; avatar doit être **actif** (`GET /api/game/avatars`). |
+| `GET` | `/api/user/avatar` | `image` (photo profil DiceBear, `User.image`) + compagnon 3D (`selectedAvatarId`, `selectedAvatar`). |
+| `PATCH` | `/api/user/avatar` | Corps partiel : `image` (URL DiceBear → `User.image`) et/ou `selectedAvatarId` (compagnon actif, `GET /api/game/avatars`) ; `null` pour effacer. |
 | `GET` | `/api/user/preferences` | Préférences app (thème, accent, carte, sons, accessibilité) — objet complet avec défauts. |
 | `PATCH` | `/api/user/preferences` | Mise à jour **partielle** (`theme`, `accentHue`, `locale`, `haptics`, …) ; `accentHue` entier 0–360 (0 = jaune, 60 = rouge). |
 | `POST` | `/api/user/advertisement-dismissals` | Masquer une pub pour ce compte (persistant). |

@@ -5,9 +5,6 @@ export const MAP_STYLES = ["standard", "satellite"] as const;
 export const LOCALES = ["fr", "en"] as const;
 export const AR_QUALITIES = ["low", "high"] as const;
 
-/** Longueur max d’une URL DiceBear stockée (query params inclus). */
-export const DICEBEAR_AVATAR_URL_MAX_LENGTH = 2048;
-
 /** Teinte d’accent stockée en base (entier 0–360). */
 export const ACCENT_HUE_MIN = 0;
 export const ACCENT_HUE_MAX = 360;
@@ -26,8 +23,6 @@ export type ArQuality = (typeof AR_QUALITIES)[number];
 export type UserAppPreferences = {
   theme: ThemeMode;
   accentHue: number;
-  /** URL complète générée côté app (ex. `https://api.dicebear.com/10.x/lorelei/svg?seed=…`). */
-  dicebearAvatarUrl: string | null;
   locale: AppLocale;
   haptics: boolean;
   soundEffects: boolean;
@@ -43,7 +38,6 @@ export type UserAppPreferences = {
 export const DEFAULT_USER_APP_PREFERENCES: UserAppPreferences = {
   theme: "system",
   accentHue: DEFAULT_ACCENT_HUE,
-  dicebearAvatarUrl: null,
   locale: "fr",
   haptics: true,
   soundEffects: true,
@@ -62,27 +56,9 @@ const accentHueSchema = z
   .min(ACCENT_HUE_MIN)
   .max(ACCENT_HUE_MAX);
 
-export function isDicebearAvatarUrl(value: string): boolean {
-  if (value.length > DICEBEAR_AVATAR_URL_MAX_LENGTH) return false;
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && url.hostname.endsWith("dicebear.com");
-  } catch {
-    return false;
-  }
-}
-
-const dicebearAvatarUrlSchema = z
-  .string()
-  .max(DICEBEAR_AVATAR_URL_MAX_LENGTH)
-  .refine(isDicebearAvatarUrl, {
-    message: "URL DiceBear HTTPS invalide (domaine dicebear.com attendu).",
-  });
-
 const userAppPreferencesShape = {
   theme: z.enum(THEME_MODES),
   accentHue: accentHueSchema,
-  dicebearAvatarUrl: z.union([z.null(), dicebearAvatarUrlSchema]),
   locale: z.enum(LOCALES),
   haptics: z.boolean(),
   soundEffects: z.boolean(),

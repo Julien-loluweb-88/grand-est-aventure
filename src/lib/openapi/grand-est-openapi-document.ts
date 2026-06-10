@@ -1,4 +1,4 @@
-import { DICEBEAR_AVATAR_URL_MAX_LENGTH } from "@/lib/user-app-preferences";
+import { DICEBEAR_AVATAR_URL_MAX_LENGTH } from "@/lib/dicebear-avatar-url";
 
 /**
  * Spécification OpenAPI 3.1 de toutes les routes HTTP exposées par l’app Next.js.
@@ -637,27 +637,43 @@ export function buildGrandEstOpenApiDocument() {
         },
         UserAvatarPreferenceResponse: {
           type: "object",
-          required: ["selectedAvatarId"],
+          required: ["image", "selectedAvatarId"],
           properties: {
+            image: {
+              type: ["string", "null"],
+              format: "uri",
+              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
+              description:
+                "Photo profil (`User.image`) : URL DiceBear complète. `null` si non personnalisée.",
+            },
             selectedAvatarId: { type: ["string", "null"] },
             selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
           },
         },
         UserAvatarPatchBody: {
           type: "object",
-          required: ["selectedAvatarId"],
+          description: "Mise à jour partielle : au moins `image` ou `selectedAvatarId`.",
+          minProperties: 1,
           properties: {
+            image: {
+              oneOf: [{ type: "string" }, { type: "null" }],
+              format: "uri",
+              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
+              description:
+                "URL DiceBear HTTPS (domaine `dicebear.com`) stockée dans `User.image`, ou `null` pour effacer.",
+            },
             selectedAvatarId: {
               oneOf: [{ type: "string" }, { type: "null" }],
-              description: "Id Prisma d’un avatar actif, ou `null` pour effacer le choix.",
+              description: "Id Prisma d’un compagnon 3D actif, ou `null` pour effacer le choix.",
             },
           },
         },
         UserAvatarPatchOk: {
           type: "object",
-          required: ["ok", "selectedAvatarId", "selectedAvatar"],
+          required: ["ok", "image", "selectedAvatarId", "selectedAvatar"],
           properties: {
             ok: { type: "boolean", const: true },
+            image: { type: ["string", "null"], format: "uri", maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH },
             selectedAvatarId: { type: ["string", "null"] },
             selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
           },
@@ -667,7 +683,6 @@ export function buildGrandEstOpenApiDocument() {
           required: [
             "theme",
             "accentHue",
-            "dicebearAvatarUrl",
             "locale",
             "haptics",
             "soundEffects",
@@ -687,14 +702,6 @@ export function buildGrandEstOpenApiDocument() {
               maximum: 360,
               description:
                 "Teinte d’accent (roue app : **0 = jaune**, **60 = rouge**, puis le reste du cercle). Entier 0–360.",
-            },
-            dicebearAvatarUrl: {
-              type: ["string", "null"],
-              format: "uri",
-              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
-              description:
-                "URL DiceBear complète choisie par le joueur (HTTPS, domaine `dicebear.com`). " +
-                "Ex. `https://api.dicebear.com/10.x/lorelei/svg?seed=…` — `null` si pas encore personnalisé.",
             },
             locale: { type: "string", enum: ["fr", "en"] },
             haptics: { type: "boolean" },
@@ -722,11 +729,6 @@ export function buildGrandEstOpenApiDocument() {
           properties: {
             theme: { type: "string", enum: ["light", "dark", "system"] },
             accentHue: { type: "integer", minimum: 0, maximum: 360 },
-            dicebearAvatarUrl: {
-              type: ["string", "null"],
-              format: "uri",
-              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
-            },
             locale: { type: "string", enum: ["fr", "en"] },
             haptics: { type: "boolean" },
             soundEffects: { type: "boolean" },
@@ -2432,8 +2434,9 @@ export function buildGrandEstOpenApiDocument() {
       "/api/user/avatar": {
         get: {
           tags: ["Utilisateur"],
-          summary: "Préférence avatar du joueur",
-          description: "Retourne `selectedAvatarId` et le détail `selectedAvatar` si un choix est enregistré.",
+          summary: "Préférences avatar du joueur",
+          description:
+            "Retourne `image` (photo profil DiceBear, champ `User.image`) et le compagnon 3D (`selectedAvatarId`, `selectedAvatar`).",
           security: [{ sessionCookie: [] }],
           responses: {
             "200": {
@@ -2448,9 +2451,9 @@ export function buildGrandEstOpenApiDocument() {
         },
         patch: {
           tags: ["Utilisateur"],
-          summary: "Choisir ou effacer l’avatar",
+          summary: "Mettre à jour photo profil et/ou compagnon 3D",
           description:
-            "Corps `{ \"selectedAvatarId\": \"…\" }` pour un avatar **actif**, ou **`null`** pour effacer. " +
+            "Corps **partiel** : `image` (URL DiceBear → `User.image`) et/ou `selectedAvatarId` (compagnon 3D actif). " +
             `**Rate limit** : ~${20}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           requestBody: {

@@ -300,8 +300,8 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 
 | Méthode | Chemin | Description |
 |---------|--------|-------------|
-| GET | `/api/user/avatar` | Préférence avatar 3D (`selectedAvatarId`, détail `selectedAvatar`) |
-| PATCH | `/api/user/avatar` | Choisir l’avatar ; corps `{ "selectedAvatarId" }` ou `null` ; rate limit |
+| GET | `/api/user/avatar` | `image` (photo profil DiceBear) + compagnon 3D (`selectedAvatarId`, `selectedAvatar`) |
+| PATCH | `/api/user/avatar` | Corps partiel : `image` (URL DiceBear) et/ou `selectedAvatarId` ; rate limit |
 | GET | `/api/user/preferences` | Préférences app (thème, `accentHue`, carte, sons, accessibilité) |
 | PATCH | `/api/user/preferences` | Mise à jour partielle ; `accentHue` entier 0–360 (0 = jaune, 60 = rouge) ; rate limit |
 | GET | `/api/user/badges` | Catalogue badges + `earned` (acquis ou non) |

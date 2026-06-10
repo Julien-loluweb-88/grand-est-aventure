@@ -67,14 +67,13 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 ### Avatars compagnon (paramètres / carte / AR)
 
 - [ ] `GET /api/game/avatars` — liste des avatars actifs ; afficher **nom** + **aperçu** si `thumbnailUrl` ; conserver **`id`** (pour `PATCH`) et **`slug`** (pour le repli bundle local) ; si **`modelUrl`** est non nul, préférer ce **.glb** (URL absolue ou `/uploads/…` sur l’origine API).  
-- [ ] `GET /api/user/avatar` — préférence serveur (`selectedAvatarId` peut être `null` au premier usage).  
-- [ ] `PATCH /api/user/avatar` — corps `{ "selectedAvatarId": "…" }` ou `{ "selectedAvatarId": null }` ; gérer **404** (avatar inactif / inconnu) et **429**.
+- [ ] `GET /api/user/avatar` — `image` (photo profil DiceBear, `User.image`, `null` si absent) + `selectedAvatarId` / `selectedAvatar` (compagnon 3D).  
+- [ ] `PATCH /api/user/avatar` — corps **partiel** : `{ "image": "https://api.dicebear.com/…" }` et/ou `{ "selectedAvatarId": "…" }` ; `null` pour effacer ; gérer **400** (URL non DiceBear), **404** (compagnon inactif), **429**.
 
 ### Préférences app (thème, carte, sons)
 
 - [ ] `GET /api/user/preferences` — objet `preferences` complet (défauts serveur si jamais personnalisé).  
 - [ ] `PATCH /api/user/preferences` — corps **partiel** (ex. `{ "theme": "dark", "accentHue": 60 }`) ; `accentHue` entier **0–360** (roue app : **0 = jaune**, **60 = rouge**) ; gérer **400** et **429**.  
-- [ ] `dicebearAvatarUrl` — URL DiceBear **complète** choisie par le joueur (HTTPS, domaine `dicebear.com`) ; `null` tant que non personnalisé ; ex. `PATCH { "dicebearAvatarUrl": "https://api.dicebear.com/10.x/lorelei/svg?seed=…" }`.  
 - [ ] Slider / roue teinte côté app : convertir `accentHue` en couleur d’UI selon votre échelle (pas le HSL CSS standard).  
 - [ ] Cache local **AsyncStorage** : appliquer le thème tout de suite, synchroniser en arrière-plan au login / à chaque changement (debounce ~300–500 ms).
 
