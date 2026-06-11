@@ -51,6 +51,7 @@ model User {
   /// Nombre max d’emplacements publicitaires (superadmin) ; null = pas de quota commerçant.
   merchantMaxAdvertisementSlots   Int?
   ownedAdvertisements             Advertisement[]            @relation("AdvertisementOwnerMerchant")
+  pushTokens PushToken[]
 
   @@map("user")
 }
