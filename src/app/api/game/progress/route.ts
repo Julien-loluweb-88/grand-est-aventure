@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Aventure introuvable ou inactive." }, { status: 404 });
   }
 
-  const [validations, userAdventure] = await Promise.all([
+  const [validations, enture] = await Promise.all([
     prisma.userAdventureStepValidation.findMany({
       where: { userId, adventureId },
       select: { stepKey: true, validatedAt: true },
