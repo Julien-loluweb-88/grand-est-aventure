@@ -18,6 +18,8 @@ model User {
   banExpires                DateTime?
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
+  lastLatitude   Float?
+  lastLongitude  Float?
   sessions                  Session[]
   accounts                  Account[]
   userAdventures            UserAdventures[]

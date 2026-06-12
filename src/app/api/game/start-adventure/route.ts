@@ -58,6 +58,8 @@ export async function POST(request: NextRequest) {
   const b = body as Record<string, unknown>;
   const adventureId = typeof b.adventureId === "string" ? b.adventureId.trim() : "";
   const userId = typeof b.userId === "string" ? b.userId.trim() : "";
+const latitude = typeof b.latitude === "number" ? b.latitude : null;
+const longitude = typeof b.longitude === "number" ? b.longitude : null;
 
   if (!adventureId || !userId) {
     return NextResponse.json(
@@ -111,6 +113,13 @@ export async function POST(request: NextRequest) {
   const created = await prisma.$transaction(async (tx) =>
     ensureActivePlaySession(tx, userId, adventureId)
   );
+
+  if (latitude !== null && longitude !== null) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { lastLatitude: latitude, lastLongitude: longitude },
+  });
+}
 
   return NextResponse.json({
     ok: true,
