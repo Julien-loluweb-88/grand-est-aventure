@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { publicCatalogAdventureWhere } from "@/lib/adventure-public-access";
+import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
+import { batchLoadAdventurePlayerStateByUser } from "@/lib/game/adventure-player-state";
 import {
   loadApprovedReviewAggregatesByAdventureIds,
   reviewAggregateForAdventure,
 } from "@/lib/game/adventure-review-aggregates";
 import {
   attachDistanceFromUser,
+  buildPlayAvailabilityMapForCatalogRows,
+  catalogRowToPlayerStateBatchInput,
   sortCatalogRowsByDistanceFromUser,
   toMobileAdventureListItem,
 } from "@/lib/game/mobile-adventure-catalog";
+import { batchLoadMyReviewByUserAndAdventureIds } from "@/lib/game/adventure-play-availability";
 import { prisma } from "@/lib/prisma";
 
 const DEFAULT_LIMIT = 20;
@@ -83,6 +88,13 @@ export async function GET(request: NextRequest) {
       playDurationSampleCount: true,
       coverImageUrl: true,
       updatedAt: true,
+      physicalBadgeStockCount: true,
+      treasureUnavailable: true,
+      treasureUnavailableMessage: true,
+      treasureUnavailableUpdatedAt: true,
+      physicalBadgesUnavailable: true,
+      physicalBadgesUnavailableMessage: true,
+      physicalBadgesUnavailableUpdatedAt: true,
       city: {
         select: {
           id: true,
@@ -90,7 +102,7 @@ export async function GET(request: NextRequest) {
           postalCodes: true,
         },
       },
-      enigmas: { select: { id: true } },
+      enigmas: { select: { id: true, number: true } },
       treasure: { select: { id: true } },
     },
   });
@@ -104,9 +116,24 @@ export async function GET(request: NextRequest) {
   );
 
   const paginated = filtered.slice(offset, offset + limit);
-  const reviewAggregates = await loadApprovedReviewAggregatesByAdventureIds(
-    paginated.map(({ row }) => row.id)
-  );
+  const paginatedIds = paginated.map(({ row }) => row.id);
+
+  const userId = await getOptionalUserIdFromApiRequest(request);
+
+  const [reviewAggregates, playerStateByAdventureId, playAvailabilityById, myReviewById] =
+    await Promise.all([
+    loadApprovedReviewAggregatesByAdventureIds(paginatedIds),
+    userId
+      ? batchLoadAdventurePlayerStateByUser(
+          userId,
+          paginated.map(({ row }) => catalogRowToPlayerStateBatchInput(row))
+        )
+      : Promise.resolve(new Map()),
+    buildPlayAvailabilityMapForCatalogRows(paginated.map(({ row }) => row)),
+    userId
+      ? batchLoadMyReviewByUserAndAdventureIds(userId, paginatedIds)
+      : Promise.resolve(new Map()),
+  ]);
 
   return NextResponse.json({
     total: filtered.length,
@@ -116,7 +143,10 @@ export async function GET(request: NextRequest) {
       toMobileAdventureListItem(
         row,
         distanceFromUserKm,
-        reviewAggregateForAdventure(reviewAggregates, row.id)
+        reviewAggregateForAdventure(reviewAggregates, row.id),
+        playAvailabilityById.get(row.id)!,
+        userId ? playerStateByAdventureId.get(row.id) : undefined,
+        userId ? myReviewById.get(row.id) : undefined
       )
     ),
   });

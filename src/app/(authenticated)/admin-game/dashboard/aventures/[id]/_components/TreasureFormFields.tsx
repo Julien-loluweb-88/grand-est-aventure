@@ -97,57 +97,14 @@ export function TreasureFormFields({
             )}
           />
           <Controller
-            name="mapRevealCode"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field>
-                <FieldLabel htmlFor={field.name}>Code révélation (carte)</FieldLabel>
-                <FieldDescription>
-                  Fin d’énigmes : ce que le joueur saisit pour <strong>afficher le trésor sur la carte</strong>{" "}
-                  (étape <code className="text-xs">treasure:map</code>).
-                </FieldDescription>
-                <Input
-                  className="w-100!"
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  autoComplete="off"
-                  placeholder="Combinaison ou mot de passe de fin"
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-          <Controller
-            name="mapRevealCodeAlt"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field>
-                <FieldLabel htmlFor={field.name}>Variante tolérée (carte)</FieldLabel>
-                <FieldDescription>
-                  Optionnel : autre forme acceptée pour la même révélation (orthographe, etc.).
-                </FieldDescription>
-                <Input
-                  className="w-100!"
-                  {...field}
-                  id={field.name}
-                  aria-invalid={fieldState.invalid}
-                  autoComplete="off"
-                  placeholder="Laisser vide si inutile"
-                />
-                {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-              </Field>
-            )}
-          />
-          <Controller
             name="chestCode"
             control={control}
             render={({ field, fieldState }) => (
               <Field>
                 <FieldLabel htmlFor={field.name}>Code dans le trésor (coffre)</FieldLabel>
                 <FieldDescription>
-                  Ce qui est sur / dans le support physique, saisi <strong>après</strong> la révélation
-                  sur la carte (étape <code className="text-xs">treasure</code>).
+                  Ce qui est sur / dans le support physique, saisi pour finaliser le parcours (étape{" "}
+                  <code className="text-xs">treasure</code>).
                 </FieldDescription>
                 <Input
                   className="w-100!"

@@ -87,6 +87,17 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+function applyStoredPreference<K extends keyof UserAppPreferences>(
+  target: UserAppPreferences,
+  key: K,
+  raw: unknown
+): void {
+  const parsed = userAppPreferencesShape[key].safeParse(raw);
+  if (parsed.success) {
+    target[key] = parsed.data as UserAppPreferences[K];
+  }
+}
+
 /** Fusionne la valeur stockée (éventuellement partielle ou invalide) avec les défauts. */
 export function resolveUserAppPreferences(stored: unknown): UserAppPreferences {
   const resolved: UserAppPreferences = { ...DEFAULT_USER_APP_PREFERENCES };
@@ -96,10 +107,7 @@ export function resolveUserAppPreferences(stored: unknown): UserAppPreferences {
 
   for (const key of PREFERENCE_KEYS) {
     if (!(key in stored)) continue;
-    const parsed = userAppPreferencesShape[key].safeParse(stored[key]);
-    if (parsed.success) {
-      resolved[key] = parsed.data;
-    }
+    applyStoredPreference(resolved, key, stored[key]);
   }
 
   return resolved;

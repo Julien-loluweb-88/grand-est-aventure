@@ -1,3 +1,5 @@
+import { DICEBEAR_AVATAR_URL_MAX_LENGTH } from "@/lib/dicebear-avatar-url";
+
 /**
  * Spécification OpenAPI 3.1 de toutes les routes HTTP exposées par l’app Next.js.
  * À maintenir quand vous ajoutez ou modifiez un handler sous src/app/api/ (fichiers route.ts).
@@ -18,6 +20,96 @@ const RATE_LIMIT_NOTE =
 const ADVENTURE_AUDIENCE_DEMO =
   " **Aventures démo** (`Adventure.audience = DEMO`) : absentes du catalogue et du comptage villes « actives » ; " +
   "accès détail / jeu / avis / POI découverte filtrés réservés aux **admin / superadmin** ou aux comptes autorisés (`AdventureDemoAccess`). Sinon **404**.";
+
+/** État joueur agrégé (session + progression) — présent uniquement si session / Bearer valide. */
+const ADVENTURE_PLAYER_STATE_SCHEMA = {
+  type: "object",
+  required: [
+    "hasOpenPlaySession",
+    "hasGameplayProgress",
+    "playStatus",
+    "validatedStepCount",
+    "totalStepCount",
+  ],
+  properties: {
+    hasOpenPlaySession: {
+      type: "boolean",
+      description:
+        "Session chrono `UserAdventurePlaySession` **IN_PROGRESS** pour ce joueur et cette aventure.",
+    },
+    hasGameplayProgress: {
+      type: "boolean",
+      description:
+        "Au moins une étape validée (`userAdventureStepValidation`) ou ligne `userAdventures` existante.",
+    },
+    playStatus: {
+      type: "string",
+      enum: ["NOT_STARTED", "SESSION_OPEN", "IN_PROGRESS", "COMPLETED"],
+      description:
+        "Priorité : **COMPLETED** > **IN_PROGRESS** (gameplay) > **SESSION_OPEN** (chrono sans étape) > **NOT_STARTED**.",
+    },
+    validatedStepCount: {
+      type: "integer",
+      minimum: 0,
+      description: "Étapes requises déjà validées (énigmes + trésor selon règles `progress`).",
+    },
+    totalStepCount: {
+      type: "integer",
+      minimum: 0,
+      description: "Nombre total d’étapes requises pour terminer le parcours.",
+    },
+  },
+} as const;
+
+const ADVENTURE_PLAY_AVAILABILITY_SCHEMA = {
+  type: "object",
+  required: ["hasTreasure", "physicalBadges", "treasureNotice", "badgesNotice"],
+  properties: {
+    hasTreasure: { type: "boolean" },
+    physicalBadges: {
+      type: ["object", "null"],
+      description:
+        "Présent si `physicalBadgeStockCount > 0` sur l’aventure. `availableCount` = exemplaires AVAILABLE (mis à jour au réassort admin).",
+      properties: {
+        tracked: { type: "boolean", const: true },
+        availableCount: { type: "integer", minimum: 0 },
+      },
+    },
+    treasureNotice: {
+      type: ["object", "null"],
+      description:
+        "Alerte trésor indisponible (admin ou activation auto à la validation d’un signalement `reportsStolenTreasure`).",
+      properties: {
+        status: { type: "string", enum: ["TEMPORARILY_UNAVAILABLE"] },
+        message: { type: ["string", "null"] },
+        updatedAt: { type: "string", format: "date-time" },
+      },
+    },
+    badgesNotice: {
+      type: ["object", "null"],
+      description:
+        "Alerte badges indisponibles (admin ou activation auto à la validation d’un signalement `reportsMissingBadge`).",
+      properties: {
+        status: { type: "string", enum: ["TEMPORARILY_UNAVAILABLE"] },
+        message: { type: ["string", "null"] },
+        updatedAt: { type: "string", format: "date-time" },
+      },
+    },
+  },
+} as const;
+
+const ADVENTURE_MY_REVIEW_SCHEMA = {
+  type: "object",
+  required: ["reportsStolenTreasure", "reportsMissingBadge", "moderationStatus"],
+  properties: {
+    reportsStolenTreasure: { type: "boolean" },
+    reportsMissingBadge: { type: "boolean" },
+    moderationStatus: {
+      type: "string",
+      enum: ["DRAFT", "PENDING", "APPROVED", "REJECTED"],
+    },
+  },
+} as const;
 
 /** Si API_DOCS_ENABLED vaut la chaîne « false », désactive /api/openapi et la page docs. */
 export function apiDocsDisabled(): boolean {
@@ -136,21 +228,93 @@ export function buildGrandEstOpenApiDocument() {
             ok: { type: "boolean", const: true },
             stepKey: {
               type: "string",
-              description: "`treasure:map` après révélation sur la carte, puis `treasure` après le code coffre.",
-              example: "treasure:map",
+              description: "`treasure` après validation du code coffre.",
+              example: "treasure",
             },
             alreadyValidated: { type: "boolean" },
             awardedUserBadgeIds: {
               type: "array",
               items: { type: "string" },
               description:
-                "Présent après **code coffre** (ou rattrapage legacy) : ids `UserBadge` attribués.",
+                "Ids `UserBadge` nouvellement créés à cette finalisation (doublon avec `awardedBadges[].userBadgeId`).",
+            },
+            awardedBadges: {
+              type: "array",
+              description:
+                "Badges virtuels gagnés **cette finalisation**, prêts à afficher (titre, image, kind).",
+              items: { $ref: "#/components/schemas/AwardedBadgeDetail" },
+            },
+            giftNumber: {
+              type: "integer",
+              minimum: 0,
+              description:
+                "Numéro badge physique attribué (`UserAdventures.giftNumber`) — 0 si non applicable.",
             },
             message: {
               type: "string",
               description: "Présent quand l’aventure est finalisée sur cette requête.",
             },
           },
+        },
+        AwardedBadgeDetail: {
+          type: "object",
+          required: [
+            "userBadgeId",
+            "badgeDefinitionId",
+            "title",
+            "imageUrl",
+            "kind",
+            "adventureId",
+          ],
+          properties: {
+            userBadgeId: { type: "string" },
+            badgeDefinitionId: { type: "string" },
+            title: { type: "string" },
+            imageUrl: { type: ["string", "null"] },
+            kind: { type: "string" },
+            adventureId: { type: ["string", "null"] },
+          },
+        },
+        AdventureCompletionBadgePublic: {
+          type: "object",
+          required: ["badgeDefinitionId", "title", "imageUrl"],
+          description:
+            "Badge virtuel de complétion configuré pour l’aventure (catalogue, fallback UI rejeu).",
+          properties: {
+            badgeDefinitionId: { type: "string" },
+            title: { type: "string" },
+            imageUrl: { type: ["string", "null"] },
+          },
+        },
+        PlayerCompletionBadgePublic: {
+          allOf: [
+            { $ref: "#/components/schemas/AdventureCompletionBadgePublic" },
+            {
+              type: "object",
+              required: ["userBadgeId", "earnedAt"],
+              description:
+                "Badge complétion déjà acquis par le joueur connecté (rejeu, écran victoire sans `awardedBadges`).",
+              properties: {
+                userBadgeId: { type: "string" },
+                earnedAt: { type: "string", format: "date-time" },
+              },
+            },
+          ],
+        },
+        GameFinishSuccessOk: {
+          allOf: [
+            { $ref: "#/components/schemas/ValidateTreasureOk" },
+            {
+              type: "object",
+              properties: {
+                stepKey: {
+                  type: "string",
+                  description: "`treasure` ou `finish` (sans trésor).",
+                },
+                alreadyFinished: { type: "boolean" },
+              },
+            },
+          ],
         },
         ProgressPayload: {
           type: "object",
@@ -473,27 +637,43 @@ export function buildGrandEstOpenApiDocument() {
         },
         UserAvatarPreferenceResponse: {
           type: "object",
-          required: ["selectedAvatarId"],
+          required: ["image", "selectedAvatarId"],
           properties: {
+            image: {
+              type: ["string", "null"],
+              format: "uri",
+              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
+              description:
+                "Photo profil (`User.image`) : URL DiceBear complète. `null` si non personnalisée.",
+            },
             selectedAvatarId: { type: ["string", "null"] },
             selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
           },
         },
         UserAvatarPatchBody: {
           type: "object",
-          required: ["selectedAvatarId"],
+          description: "Mise à jour partielle : au moins `image` ou `selectedAvatarId`.",
+          minProperties: 1,
           properties: {
+            image: {
+              oneOf: [{ type: "string" }, { type: "null" }],
+              format: "uri",
+              maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH,
+              description:
+                "URL DiceBear HTTPS (domaine `dicebear.com`) stockée dans `User.image`, ou `null` pour effacer.",
+            },
             selectedAvatarId: {
               oneOf: [{ type: "string" }, { type: "null" }],
-              description: "Id Prisma d’un avatar actif, ou `null` pour effacer le choix.",
+              description: "Id Prisma d’un compagnon 3D actif, ou `null` pour effacer le choix.",
             },
           },
         },
         UserAvatarPatchOk: {
           type: "object",
-          required: ["ok", "selectedAvatarId", "selectedAvatar"],
+          required: ["ok", "image", "selectedAvatarId", "selectedAvatar"],
           properties: {
             ok: { type: "boolean", const: true },
+            image: { type: ["string", "null"], format: "uri", maxLength: DICEBEAR_AVATAR_URL_MAX_LENGTH },
             selectedAvatarId: { type: ["string", "null"] },
             selectedAvatar: { oneOf: [{ type: "null" }, { $ref: "#/components/schemas/GameAvatarItem" }] },
           },
@@ -726,6 +906,7 @@ export function buildGrandEstOpenApiDocument() {
             "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination. " +
             "Avec **latitude + longitude** : tri **`distanceFromUserKm` croissant** (plus proche en premier) avant pagination. " +
             "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**. " +
+            "Avec session ou **`Authorization: Bearer`** valide : chaque aventure inclut **`playerState`** (agrégat serveur, pas d’appel `progress` par carte). Sans auth : champ absent. " +
             "Chaque entrée peut inclure **`estimatedDurationSeconds`** (heuristique admin : marche + énigmes + trésor), " +
             "**`averagePlayDurationSeconds`** et **`playDurationSampleCount`** (moyenne temps réel après assez de parties — alimentées par le cron). " +
             "**`averageRating`** / **`reviewCount`** : moyenne et effectif des avis publics (`APPROVED`) avec note 1–5. " +
@@ -791,6 +972,8 @@ export function buildGrandEstOpenApiDocument() {
                             distanceFromUserKm: { type: ["number", "null"] },
                             enigmaCount: { type: "integer" },
                             hasTreasure: { type: "boolean" },
+                            playAvailability: ADVENTURE_PLAY_AVAILABILITY_SCHEMA,
+                            myReview: ADVENTURE_MY_REVIEW_SCHEMA,
                             estimatedDurationSeconds: {
                               type: ["integer", "null"],
                               description:
@@ -816,6 +999,7 @@ export function buildGrandEstOpenApiDocument() {
                               description: "Nombre d’avis notés inclus dans averageRating.",
                             },
                             updatedAt: { type: "string", format: "date-time" },
+                            playerState: ADVENTURE_PLAYER_STATE_SCHEMA,
                           },
                         },
                       },
@@ -834,10 +1018,12 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Accueil mobile agrégé (public)",
           description:
             "Route sans authentification obligatoire : **toutes** les aventures catalogue pour la carte (triées du **plus proche au plus loin** si GPS fourni), " +
-            "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés. " +
+            "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés (hors signalements seuls). " +
+            "Chaque aventure inclut **`playAvailability`** (badges physiques dispo, alerte trésor admin) et **`myReview`** si session. " +
             "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
             "**`communityStats`** : totaux plateforme si anonyme (`scope: global`, cache TTL ~5 min) ; " +
             "compteurs du joueur si session / `Authorization: Bearer` valide (`scope: user`). Session invalide → `global`, pas de **401**. " +
+            "Aventures / carrousel : **`playerState`** par entrée si joueur authentifié (même objet que le catalogue). " +
             "**`advertisements`** : encarts `placement=home` (même schéma que `GET /api/advertisements`) ; ville cible inférée depuis GPS " +
             "(API Gouv INSEE → `City`, repli ville catalogue la plus proche ≤ 15 km). **`locationContext`** indique la ville utilisée pour le ciblage. " +
             "Ne contient pas de gamification niveau / XP.",
@@ -946,12 +1132,16 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Détail public d’une aventure active, incluant énigmes et trésor " +
             "sans exposer les champs sensibles : pas de `answer` / `correctAnswers` ; les codes trésor " +
-            "(`mapRevealCode`, `chestCode`, variantes) ne sont jamais renvoyés — validés uniquement via POST `/api/game/validate-treasure`. " +
+            "(`chestCode`, variante) ne sont jamais renvoyés — validés uniquement via POST `/api/game/validate-treasure`. " +
             "Chaque énigme inclut notamment **`choice`** (libellés QCM), **`uniqueResponse`**, **`multiSelect`** : si `multiSelect` est true, " +
             "le joueur envoie **`submissions`** (tableau) à POST `/api/game/validate-enigma` ; sinon **`submission`** (chaîne). " +
             "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +
             "(équivalent à `GET /api/game/discovery-points?cityId=` avec l’id ville renvoyé dans `city.id`). " +
             "**Durées** : `estimatedDurationSeconds` (heuristique), `averagePlayDurationSeconds` / `playDurationSampleCount` (stats réelles via cron). " +
+            "**`playerState`** (session + progression agrégée) si joueur authentifié avec accès à l’aventure ; absent si anonyme. " +
+            "**`userAdventure`** (session) : fin de partie serveur (`success`, `giftNumber`) — **`null` après reset admin** ; source de vérité pour `isReplay` côté app (ne pas se fier au cache local). " +
+            "**`completionBadge`** : définition du badge virtuel de complétion (titre, image) — toujours présent si configuré. " +
+            "**`playerCompletionBadge`** (session) : badge déjà gagné par le joueur pour cette aventure ; utile en **rejeu** quand POST finish ne renvoie pas `awardedBadges`. " +
             "Pour une aventure **`DEMO`**, session requise + droit d’accès ; sinon **404**." +
             ADVENTURE_AUDIENCE_DEMO,
           parameters: [
@@ -987,6 +1177,18 @@ export function buildGrandEstOpenApiDocument() {
                         description: "Nombre de parties terminées avec succès dans le calcul moyenne.",
                       },
                       physicalBadgeStockCount: { type: "integer" },
+                      playAvailability: ADVENTURE_PLAY_AVAILABILITY_SCHEMA,
+                      myReview: ADVENTURE_MY_REVIEW_SCHEMA,
+                      completionBadge: {
+                        oneOf: [
+                          { $ref: "#/components/schemas/AdventureCompletionBadgePublic" },
+                          { type: "null" },
+                        ],
+                      },
+                      playerCompletionBadge: {
+                        $ref: "#/components/schemas/PlayerCompletionBadgePublic",
+                        description: "Présent si session et badge déjà acquis.",
+                      },
                       enigmas: { type: "array", items: { type: "object", additionalProperties: true } },
                       treasure: { type: ["object", "null"], additionalProperties: true },
                       discoveryPoints: {
@@ -1021,6 +1223,17 @@ export function buildGrandEstOpenApiDocument() {
                         },
                       },
                       updatedAt: { type: "string", format: "date-time" },
+                      playerState: ADVENTURE_PLAYER_STATE_SCHEMA,
+                      userAdventure: {
+                        type: ["object", "null"],
+                        description:
+                          "Fin de partie serveur (session). `null` si jamais terminée ou après reset admin.",
+                        properties: {
+                          success: { type: "boolean" },
+                          giftNumber: { type: "integer" },
+                          updatedAt: { type: "string", format: "date-time" },
+                        },
+                      },
                     },
                   },
                 },
@@ -1426,22 +1639,10 @@ export function buildGrandEstOpenApiDocument() {
           responses: {
             "200": {
               description:
-                "Succès : `stepKey` : `finish`, `awardedUserBadgeIds` si première finalisation, `alreadyFinished` si déjà terminé.",
+                "Succès : finalisation avec `awardedBadges`, `giftNumber`, `awardedUserBadgeIds`. `alreadyFinished` si déjà terminé.",
               content: {
                 "application/json": {
-                  schema: {
-                    type: "object",
-                    properties: {
-                      ok: { type: "boolean" },
-                      stepKey: { type: "string" },
-                      alreadyFinished: { type: "boolean" },
-                      awardedUserBadgeIds: {
-                        type: "array",
-                        items: { type: "string" },
-                      },
-                      message: { type: "string" },
-                    },
-                  },
+                  schema: { $ref: "#/components/schemas/GameFinishSuccessOk" },
                 },
               },
             },
@@ -1466,17 +1667,14 @@ export function buildGrandEstOpenApiDocument() {
       "/api/game/validate-treasure": {
         post: {
           tags: ["Jeu"],
-          summary: "Valider le trésor (carte puis coffre)",
+          summary: "Valider le trésor (code coffre)",
           description:
             "**Prérequis** : toutes les énigmes doivent être validées (`validate-enigma`).\n\n" +
-            "**Deux étapes** (même route, soumissions successives) :\n" +
-            "1. **Révélation sur la carte** : le joueur envoie le code de **fin d’énigme** (`Treasure.mapRevealCode`, variante `mapRevealCodeAlt`). Réponse `stepKey` : `treasure:map`.\n" +
-            "2. **Code dans le coffre** : ensuite le code **physique** (`Treasure.chestCode`, variante `chestCodeAlt`). Réponse `stepKey` : `treasure`.\n\n" +
-            "**Corps** : `adventureId`, `userId`, `code` (≤ 120 car.), optionnellement `phase` : `\"map\"` | `\"chest\"`, et **`giftNumber`** (entier ≥ 0) au moment du **code coffre** : nombre indiqué par le joueur.\n\n" +
-            "À l’étape coffre, la route exécute **`processGameFinish`** (succès, `giftNumber`, badges virtuels, instance badge physique si stock).\n\n" +
-            "Si `phase` est omis, le serveur en déduit une : carte d’abord, puis coffre.\n\n" +
-            "**Anciennes parties** (seule clé `treasure`) : une reprise envoie `giftNumber` si la ligne `UserAdventures` n’était pas encore en succès.\n\n" +
-            "Chaque aventure prévue avec **trésor** : la finalisation (badges, `UserAdventures`) se fait **uniquement** à l’étape coffre de cette route.\n\n" +
+            "Le joueur envoie le code **physique** du trésor (`Treasure.chestCode`, variante `chestCodeAlt`). Réponse `stepKey` : `treasure`.\n\n" +
+            "**Corps** : `adventureId`, `userId`, `code` (≤ 120 car.), et optionnellement **`giftNumber`** (entier ≥ 0) : nombre indiqué par le joueur.\n\n" +
+            "La route exécute **`processGameFinish`** (succès, `giftNumber`, badges virtuels, instance badge physique si stock).\n\n" +
+            "Si l’étape `treasure` est déjà validée mais que `UserAdventures` n’est pas encore en succès, une reprise avec `giftNumber` finalise la partie.\n\n" +
+            "Chaque aventure prévue avec **trésor** : la finalisation (badges, `UserAdventures`) se fait **uniquement** via cette route.\n\n" +
             "Aventure **démo** : même contrôle d’accès que `validate-enigma`.\n\n" +
             `**Rate limit** : ~40 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
@@ -1490,23 +1688,17 @@ export function buildGrandEstOpenApiDocument() {
                   properties: {
                     adventureId: { type: "string" },
                     userId: { type: "string" },
-                    phase: {
-                      type: "string",
-                      enum: ["map", "chest"],
-                      description:
-                        "Optionnel : force l’étape. Sinon déduction automatique (carte si pas encore `treasure:map`, sinon coffre).",
-                    },
                     code: {
                       type: "string",
                       maxLength: 120,
                       description:
-                        "Saisie joueur comparée aux codes trésor attendus pour l’étape (carte ou coffre), avec normalisation.",
+                        "Saisie joueur comparée au code coffre attendu, avec normalisation.",
                     },
                     giftNumber: {
                       type: "integer",
                       minimum: 0,
                       description:
-                        "À fournir avec le **code coffre** (ou legacy) : nombre de badge(s) / cadeau côté joueur (voir logique stock physique dans `processGameFinish`).",
+                        "Nombre de badge(s) / cadeau côté joueur (voir logique stock physique dans `processGameFinish`).",
                     },
                   },
                 },
@@ -1516,7 +1708,7 @@ export function buildGrandEstOpenApiDocument() {
           responses: {
             "200": {
               description:
-                "Carte : `treasure:map` seulement. Coffre : `treasure` + finalisation (`awardedUserBadgeIds`, `message` si première fois).",
+                "`treasure` + finalisation (`awardedBadges`, `giftNumber`, `awardedUserBadgeIds`, `message` si première fois).",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ValidateTreasureOk" } } },
             },
             "400": {
@@ -2242,8 +2434,9 @@ export function buildGrandEstOpenApiDocument() {
       "/api/user/avatar": {
         get: {
           tags: ["Utilisateur"],
-          summary: "Préférence avatar du joueur",
-          description: "Retourne `selectedAvatarId` et le détail `selectedAvatar` si un choix est enregistré.",
+          summary: "Préférences avatar du joueur",
+          description:
+            "Retourne `image` (photo profil DiceBear, champ `User.image`) et le compagnon 3D (`selectedAvatarId`, `selectedAvatar`).",
           security: [{ sessionCookie: [] }],
           responses: {
             "200": {
@@ -2258,9 +2451,9 @@ export function buildGrandEstOpenApiDocument() {
         },
         patch: {
           tags: ["Utilisateur"],
-          summary: "Choisir ou effacer l’avatar",
+          summary: "Mettre à jour photo profil et/ou compagnon 3D",
           description:
-            "Corps `{ \"selectedAvatarId\": \"…\" }` pour un avatar **actif**, ou **`null`** pour effacer. " +
+            "Corps **partiel** : `image` (URL DiceBear → `User.image`) et/ou `selectedAvatarId` (compagnon 3D actif). " +
             `**Rate limit** : ~${20}/min (IP + utilisateur). ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           requestBody: {

@@ -9,6 +9,7 @@ import {
   AdventureBadgeStockEventKind,
 } from "@/lib/badges/prisma-enums";
 import { recomputePhysicalBadgeStockCount } from "@/lib/badges/recompute-physical-badge-stock-count";
+import { applyPhysicalBadgeLossAllInTx } from "@/lib/badges/apply-physical-badge-loss-all";
 
 const NOTE_MIN = 5;
 
@@ -72,6 +73,15 @@ export async function restockPhysicalBadgeStock(
       });
 
       await recomputePhysicalBadgeStockCount(tx, adventureId);
+
+      await tx.adventure.update({
+        where: { id: adventureId },
+        data: {
+          physicalBadgesUnavailable: false,
+          physicalBadgesUnavailableMessage: null,
+          physicalBadgesUnavailableUpdatedAt: null,
+        },
+      });
     });
 
     revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
@@ -104,36 +114,14 @@ export async function reportPhysicalBadgeLossAll(
 
   try {
     await prisma.$transaction(async (tx) => {
-      const available = await tx.adventureBadgeInstance.findMany({
-        where: { adventureId, status: AdventureBadgeInstanceStatus.AVAILABLE },
-        select: { id: true },
+      const { markedCount } = await applyPhysicalBadgeLossAllInTx(tx, {
+        adventureId,
+        note: note.trim(),
+        createdByUserId: gate.actor.id,
       });
-      if (available.length === 0) {
+      if (markedCount === 0) {
         throw new Error("Aucun exemplaire disponible à marquer comme perdu.");
       }
-      await tx.adventureBadgeInstance.updateMany({
-        where: {
-          id: { in: available.map((r) => r.id) },
-        },
-        data: { status: AdventureBadgeInstanceStatus.STOLEN },
-      });
-
-      const availableAfter = await tx.adventureBadgeInstance.count({
-        where: { adventureId, status: AdventureBadgeInstanceStatus.AVAILABLE },
-      });
-
-      await tx.adventureBadgeStockEvent.create({
-        data: {
-          adventureId,
-          kind: AdventureBadgeStockEventKind.LOSS_INCIDENT,
-          availableDelta: -available.length,
-          availableAfter,
-          note: note.trim(),
-          createdByUserId: gate.actor.id,
-        },
-      });
-
-      await recomputePhysicalBadgeStockCount(tx, adventureId);
     });
 
     revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);

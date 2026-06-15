@@ -30,6 +30,15 @@ model Adventure {
   coverImageUrl    String?
   /// Nombre d’exemplaires physiques numérotés (stock dans `AdventureBadgeInstance`). 0 = pas de suivi stock.
   physicalBadgeStockCount Int @default(0)
+  /// Alerte joueur : trésor absent / volé / indisponible sur le lieu (réactivée par l’admin).
+  treasureUnavailable           Boolean   @default(false)
+  /// Message court optionnel affiché aux joueurs (ex. date de réapprovisionnement).
+  treasureUnavailableMessage    String?
+  treasureUnavailableUpdatedAt  DateTime?
+  /// Alerte joueur : badges physiques indisponibles (validation signalement ou admin).
+  physicalBadgesUnavailable           Boolean   @default(false)
+  physicalBadgesUnavailableMessage    String?
+  physicalBadgesUnavailableUpdatedAt  DateTime?
   /// Aventure visible par tous les joueurs (`PUBLIC`) ou réservée démo (`DEMO`).
   audience         AdventureAudience      @default(PUBLIC)
   /// Règlement / mentions légales roue partenaires (texte brut ou markdown) ; affiché aux joueurs si renseigné.
@@ -123,11 +132,7 @@ model Treasure {
   name        String
   description Json
   latitude    Float
-  /// Combinaison / fin d’énigmes : ce que le joueur saisit pour **révéler le trésor sur la carte** (étape `treasure:map`).
-  mapRevealCode     String
-  /// Variante tolérée pour la même saisie (orthographe, etc.). Jamais exposé aux clients publics.
-  mapRevealCodeAlt  String?
-  /// Code **dans le trésor physique** (coffre, étiquette…), validé **après** la révélation sur la carte (étape `treasure`).
+  /// Code **dans le trésor physique** (coffre, étiquette…), validé à l’étape `treasure`.
   chestCode         String
   chestCodeAlt      String?
   longitude   Float

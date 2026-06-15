@@ -47,7 +47,7 @@ Références complémentaires :
 | `POST` | `/api/game/start-adventure` | Au **« Commencer »** (recommandé) : ouvre une **`UserAdventurePlaySession`** `IN_PROGRESS` (idempotent). |
 | `POST` | `/api/game/validate-enigma` | Après chaque bonne réponse, **dans l’ordre** des énigmes imposé par le serveur. |
 | `POST` | `/api/game/validate-finish` | **Sans trésor** : lorsque **toutes** les énigmes sont validées **et** qu’il n’existe **pas** de trésor sur l’aventure. |
-| `POST` | `/api/game/validate-treasure` | **Avec trésor** : **carte** (`treasure:map`) puis **coffre** (`treasure`) — même route, codes successifs. |
+| `POST` | `/api/game/validate-treasure` | **Avec trésor** : code **coffre** (`treasure`) — finalise la partie. |
 
 **Règle importante** : si un **trésor** est configuré, la finalisation badges / `UserAdventures` passe par l’étape **coffre** de `validate-treasure`. `validate-finish` renvoie alors une erreur du type **`TREASURE_REQUIRED`**. Sans trésor, c’est **`validate-finish`** qui appelle la même finalisation que le code coffre (`processGameFinish`).
 
@@ -74,8 +74,8 @@ Références complémentaires :
 | Méthode | Route | Rôle |
 |--------|--------|------|
 | `GET` | `/api/user/badges` | Catalogue badges + `earned`. |
-| `GET` | `/api/user/avatar` | Préférence avatar (`selectedAvatarId`, objet `selectedAvatar` si défini). |
-| `PATCH` | `/api/user/avatar` | Corps `{ "selectedAvatarId": "<id Prisma>" }` ou `null` pour effacer ; avatar doit être **actif** (`GET /api/game/avatars`). |
+| `GET` | `/api/user/avatar` | `image` (photo profil DiceBear, `User.image`) + compagnon 3D (`selectedAvatarId`, `selectedAvatar`). |
+| `PATCH` | `/api/user/avatar` | Corps partiel : `image` (URL DiceBear → `User.image`) et/ou `selectedAvatarId` (compagnon actif, `GET /api/game/avatars`) ; `null` pour effacer. |
 | `GET` | `/api/user/preferences` | Préférences app (thème, accent, carte, sons, accessibilité) — objet complet avec défauts. |
 | `PATCH` | `/api/user/preferences` | Mise à jour **partielle** (`theme`, `accentHue`, `locale`, `haptics`, …) ; `accentHue` entier 0–360 (0 = jaune, 60 = rouge). |
 | `POST` | `/api/user/advertisement-dismissals` | Masquer une pub pour ce compte (persistant). |
@@ -171,7 +171,7 @@ flowchart TB
 | Concept | Rôle |
 |--------|------|
 | **`UserAdventurePlaySession`** | Durée de partie : `IN_PROGRESS` → clôture succès / échec ; abandon au cron si trop ancien. |
-| **`UserAdventureStepValidation`** | Étapes validées serveur (`enigma:n`, `treasure:map`, `treasure`). |
+| **`UserAdventureStepValidation`** | Étapes validées serveur (`enigma:n`, `treasure`). |
 | **`UserAdventures`** | Succès / échec ; condition pour la roue et le `redeem`. |
 | **`AdventurePartnerLot`** | Segment de roue : périmètre **aventure** ou **ville**, poids, stock, dates, actif. |
 | **`UserAdventurePartnerLotWin`** | Un tirage par (utilisateur, aventure) ; **`redeemedAt`** pour usage magasin. |

@@ -48,7 +48,17 @@ export async function listRecentPublicAdventureReviews(
     },
   });
 
-  return rows.map((r) => ({
+  return rows
+    .filter((r) => {
+      const hasRating = r.rating != null;
+      const hasContent = Boolean(r.content?.trim());
+      const reportOnly =
+        !hasRating &&
+        !hasContent &&
+        (r.reportsMissingBadge || r.reportsStolenTreasure);
+      return !reportOnly;
+    })
+    .map((r) => ({
     id: r.id,
     adventureId: r.adventureId,
     adventureName: r.adventure.name,

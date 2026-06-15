@@ -18,6 +18,7 @@ import {
   BadgeDefinitionKind,
 } from "@/lib/badges/prisma-enums";
 import { syncPhysicalBadgeInstances } from "@/lib/badges/sync-physical-instances";
+import { onAdventurePublished } from "@/lib/events/adventure-published";
 
 export async function createAdventure(
   form: AdventureWriteInput
@@ -122,6 +123,15 @@ export async function createAdventure(
     });
 
     await syncAdventureRouteDistance(result.id);
+
+    if (result.audience === AdventureAudience.PUBLIC) {
+      void onAdventurePublished({
+        id: result.id,
+        name: result.name,
+        latitude: result.latitude,
+        longitude: result.longitude,
+      });
+    }
 
     const draftId = form.descriptionDraftId?.trim();
     if (draftId) {

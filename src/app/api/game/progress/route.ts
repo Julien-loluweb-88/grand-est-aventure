@@ -10,7 +10,6 @@ import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import {
   enigmaStepKey,
-  TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
 } from "@/lib/game/adventure-step-keys";
 
@@ -97,18 +96,8 @@ export async function GET(request: NextRequest) {
       missingForFinish.push(key);
     }
   }
-  if (hasTreasure) {
-    const legacyTreasureOnly =
-      validatedStepKeys.includes(TREASURE_STEP_KEY) &&
-      !validatedStepKeys.includes(TREASURE_MAP_STEP_KEY);
-    if (!legacyTreasureOnly) {
-      if (!validatedStepKeys.includes(TREASURE_MAP_STEP_KEY)) {
-        missingForFinish.push(TREASURE_MAP_STEP_KEY);
-      }
-      if (!validatedStepKeys.includes(TREASURE_STEP_KEY)) {
-        missingForFinish.push(TREASURE_STEP_KEY);
-      }
-    }
+  if (hasTreasure && !validatedStepKeys.includes(TREASURE_STEP_KEY)) {
+    missingForFinish.push(TREASURE_STEP_KEY);
   }
 
   const serverReadyForSuccessFinish =

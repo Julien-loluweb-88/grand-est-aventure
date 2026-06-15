@@ -4,7 +4,7 @@ import { haversineMeters } from "@/lib/geo/haversine-meters";
 const ASSUMED_WALK_SPEED_KMH = 4;
 /** Temps moyen par énigme (lecture + résolution), en secondes. */
 const SECONDS_PER_ENIGMA = 4 * 60;
-/** Marge phase trésor (carte + coffre), en secondes. */
+/** Marge phase trésor (coffre), en secondes. */
 const SECONDS_TREASURE_PHASE = 5 * 60;
 const MIN_TOTAL_SECONDS = 5 * 60;
 const MAX_TOTAL_SECONDS = 8 * 60 * 60;

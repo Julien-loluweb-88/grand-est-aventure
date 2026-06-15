@@ -278,9 +278,9 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 |---------|--------|-------------|
 | GET | `/api/game/cities` | Référentiel villes |
 | GET | `/api/game/avatars` | Catalogue avatars compagnon (`thumbnailUrl`, `modelUrl` serveur si renseigné, sinon repli **glb** bundle via `slug`) |
-| GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) |
-| GET | `/api/game/home` | Accueil agrégé : stats (`scope`), **pubs `home`**, `locationContext`, aventures, avis — GPS infère la ville pour le ciblage pub |
-| GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** ; démo → session + droit requis |
+| GET | `/api/game/adventures` | Catalogue (**uniquement** aventures `PUBLIC` + actives) ; **`playerState`** si session / Bearer |
+| GET | `/api/game/home` | Accueil agrégé : stats (`scope`), **pubs `home`**, `locationContext`, aventures, avis — GPS infère la ville pour le ciblage pub ; **`playerState`** sur les aventures si auth |
+| GET | `/api/game/adventures/{id}` | Détail + **`discoveryPoints`** + **`playerState`** si auth ; démo → session + droit requis |
 | GET | `/api/game/progress` | Progression joueur (`adventureId`) |
 | POST | `/api/game/start-adventure` | Ouvre la session de jeu au « Commencer » (idempotent) ; **400** `EMPTY_ADVENTURE` si ni énigme ni trésor |
 | POST | `/api/game/validate-enigma` | Validation ordonnée ; `submission` ou `submissions[]` si QCM multi-sélection (`multiSelect`) |
@@ -300,8 +300,8 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 
 | Méthode | Chemin | Description |
 |---------|--------|-------------|
-| GET | `/api/user/avatar` | Préférence avatar 3D (`selectedAvatarId`, détail `selectedAvatar`) |
-| PATCH | `/api/user/avatar` | Choisir l’avatar ; corps `{ "selectedAvatarId" }` ou `null` ; rate limit |
+| GET | `/api/user/avatar` | `image` (photo profil DiceBear) + compagnon 3D (`selectedAvatarId`, `selectedAvatar`) |
+| PATCH | `/api/user/avatar` | Corps partiel : `image` (URL DiceBear) et/ou `selectedAvatarId` ; rate limit |
 | GET | `/api/user/preferences` | Préférences app (thème, `accentHue`, carte, sons, accessibilité) |
 | PATCH | `/api/user/preferences` | Mise à jour partielle ; `accentHue` entier 0–360 (0 = jaune, 60 = rouge) ; rate limit |
 | GET | `/api/user/badges` | Catalogue badges + `earned` (acquis ou non) |
@@ -384,7 +384,7 @@ Corps API : `{ "name", "email", "message" }` — limites identiques au formulair
 3. **État** — `GET /api/game/progress?adventureId=…`.  
 4. **Démarrage (recommandé)** — `POST /api/game/start-adventure` au clic « Commencer » : crée une session serveur `IN_PROGRESS` **avant** la première bonne réponse (idempotent si déjà démarré). **400** `EMPTY_ADVENTURE` si l’aventure n’a ni énigme ni trésor.  
 5. **Énigmes** — `POST /api/game/validate-enigma` (ordre strict). Le détail **`GET /api/game/adventures/{id}`** indique pour chaque énigme **`multiSelect`** et les **`choice`** affichables ; le corps de validation est **`submission`** (une chaîne) si `multiSelect` est false, ou **`submissions`** (tableau de libellés cochés) si true — voir spec OpenAPI.  
-6. **Fin de parcours** — si l’aventure **a un trésor** : `POST /api/game/validate-treasure` (phase **carte** puis **coffre**) ; succès, `giftNumber`, badges, stock physique si configuré. Si **pas de trésor** : `POST /api/game/validate-finish` après la dernière énigme validée (même finalisation badges / `UserAdventures` que le code coffre).  
+6. **Fin de parcours** — si l’aventure **a un trésor** : `POST /api/game/validate-treasure` (code **coffre**) ; succès, `giftNumber`, badges, stock physique si configuré. Si **pas de trésor** : `POST /api/game/validate-finish` après la dernière énigme validée (même finalisation badges / `UserAdventures` que le code coffre).  
 7. **Après victoire** — Optionnel : `GET /api/game/adventure-partner-lots?adventureId=…` (afficher `legalNotice` / dates d’offre) ; si `wheel` vaut `ready`, animer la roue puis **`POST …/spin`**. En boutique : **`POST /api/game/adventure-partner-lots/redeem`** quand le commerçant demande au joueur de confirmer (une fois). Puis **`POST /api/game/adventure-review`**, `GET /api/user/badges`, **publicités** (session pour les masquages) + éventuellement **`POST /api/partner-offers/claims`** ou **`POST /api/user/advertisement-dismissals`**.  
 8. **Hors quête (optionnel)** — Utiliser **`discoveryPoints`** déjà renvoyés avec **`adventures/{id}`**, ou `GET /api/game/discovery-points?cityId=` (écran « toute la ville » sans parcours) ; puis **`POST /api/game/claim-discovery`** sur place — [Points de découverte — admin & app mobile](#points-de-decouverte-admin-app-mobile).
 

@@ -1,7 +1,6 @@
 import type { Prisma } from "../../../generated/prisma/client";
 import {
   enigmaStepKey,
-  TREASURE_MAP_STEP_KEY,
   TREASURE_STEP_KEY,
 } from "./adventure-step-keys";
 import { ensureActivePlaySession } from "./user-adventure-play-session";
@@ -67,23 +66,7 @@ export async function assertCanFinishWithSuccess(
     }
   }
 
-  if (!hasTreasure) {
-    return;
-  }
-
-  const legacyTreasureOnly =
-    done.has(TREASURE_STEP_KEY) && !done.has(TREASURE_MAP_STEP_KEY);
-  if (legacyTreasureOnly) {
-    return;
-  }
-
-  if (!done.has(TREASURE_MAP_STEP_KEY)) {
-    throw new GameFinishProgressError(
-      "INCOMPLETE_SERVER_PROGRESS",
-      TREASURE_MAP_STEP_KEY
-    );
-  }
-  if (!done.has(TREASURE_STEP_KEY)) {
+  if (hasTreasure && !done.has(TREASURE_STEP_KEY)) {
     throw new GameFinishProgressError(
       "INCOMPLETE_SERVER_PROGRESS",
       TREASURE_STEP_KEY

@@ -5,6 +5,8 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 **Références** :
 
 - [`docs/expo-better-auth.md`](expo-better-auth.md) — session, cookies, `baseURL`, deep links.  
+- [`docs/expo-fin-parcours-badges-avis.md`](expo-fin-parcours-badges-avis.md) — victoire, `awardedBadges`, écran avis (prompt Expo).
+- [`docs/expo-tresor-play-availability.md`](expo-tresor-play-availability.md) — trésor, badges, `playAvailability`, prompt Expo.  
 - [`docs/flux-api-et-jeu.md`](flux-api-et-jeu.md) — schéma global des routes et logique métier.  
 - [`docs/expo-publicites-offres-partenaires.md`](expo-publicites-offres-partenaires.md) — encarts, `game/home`, dismissals, offres pub.  
 - [`README.md`](../README.md) — tableaux d’API, checklist courte, parcours joueur.  
@@ -65,8 +67,8 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 ### Avatars compagnon (paramètres / carte / AR)
 
 - [ ] `GET /api/game/avatars` — liste des avatars actifs ; afficher **nom** + **aperçu** si `thumbnailUrl` ; conserver **`id`** (pour `PATCH`) et **`slug`** (pour le repli bundle local) ; si **`modelUrl`** est non nul, préférer ce **.glb** (URL absolue ou `/uploads/…` sur l’origine API).  
-- [ ] `GET /api/user/avatar` — préférence serveur (`selectedAvatarId` peut être `null` au premier usage).  
-- [ ] `PATCH /api/user/avatar` — corps `{ "selectedAvatarId": "…" }` ou `{ "selectedAvatarId": null }` ; gérer **404** (avatar inactif / inconnu) et **429**.
+- [ ] `GET /api/user/avatar` — `image` (photo profil DiceBear, `User.image`, `null` si absent) + `selectedAvatarId` / `selectedAvatar` (compagnon 3D).  
+- [ ] `PATCH /api/user/avatar` — corps **partiel** : `{ "image": "https://api.dicebear.com/…" }` et/ou `{ "selectedAvatarId": "…" }` ; `null` pour effacer ; gérer **400** (URL non DiceBear), **404** (compagnon inactif), **429**.
 
 ### Préférences app (thème, carte, sons)
 
@@ -90,11 +92,13 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 - [ ] `GET /api/game/cities` — affichage liste / filtres ; conserver **`cityId`** pour la suite (carte ville, `discovery-points`, override pub).  
 - [ ] `GET /api/game/adventures` — liste **PUBLIC** uniquement (pas les démos) ; alternative ou complément de `home.adventures`.  
+- [ ] Si joueur connecté (cookies ou `Authorization: Bearer`) : lire **`playerState`** sur chaque entrée (session chrono, progression, `playStatus`, compteurs d’étapes) — pas besoin d’appeler `progress` par carte.  
 - [ ] Gérer pagination / recherche si vous l’ajoutez côté API plus tard (actuellement selon réponse serveur).
 
 ### Fiche détail
 
 - [ ] `GET /api/game/adventures/{id}` — afficher nom, description, carte, durées (`estimatedDurationSeconds`, `averagePlayDurationSeconds`, etc.).  
+- [ ] Bandeau avant « Commencer » : **`playerState`** (`hasGameplayProgress` → reprise ; `hasOpenPlaySession` sans gameplay → session chrono ; `playStatus: COMPLETED` → parcours terminé).  
 - [ ] Lire **`treasure`** : `null` ou objet présent → détermine tout le flux **finish vs trésor** (indispensable avant de coder la fin).  
 - [ ] Lire **`enigmas[]`** : `number`, `multiSelect`, `choice`, textes, médias.  
 - [ ] Lire **`discoveryPoints`** (tableau ville / aventure) pour onglet ou section « découverte » sur la fiche parcours.
@@ -114,8 +118,10 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### État serveur
 
-- [ ] `GET /api/game/progress?adventureId=` après chargement fiche (ou au retour sur l’écran parcours) pour synchroniser **étapes déjà validées**.  
-- [ ] Mapper les `stepKey` renvoyés vers votre UI (énigmes cochées, trésor carte / coffre, etc. — voir OpenAPI).
+- [ ] `GET /api/game/progress?adventureId=` pour synchro fine en jeu (étapes, `validatedStepKeys`) ; la fiche peut s’appuyer sur **`playerState`** du détail / catalogue pour l’UX pré-« Commencer ».  
+- [ ] Mapper les `stepKey` renvoyés vers votre UI (énigmes cochées, trésor coffre, etc. — voir OpenAPI).
+- [ ] Lire **`playAvailability`** sur home / liste / détail : alerte trésor (`treasureNotice`), badges physiques (`physicalBadges.availableCount`).
+- [ ] Si session : **`myReview`** pour afficher l’état du signalement du joueur (`PENDING`, etc.).
 
 ### Démarrage chrono / session jeu
 
@@ -190,7 +196,10 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### Badges joueur
 
-- [ ] `GET /api/user/badges` après victoire (ou retour collection) : lire les clés `kind` (`ADVENTURE_COMPLETE`, …) et leurs tableaux, gris si `earned === false`, couleur si acquis.
+- [ ] Après victoire : lire **`awardedBadges`** (+ `giftNumber`) dans la réponse `validate-treasure` / `validate-finish` — voir `docs/expo-fin-parcours-badges-avis.md`.
+- [ ] **Rejeu** : si pas de réponse finish (`isReplay`), fallback via `GET /api/game/adventures/{id}` → **`playerCompletionBadge`** puis **`completionBadge`**.
+- [ ] Afficher ces badges sur l’écran victoire **avant** `POST /api/game/adventure-review`.
+- [ ] `GET /api/user/badges` : rafraîchir la collection (optionnel, pas requis pour l’écran avis).
 
 ### Cases récap
 

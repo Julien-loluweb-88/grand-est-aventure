@@ -19,11 +19,6 @@ const treasureSharedFields = {
       TREASURE_NAME_MAX_CHARS,
       `Le nom ne doit pas dépasser ${TREASURE_NAME_MAX_CHARS} caractères.`
     ),
-  mapRevealCode: z
-    .string()
-    .min(2, "Le code de révélation carte doit contenir au moins 2 caractères")
-    .max(30, "Le code de révélation carte ne doit pas dépasser 30 caractères"),
-  mapRevealCodeAlt: optionalAlt,
   chestCode: z
     .string()
     .min(2, "Le code coffre doit contenir au moins 2 caractères")

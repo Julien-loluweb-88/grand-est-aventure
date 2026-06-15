@@ -97,6 +97,11 @@ export default async function AdventurePage({
   const adventurePayload = adventurePayloadForEditForm(adventure, routePolyline);
   const cities = await listCitiesForAdventureSelect();
   const treasurePayload = adventure.treasure ? treasurePayloadForCard(adventure.treasure) : null;
+  const treasureNotice = {
+    active: adventure.treasureUnavailable,
+    message: adventure.treasureUnavailableMessage,
+    updatedAt: adventure.treasureUnavailableUpdatedAt?.toISOString() ?? null,
+  };
   const badgeStockOverview = await getBadgeStockOverview(id);
 
   const pendingBadgeRestock =
@@ -198,6 +203,7 @@ export default async function AdventurePage({
             adventureId={adventure.id}
             hasTreasure={Boolean(adventure.treasure)}
             treasurePayload={treasurePayload}
+            treasureNotice={treasureNotice}
             mapReferenceMarkers={mapReferenceMarkersNoTreasure}
             routePolyline={routePolyline}
           />

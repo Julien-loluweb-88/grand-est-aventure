@@ -10,6 +10,7 @@ model User {
   country                   String?
   phone                     String?
   emailVerified             Boolean                    @default(false)
+  /// Photo profil (Better Auth) : URL DiceBear complète choisie dans l’app mobile (`PATCH /api/user/avatar` → `image`).
   image                     String?
   role                      String?                    @default("user")
   banned                    Boolean?                   @default(false)
@@ -17,6 +18,8 @@ model User {
   banExpires                DateTime?
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
+  lastLatitude   Float?
+  lastLongitude  Float?
   sessions                  Session[]
   accounts                  Account[]
   userAdventures            UserAdventures[]
@@ -50,6 +53,7 @@ model User {
   /// Nombre max d’emplacements publicitaires (superadmin) ; null = pas de quota commerçant.
   merchantMaxAdvertisementSlots   Int?
   ownedAdvertisements             Advertisement[]            @relation("AdvertisementOwnerMerchant")
+  pushTokens PushToken[]
 
   @@map("user")
 }

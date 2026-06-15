@@ -7,6 +7,7 @@ import {
   userCanAccessAdventureForPlay,
 } from "@/lib/adventure-public-access";
 import { processGameFinish } from "@/lib/badges/award-on-finish";
+import { buildGameFinishSuccessPayload } from "@/lib/badges/game-finish-response";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import {
@@ -101,7 +102,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error:
-          "Cette aventure comporte un trésor : finalisez avec POST /api/game/validate-treasure (code carte puis coffre).",
+          "Cette aventure comporte un trésor : finalisez avec POST /api/game/validate-treasure (code coffre).",
         code: "TREASURE_REQUIRED",
       },
       { status: 400 }
@@ -141,13 +142,15 @@ export async function POST(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({
-      ok: true,
+    const payload = await buildGameFinishSuccessPayload({
       stepKey: "finish",
-      alreadyFinished: false,
       awardedUserBadgeIds: fin.awardedUserBadgeIds,
+      userId,
+      adventureId,
       message: "Aventure terminée avec succès",
     });
+
+    return NextResponse.json({ ...payload, alreadyFinished: false });
   } catch (e) {
     if (e instanceof GameFinishProgressError) {
       return NextResponse.json(

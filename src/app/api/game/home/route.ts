@@ -4,15 +4,19 @@ import { HOME_ADVERTISEMENT_PLACEMENT } from "@/lib/advertisements/advertisement
 import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
+import { batchLoadAdventurePlayerStateByUser } from "@/lib/game/adventure-player-state";
 import { getHomeCommunityStats } from "@/lib/game/community-stats";
 import { loadApprovedReviewAggregatesByAdventureIds, reviewAggregateForAdventure } from "@/lib/game/adventure-review-aggregates";
 import {
   attachDistanceFromUser,
+  buildPlayAvailabilityMapForCatalogRows,
+  catalogRowToPlayerStateBatchInput,
   fetchPublicCatalogAdventures,
   selectFeaturedAdventures,
   sortCatalogRowsByDistanceFromUser,
   toMobileAdventureListItem,
 } from "@/lib/game/mobile-adventure-catalog";
+import { batchLoadMyReviewByUserAndAdventureIds } from "@/lib/game/adventure-play-availability";
 import { listRecentPublicAdventureReviews } from "@/lib/game/public-adventure-reviews";
 
 const WINDOW_MS = 60_000;
@@ -98,11 +102,29 @@ export async function GET(request: NextRequest) {
   const withDistance = sortCatalogRowsByDistanceFromUser(
     attachDistanceFromUser(catalogRows, latitude, longitude)
   );
+
+  const playerStateByAdventureId = userId
+    ? await batchLoadAdventurePlayerStateByUser(
+        userId,
+        catalogRows.map((row) => catalogRowToPlayerStateBatchInput(row))
+      )
+    : new Map();
+
+  const [playAvailabilityById, myReviewById] = await Promise.all([
+    buildPlayAvailabilityMapForCatalogRows(catalogRows),
+    userId
+      ? batchLoadMyReviewByUserAndAdventureIds(userId, adventureIds)
+      : Promise.resolve(new Map()),
+  ]);
+
   const adventures = withDistance.map(({ row, distanceFromUserKm }) =>
     toMobileAdventureListItem(
       row,
       distanceFromUserKm,
-      reviewAggregateForAdventure(reviewAggregates, row.id)
+      reviewAggregateForAdventure(reviewAggregates, row.id),
+      playAvailabilityById.get(row.id)!,
+      userId ? playerStateByAdventureId.get(row.id) : undefined,
+      userId ? myReviewById.get(row.id) : undefined
     )
   );
   const featuredAdventures = selectFeaturedAdventures(adventures, featuredLimit);

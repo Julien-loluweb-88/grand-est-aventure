@@ -57,8 +57,6 @@ export function CreateTreasureForm({
     defaultValues: {
       name: "",
       description: EMPTY_TIPTAP_DOCUMENT,
-      mapRevealCode: "",
-      mapRevealCodeAlt: "",
       chestCode: "",
       chestCodeAlt: "",
       latitude: 48.4072318295932,
@@ -102,8 +100,6 @@ export function CreateTreasureForm({
       const result = await createTrasure({
         name: plain.name,
         description: plain.description,
-        mapRevealCode: plain.mapRevealCode,
-        mapRevealCodeAlt: plain.mapRevealCodeAlt?.trim() || null,
         chestCode: plain.chestCode,
         chestCodeAlt: plain.chestCodeAlt?.trim() || null,
         latitude: Number(plain.latitude),
