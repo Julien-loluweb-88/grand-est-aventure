@@ -1,5 +1,6 @@
 "use server";
 
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import {
@@ -125,12 +126,19 @@ export async function createAdventure(
     await syncAdventureRouteDistance(result.id);
 
     if (result.audience === AdventureAudience.PUBLIC) {
-      void onAdventurePublished({
+      const delivery = onAdventurePublished({
         id: result.id,
         name: result.name,
         latitude: result.latitude,
         longitude: result.longitude,
+      }).catch((err) => {
+        console.error("[push] onAdventurePublished:", err);
       });
+      try {
+        after(delivery);
+      } catch {
+        void delivery;
+      }
     }
 
     const draftId = form.descriptionDraftId?.trim();
