@@ -27,5 +27,7 @@ export async function PATCH(req: NextRequest) {
     data: { lastLatitude: latitude, lastLongitude: longitude },
   });
 
-  return new NextResponse(null, { status: 204 });
+  return NextResponse.json({
+    success: true,
+  });
 }
