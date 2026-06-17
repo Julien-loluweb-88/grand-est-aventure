@@ -30,6 +30,7 @@ import {
   HouseIcon,
   StorefrontIcon,
   UserCircleIcon,
+  BellIcon,
 } from "@phosphor-icons/react"
 import { BrandMark } from "@/components/brand-mark"
 
@@ -175,6 +176,23 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       ]
     : []
 
+    const notificationsNav = caps.canAssignRolesAndScopes
+    ? [
+        {
+          title: "Notifications",
+          url: "/admin-game/dashboard/notifications",
+          icon: <BellIcon />,
+          isActive: false,
+          items: [
+            {
+              title: "Envoyer une notification",
+              url: "/admin-game/dashboard/notifications",
+            },
+          ],
+        },
+      ]
+    : []
+
   return [
     ...utilisateursNav,
     ...demandesNav,
@@ -251,6 +269,7 @@ function buildNavMain(caps: AdminSessionCapabilities) {
         },
       ],
     },
+    ...notificationsNav,
     ...publicitesNav,
     {
       title: "Badges globaux",

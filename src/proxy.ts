@@ -61,7 +61,6 @@ export default async function proxy(request: NextRequest) {
   const isAccesRefuse = pathname.startsWith(`${dashboardRoot}/acces-refuse`);
   const isParametres = pathname.startsWith(`${dashboardRoot}/parametres`);
   const isCommercant = pathname.startsWith(`${dashboardRoot}/commercant`);
-
   if (role === "merchant") {
     if (isDashboardHome || isAccesRefuse || isParametres || isCommercant) {
       return NextResponse.next();
@@ -154,6 +153,8 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  
+
   // Superadmin : boîte de réception des demandes admin (tous types)
   if (pathname.startsWith("/admin-game/dashboard/demandes")) {
     if (role !== "superadmin") {
@@ -170,8 +171,16 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Superadmin : outils progression joueur (tests / dev)
+ // Superadmin : outils progression joueur (tests / dev)
   if (pathname.startsWith("/admin-game/dashboard/outils-joueur")) {
+    if (role !== "superadmin") {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Notifications push — superadmin uniquement
+  if (pathname.startsWith("/admin-game/dashboard/notifications")) {
     if (role !== "superadmin") {
       return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
     }
