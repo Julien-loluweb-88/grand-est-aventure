@@ -99,19 +99,24 @@ function LandingHeader() {
       </Link>
 
       <nav className="hidden items-center gap-x-5 text-[0.9375rem] md:flex">
-        {SHOW_PUBLIC_HOME_MAP ? (
-          <HomeSectionLink href="/#carte-aventures" className="hover:underline">
-            Carte
-          </HomeSectionLink>
-        ) : null}
         <HomeSectionLink href="/#comment-ca-marche" className="hover:underline">
           Comment ça marche ?
         </HomeSectionLink>
-        <HomeSectionLink href="/#questions" className="hover:underline">
-          Questions
-        </HomeSectionLink>
+        {SHOW_PUBLIC_HOME_MAP ? (
+          <>
+            <HomeSectionLink href="/#parcours" className="hover:underline">
+              Parcours
+            </HomeSectionLink>
+            <HomeSectionLink href="/#carte-aventures" className="hover:underline">
+              Carte
+            </HomeSectionLink>
+          </>
+        ) : null}
         <HomeSectionLink href="/#reviews" className="hover:underline">
           Avis
+        </HomeSectionLink>
+        <HomeSectionLink href="/#questions" className="hover:underline">
+          Questions
         </HomeSectionLink>
         <HomeSectionLink
           href="/#telecharger"
@@ -149,15 +154,6 @@ function LandingHeader() {
               </SheetDescription>
             </SheetHeader>
             <nav className="flex flex-col gap-0.5 px-2 py-4">
-              {SHOW_PUBLIC_HOME_MAP ? (
-                <HomeSectionLink
-                  href="/#carte-aventures"
-                  className={mobileNavLinkClass}
-                  onAfterNavigate={closeMobile}
-                >
-                  Carte
-                </HomeSectionLink>
-              ) : null}
               <HomeSectionLink
                 href="/#comment-ca-marche"
                 className={mobileNavLinkClass}
@@ -165,19 +161,37 @@ function LandingHeader() {
               >
                 Comment ça marche ?
               </HomeSectionLink>
-              <HomeSectionLink
-                href="/#questions"
-                className={mobileNavLinkClass}
-                onAfterNavigate={closeMobile}
-              >
-                Questions
-              </HomeSectionLink>
+              {SHOW_PUBLIC_HOME_MAP ? (
+                <>
+                  <HomeSectionLink
+                    href="/#parcours"
+                    className={mobileNavLinkClass}
+                    onAfterNavigate={closeMobile}
+                  >
+                    Parcours
+                  </HomeSectionLink>
+                  <HomeSectionLink
+                    href="/#carte-aventures"
+                    className={mobileNavLinkClass}
+                    onAfterNavigate={closeMobile}
+                  >
+                    Carte
+                  </HomeSectionLink>
+                </>
+              ) : null}
               <HomeSectionLink
                 href="/#reviews"
                 className={mobileNavLinkClass}
                 onAfterNavigate={closeMobile}
               >
                 Avis
+              </HomeSectionLink>
+              <HomeSectionLink
+                href="/#questions"
+                className={mobileNavLinkClass}
+                onAfterNavigate={closeMobile}
+              >
+                Questions
               </HomeSectionLink>
               <HomeSectionLink
                 href="/#telecharger"

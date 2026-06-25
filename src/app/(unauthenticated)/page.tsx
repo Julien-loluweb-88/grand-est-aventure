@@ -9,6 +9,7 @@ import {
   Smartphone,
   Sparkles,
   Trees,
+  Trophy,
   Users,
 } from "lucide-react";
 import {
@@ -24,12 +25,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getFiveStarReviews, getSampleAdventures } from "./acceuil.action";
+import { getFiveStarReviews, getHomePageSnapshot } from "./acceuil.action";
+import { buildHomeStatItems, shouldShowHomeStatsSection } from "./_lib/home-stats";
 import { SHOW_PUBLIC_HOME_MAP } from "./_lib/show-public-home-map";
 import AdventureMapClient from "./_components/adventureMap";
+import { HomeAdventureCard } from "./_components/home-adventure-card";
+import { HomeStatGrid } from "./_components/home-stat-grid";
+import { formatCountFr } from "@/lib/format-duration-fr";
+import { resolvePlayStoreUrl } from "./_lib/play-store-url";
+import { PlayStoreQrCode } from "./_components/play-store-qr-code";
 
-const PLAY_STORE_URL =
-  process.env.NEXT_PUBLIC_PLAY_STORE_URL?.trim() ?? "";
+const PLAY_STORE_URL = resolvePlayStoreUrl(process.env.NEXT_PUBLIC_PLAY_STORE_URL);
 const APP_IS_LIVE = Boolean(PLAY_STORE_URL);
 
 const shell = "mx-auto w-full max-w-5xl px-4 sm:px-6";
@@ -46,11 +52,11 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Chasse au trésor dans le Grand Est",
   description:
-    "Balad'indice : chasse au trésor urbaine sur smartphone. Énigmes, indices et trésor au bout du parcours — application mobile bientôt sur Android, iOS ensuite. Parcours déployés progressivement dans le Grand Est.",
+    "Balad'indice : chasse au trésor urbaine sur smartphone dans le Grand Est. Parcours réels, énigmes GPS et trésors à découvrir en famille — gratuit sur Android.",
   openGraph: {
     title: "Balad'indice — chasse au trésor · Grand Est",
     description:
-      "La ville devient une chasse au trésor. Application mobile prochainement — parcours qui s’étendent zone par zone.",
+      "Explorez votre ville en chasse au trésor : énigmes, indices et trésor au bout du parcours.",
   },
 };
 
@@ -154,10 +160,67 @@ function SectionDivider() {
   );
 }
 
+function formatTerritoryCityList(
+  cities: { name: string }[],
+  max = 4
+): string {
+  const names = cities.slice(0, max).map((c) => c.name);
+  if (names.length === 0) return "";
+  if (names.length === 1) return names[0];
+  if (names.length === 2) return `${names[0]} et ${names[1]}`;
+  return `${names.slice(0, -1).join(", ")} et ${names[names.length - 1]}`;
+}
+
+function pluralize(count: number, singular: string, plural: string): string {
+  return count > 1 ? plural : singular;
+}
+
 export default async function Home() {
-  const reviews = await getFiveStarReviews(5);
-  const adventures = SHOW_PUBLIC_HOME_MAP ? await getSampleAdventures() : [];
-  const adventureCount = adventures.length;
+  const [reviews, home] = await Promise.all([
+    getFiveStarReviews(5),
+    getHomePageSnapshot(),
+  ]);
+
+  const {
+    mapAdventures,
+    featuredAdventures,
+    territoryCities,
+    adventureCount,
+    cityCount,
+    publishedReviewCount,
+  } = home;
+
+  const hasAdventures = adventureCount > 0;
+  const homeStatItems = buildHomeStatItems(home);
+  const showHomeStats = shouldShowHomeStatsSection(home);
+
+  const heroBadges = [
+    { icon: Sparkles, label: "Gratuit" },
+    { icon: Smartphone, label: "App mobile" },
+    { icon: Users, label: "Famille & amis" },
+    ...(hasAdventures
+      ? [
+          {
+            icon: MapPin,
+            label: `${adventureCount} ${pluralize(adventureCount, "parcours", "parcours")}`,
+          },
+        ]
+      : []),
+    ...(cityCount > 0
+      ? [
+          {
+            icon: Compass,
+            label: `${cityCount} ${pluralize(cityCount, "ville", "villes")}`,
+          },
+        ]
+      : []),
+  ];
+
+  const territorySummary = hasAdventures
+    ? cityCount === 1
+      ? `1 parcours à ${territoryCities[0]?.name ?? "votre ville"}`
+      : `${adventureCount} parcours dans ${cityCount} ${pluralize(cityCount, "ville", "villes")} — ${formatTerritoryCityList(territoryCities)}`
+    : null;
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -210,21 +273,28 @@ export default async function Home() {
 
           <p className="mx-auto max-w-2xl text-pretty text-base font-medium leading-relaxed text-white/92 drop-shadow sm:text-lg md:text-xl">
             Avec <strong className="font-semibold text-white">Balad&apos;indice</strong>,
-            marche, suis les indices et résous les énigmes jusqu&apos;au trésor. Les parcours
-            arrivent{" "}
-            <strong className="font-semibold text-[#d4f0a8]">progressivement</strong> près de
-            chez toi — la carte s&apos;enrichit au fil des semaines.
+            {hasAdventures ? (
+              <>
+                {" "}
+                explorez {territorySummary?.toLowerCase() ?? "le territoire"} en marchant,
+                résolvez les énigmes et dénichez le trésor au bout du chemin.
+              </>
+            ) : (
+              <>
+                {" "}
+                marche, suis les indices et résous les énigmes jusqu&apos;au trésor. Les parcours
+                arrivent{" "}
+                <strong className="font-semibold text-[#d4f0a8]">progressivement</strong> près de
+                chez toi — la carte s&apos;enrichit au fil des semaines.
+              </>
+            )}
           </p>
 
           <div
             className="mx-auto flex flex-wrap items-center justify-center gap-2 text-xs text-white/90 sm:text-sm"
             role="list"
           >
-            {[
-              { icon: Sparkles, label: "Gratuit" },
-              { icon: Smartphone, label: "App mobile" },
-              { icon: Users, label: "Famille & amis" },
-            ].map(({ icon: Icon, label }) => (
+            {heroBadges.map(({ icon: Icon, label }) => (
               <span
                 key={label}
                 role="listitem"
@@ -292,10 +362,21 @@ export default async function Home() {
             <MapPin className="size-5" aria-hidden />
           </div>
           <div className="max-w-3xl space-y-0.5">
-            <p className="text-sm font-semibold text-[#281401]">Ouverture zone par zone</p>
+            <p className="text-sm font-semibold text-[#281401]">
+              {hasAdventures ? "Déjà sur le terrain" : "Ouverture zone par zone"}
+            </p>
             <p className="text-pretty text-sm leading-relaxed text-[#281401]/80">
-              On déploie le jeu dans le Grand Est avec vous. Peu de parcours au début, c&apos;est
-              normal — la carte grandit au rythme des équipes locales.{" "}
+              {hasAdventures ? (
+                <>
+                  {territorySummary}. D&apos;autres communes rejoignent le réseau au fil des
+                  semaines — la carte continue de grandir.{" "}
+                </>
+              ) : (
+                <>
+                  On déploie le jeu dans le Grand Est avec vous. Peu de parcours au début, c&apos;est
+                  normal — la carte grandit au rythme des équipes locales.{" "}
+                </>
+              )}
               <Link
                 href="/communes"
                 className="font-medium text-[#39951a] underline-offset-2 hover:underline"
@@ -308,84 +389,16 @@ export default async function Home() {
       </div>
 
       <div className="flex w-full flex-col gap-16 pb-16 pt-12 sm:gap-20 sm:pb-22 sm:pt-14 md:gap-24">
-        {/* Pourquoi */}
-        <section className={shell} aria-labelledby="pourquoi-titre">
-          <h2 id="pourquoi-titre" className={sectionTitle}>
-            Pourquoi se lancer&nbsp;?
-          </h2>
-          <SectionDivider />
-          <p className={sectionLead}>
-            Une aventure urbaine pensée pour sortir, réfléchir et s&apos;amuser — sans rester
-            scotché à l&apos;écran.
-          </p>
-          <ul className="mt-10 grid gap-5 sm:grid-cols-3">
-            {FEATURES.map(({ icon: Icon, title, body }) => (
-              <li key={title}>
-                <Card className="group h-full overflow-hidden border-[#281401]/10 bg-white/85 shadow-sm transition hover:-translate-y-0.5 hover:border-[#68a618]/25 hover:shadow-md">
-                  <div className="h-1 bg-linear-to-r from-[#68a618]/0 via-[#68a618]/60 to-[#68a618]/0 opacity-0 transition group-hover:opacity-100" />
-                  <CardHeader className="pb-2">
-                    <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#e8f5e0] text-[#39951a]">
-                      <Icon className="size-5" aria-hidden />
-                    </div>
-                    <CardTitle className="text-lg text-[#281401]">{title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm leading-relaxed text-[#281401]/78">
-                    {body}
-                  </CardContent>
-                </Card>
-              </li>
-            ))}
-          </ul>
-        </section>
-
-        {SHOW_PUBLIC_HOME_MAP ? (
-          <section
-            className={shell}
-            id="carte-aventures"
-            aria-labelledby="adventures-heading"
-          >
-            <h2 id="adventures-heading" className={sectionTitle}>
-              {adventureCount > 0 ? "Où jouer bientôt ?" : "La carte se prépare"}
-            </h2>
-            <SectionDivider />
-            <p className={sectionLead}>
-              {adventureCount > 0 ? (
-                adventureCount === 1 ? (
-                  <>
-                    Une aventure est déjà prête sur le territoire — repérez la pastille sur la
-                    carte. Dès la sortie de l&apos;app, il suffira d&apos;y aller et de lancer le
-                    parcours sur place.
-                  </>
-                ) : (
-                  <>
-                    <strong className="font-semibold text-[#281401]">
-                      {adventureCount} parcours
-                    </strong>{" "}
-                    sont en préparation ou déjà publiés. Chaque pastille est un futur départ en
-                    famille.
-                  </>
-                )
-              ) : (
-                <>
-                  Les premières aventures apparaîtront ici au fil des semaines. Suivez nos actus pour
-                  savoir quand l&apos;application ouvre dans votre secteur.
-                </>
-              )}
-            </p>
-            <div className="mt-8">
-              <AdventureMapClient adventures={adventures} appIsLive={APP_IS_LIVE} />
-            </div>
-          </section>
-        ) : null}
-
-        {/* Comment ça marche */}
+        {/* 1. Comprendre le jeu */}
         <section className={shell} aria-labelledby="comment-ca-marche">
           <h2 id="comment-ca-marche" className={sectionTitle}>
             Comment ça marche&nbsp;?
           </h2>
           <SectionDivider />
           <p className={sectionLead}>
-            Cinq étapes simples — de l&apos;installation (bientôt) au trésor final.
+            {APP_IS_LIVE
+              ? "Cinq étapes simples — du téléchargement au trésor final."
+              : "Cinq étapes simples — de l’installation de l’app au trésor final."}
           </p>
 
           <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-start lg:gap-14">
@@ -397,7 +410,6 @@ export default async function Home() {
                   fill
                   className="object-contain drop-shadow-xl"
                   sizes="280px"
-                  priority
                 />
               </div>
               <div className="relative mx-auto mt-6 aspect-square w-full max-w-[200px] lg:absolute lg:-bottom-6 lg:-right-4 lg:mt-0 lg:max-w-[140px]">
@@ -435,7 +447,196 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* FAQ */}
+        {/* 2. Motivation */}
+        <section className={shell} aria-labelledby="pourquoi-titre">
+          <h2 id="pourquoi-titre" className={sectionTitle}>
+            Pourquoi se lancer&nbsp;?
+          </h2>
+          <SectionDivider />
+          <p className={sectionLead}>
+            Une aventure urbaine pensée pour sortir, réfléchir et s&apos;amuser — sans rester
+            scotché à l&apos;écran.
+          </p>
+          <ul className="mt-10 grid gap-5 sm:grid-cols-3">
+            {FEATURES.map(({ icon: Icon, title, body }) => (
+              <li key={title}>
+                <Card className="group h-full overflow-hidden border-[#281401]/10 bg-white/85 shadow-sm transition hover:-translate-y-0.5 hover:border-[#68a618]/25 hover:shadow-md">
+                  <div className="h-1 bg-linear-to-r from-[#68a618]/0 via-[#68a618]/60 to-[#68a618]/0 opacity-0 transition group-hover:opacity-100" />
+                  <CardHeader className="pb-2">
+                    <div className="mb-3 flex size-10 items-center justify-center rounded-xl bg-[#e8f5e0] text-[#39951a]">
+                      <Icon className="size-5" aria-hidden />
+                    </div>
+                    <CardTitle className="text-lg text-[#281401]">{title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm leading-relaxed text-[#281401]/78">
+                    {body}
+                  </CardContent>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* 3. Offre concrète */}
+        {featuredAdventures.length > 0 ? (
+          <section className={shell} id="parcours" aria-labelledby="parcours-titre">
+            <h2 id="parcours-titre" className={sectionTitle}>
+              {featuredAdventures.length === adventureCount
+                ? "Nos parcours"
+                : "Parcours à la une"}
+            </h2>
+            <SectionDivider />
+            <p className={sectionLead}>
+              {adventureCount === 1 ? (
+                <>Un parcours est déjà jouable sur le territoire — retrouvez-le sur la carte juste après.</>
+              ) : (
+                <>
+                  <strong className="font-semibold text-[#281401]">
+                    {adventureCount} aventures
+                  </strong>{" "}
+                  publiées dans le Grand Est. Choisissez votre prochaine sortie, puis lancez-la
+                  dans l&apos;application sur le point de départ.
+                </>
+              )}
+            </p>
+            <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredAdventures.map((adventure) => (
+                <li key={adventure.id}>
+                  <HomeAdventureCard adventure={adventure} />
+                </li>
+              ))}
+            </ul>
+            {featuredAdventures.length < adventureCount ? (
+              <p className="mt-8 text-center text-sm text-[#281401]/65">
+                Et {adventureCount - featuredAdventures.length} autre
+                {adventureCount - featuredAdventures.length > 1 ? "s" : ""} parcours sur la carte
+                ci-dessous.
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
+        {/* 4. Localisation */}
+        {SHOW_PUBLIC_HOME_MAP ? (
+          <section
+            className={shell}
+            id="carte-aventures"
+            aria-labelledby="adventures-heading"
+          >
+            <h2 id="adventures-heading" className={sectionTitle}>
+              {hasAdventures ? "Où jouer ?" : "La carte se prépare"}
+            </h2>
+            <SectionDivider />
+            <p className={sectionLead}>
+              {hasAdventures ? (
+                adventureCount === 1 ? (
+                  <>
+                    Une aventure est prête sur le territoire — repérez la pastille sur la carte.
+                    {APP_IS_LIVE
+                      ? " Rendez-vous au point de départ et lancez le parcours dans l'app."
+                      : " Dès la sortie de l'app, il suffira d'y aller et de lancer la partie sur place."}
+                  </>
+                ) : (
+                  <>
+                    <strong className="font-semibold text-[#281401]">
+                      {adventureCount} parcours
+                    </strong>{" "}
+                    dans{" "}
+                    <strong className="font-semibold text-[#281401]">
+                      {cityCount} {pluralize(cityCount, "ville", "villes")}
+                    </strong>
+                    . Chaque pastille est un départ en famille — survolez pour le détail.
+                  </>
+                )
+              ) : (
+                <>
+                  Les premières aventures apparaîtront ici au fil des semaines. Suivez nos actus pour
+                  savoir quand l&apos;application ouvre dans votre secteur.
+                </>
+              )}
+            </p>
+            <div className="mt-8">
+              <AdventureMapClient adventures={mapAdventures} appIsLive={APP_IS_LIVE} />
+            </div>
+          </section>
+        ) : null}
+
+        {/* 5. Preuve sociale */}
+        {showHomeStats ? (
+          <section className={shell} aria-labelledby="communaute-titre">
+            <h2 id="communaute-titre" className={sectionTitle}>
+              Le territoire et la communauté en chiffres
+            </h2>
+            <SectionDivider />
+            <p className={sectionLead}>
+              Parcours disponibles, énigmes à résoudre et parties jouées sur le terrain — mis à
+              jour en temps réel.
+            </p>
+            <HomeStatGrid items={homeStatItems} />
+          </section>
+        ) : null}
+
+        {/* Témoignages */}
+        <section className={shell} aria-labelledby="reviews">
+          <h2 id="reviews" className={sectionTitle}>
+            Ils se sont lancés
+            {publishedReviewCount > 0 ? (
+              <span className="mt-1 block text-base font-normal text-[#281401]/55">
+                {formatCountFr(publishedReviewCount)} avis partagés par la communauté
+              </span>
+            ) : null}
+          </h2>
+          <SectionDivider />
+          {reviews.length === 0 ? (
+            <div className="mx-auto mt-10 max-w-lg rounded-2xl border border-dashed border-[#281401]/15 bg-white/50 px-6 py-10 text-center">
+              <p className="text-sm leading-relaxed text-[#281401]/70">
+                Les premiers avis apparaîtront ici après les premières parties. Soyez parmi les
+                pionniers du territoire&nbsp;!
+              </p>
+            </div>
+          ) : (
+            <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {reviews.map((review) => (
+                <li key={review.id}>
+                  <Card className="h-full border-[#281401]/10 bg-white/75 shadow-sm transition hover:shadow-md">
+                    <CardHeader className="space-y-3 pb-2">
+                      <CardTitle className="text-lg text-[#281401]">
+                        {review.user.name}
+                      </CardTitle>
+                      <div className="flex gap-0.5" aria-label="5 étoiles sur 5">
+                        {[...Array(5)].map((_, i) => (
+                          <Image
+                            key={i}
+                            src="/images/icons8-star-48.png"
+                            alt=""
+                            width={20}
+                            height={20}
+                            className="size-5"
+                          />
+                        ))}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3 text-left text-sm leading-relaxed text-[#281401]/85">
+                      <p>{review.content}</p>
+                      {review.image ? (
+                        <Image
+                          src={review.image}
+                          alt={`Photo partagée par ${review.user.name}`}
+                          width={300}
+                          height={200}
+                          className="mt-2 w-full rounded-lg object-cover"
+                          style={{ height: "auto", maxHeight: "12rem" }}
+                        />
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* 6. Objections */}
         <section className={shell} aria-labelledby="questions">
           <h2 id="questions" className={sectionTitle}>
             Questions fréquentes
@@ -541,62 +742,7 @@ export default async function Home() {
           </Accordion>
         </section>
 
-        {/* Témoignages */}
-        <section className={shell} aria-labelledby="reviews">
-          <h2 id="reviews" className={sectionTitle}>
-            Ils se sont lancés
-          </h2>
-          <SectionDivider />
-          {reviews.length === 0 ? (
-            <div className="mx-auto mt-10 max-w-lg rounded-2xl border border-dashed border-[#281401]/15 bg-white/50 px-6 py-10 text-center">
-              <p className="text-sm leading-relaxed text-[#281401]/70">
-                Les premiers avis apparaîtront ici après les premières parties. Soyez parmi les
-                pionniers du territoire&nbsp;!
-              </p>
-            </div>
-          ) : (
-            <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {reviews.map((review) => (
-                <li key={review.id}>
-                  <Card className="h-full border-[#281401]/10 bg-white/75 shadow-sm transition hover:shadow-md">
-                    <CardHeader className="space-y-3 pb-2">
-                      <CardTitle className="text-lg text-[#281401]">
-                        {review.user.name}
-                      </CardTitle>
-                      <div className="flex gap-0.5" aria-label="5 étoiles sur 5">
-                        {[...Array(5)].map((_, i) => (
-                          <Image
-                            key={i}
-                            src="/images/icons8-star-48.png"
-                            alt=""
-                            width={20}
-                            height={20}
-                            className="size-5"
-                          />
-                        ))}
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3 text-left text-sm leading-relaxed text-[#281401]/85">
-                      <p>{review.content}</p>
-                      {review.image ? (
-                        <Image
-                          src={review.image}
-                          alt={`Photo partagée par ${review.user.name}`}
-                          width={300}
-                          height={200}
-                          className="mt-2 w-full rounded-lg object-cover"
-                          style={{ height: "auto", maxHeight: "12rem" }}
-                        />
-                      ) : null}
-                    </CardContent>
-                  </Card>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        {/* CTA */}
+        {/* 7. Conversion */}
         <section
           id="telecharger"
           className={`${shell} max-w-3xl scroll-mt-24`}
@@ -652,11 +798,7 @@ export default async function Home() {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-2">
-                  <Image
-                    src="/images/icons8-qr-code-50.png"
-                    alt="QR code vers le Play Store"
-                    width={120}
-                    height={120}
+                  <PlayStoreQrCode
                     className="rounded-xl bg-white p-2 shadow-sm ring-1 ring-[#281401]/10"
                   />
                   <span className="text-xs text-[#281401]/60">
