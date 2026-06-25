@@ -6,8 +6,8 @@ import { getManagedAdventureIds, isSuperadmin } from "@/lib/admin-access";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import {
   adventureAudienceToForm,
-  type AdventureAudienceFormValue,
-} from "@/lib/adventure-audience";
+} from "@/lib/adventure-audience-server";
+import type { AdventureAudienceFormValue } from "@/lib/adventure-audience";
 
 export async function listAdventures() {
   const actor = await getAdminActorForAuthorization();

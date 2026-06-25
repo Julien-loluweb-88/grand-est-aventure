@@ -10,7 +10,7 @@ import {
 import { isSuperadmin } from "@/lib/admin-access";
 import type { Prisma } from "../../../generated/prisma/browser";
 import { AdventureAudience } from "../../../generated/prisma/client";
-import { adventureAudienceFromForm } from "@/lib/adventure-audience";
+import { adventureAudienceFromForm } from "@/lib/adventure-audience-server";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 import { migrateAdventureDraftEditorUploads } from "@/lib/uploads/migrate-adventure-draft-editor-uploads";
 import type { AdventureWriteInput } from "@/lib/adventure-write-input";

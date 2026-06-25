@@ -8,7 +8,7 @@ import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 import { syncPhysicalBadgeInstances } from "@/lib/badges/sync-physical-instances";
 import { BadgeDefinitionKind } from "@/lib/badges/prisma-enums";
-import { adventureAudienceFromForm } from "@/lib/adventure-audience";
+import { adventureAudienceFromForm } from "@/lib/adventure-audience-server";
 
 /** Action isolée : évite de regrouper toutes les mutations avec la page RSC. */
 export async function updateAdventure(

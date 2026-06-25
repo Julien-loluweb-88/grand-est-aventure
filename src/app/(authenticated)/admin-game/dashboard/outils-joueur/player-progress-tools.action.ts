@@ -14,7 +14,7 @@ import {
   superadminValidateProgressStep,
 } from "@/lib/game/superadmin-player-progress-tools";
 import { prisma } from "@/lib/prisma";
-import { adventureAudienceToForm } from "@/lib/adventure-audience";
+import { adventureAudienceToForm } from "@/lib/adventure-audience-server";
 
 async function requireSuperadminActor() {
   const user = await getUser();

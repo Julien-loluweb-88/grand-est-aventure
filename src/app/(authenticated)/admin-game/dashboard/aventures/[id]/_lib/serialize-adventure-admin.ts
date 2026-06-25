@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types";
-import { adventureAudienceToForm } from "@/lib/adventure-audience";
+import { adventureAudienceToForm } from "@/lib/adventure-audience-server";
 import type { AdventureAdminDetail } from "./adventure-queries";
 import type { AdventureEditFormPayload } from "./adventure-edit-payload";
 import { buildMapReferenceMarkers, type AdventureForMapReferences } from "./map-reference-markers";
