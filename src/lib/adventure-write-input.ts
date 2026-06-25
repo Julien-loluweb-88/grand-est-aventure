@@ -1,4 +1,5 @@
 import type { Prisma } from "../../generated/prisma/browser";
+import type { AdventureAudienceFormValue } from "@/lib/adventure-audience";
 
 /** Données communes création / mise à jour d’une aventure (côté serveur). */
 export type AdventureWriteInput = {
@@ -17,6 +18,6 @@ export type AdventureWriteInput = {
   assignedAdminIds?: string[];
   /** UUID client : images TipTap (`drafts/{id}/editor/`) migrées vers l’aventure créée. */
   descriptionDraftId?: string | null;
-  /** PUBLIC = catalogue joueur ; DEMO = réservé aux admins et à la liste blanche. */
-  audience?: "PUBLIC" | "DEMO";
+  /** PUBLIC = catalogue ; DEMO = admins + liste blanche ; DEVELOPMENT = superadmin + admins assignés. */
+  audience?: AdventureAudienceFormValue;
 };

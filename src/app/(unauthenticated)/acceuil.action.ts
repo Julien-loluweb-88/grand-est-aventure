@@ -88,10 +88,12 @@ export async function getSampleAdventures(): Promise<AdventureWithMarkers[]> {
 
   export async function getFiveStarReviews (rating: number) {
     return await prisma.adventureReview.findMany({
-        where: { rating,
+        where: {
+          rating,
           consentCommunicationNetworks: true,
-          moderationStatus: AdventureReviewModerationStatus.APPROVED
-         },
+          moderationStatus: AdventureReviewModerationStatus.APPROVED,
+          adventure: publicCatalogAdventureWhere,
+        },
             include: {
             user: true,
             },

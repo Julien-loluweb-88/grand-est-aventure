@@ -1,5 +1,8 @@
 import "server-only";
 
+import {
+  buildAdventureReviewVisibilityWhere,
+} from "@/lib/adventure-public-access";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "../../../generated/prisma/client";
 
@@ -22,43 +25,36 @@ function publicAuthorName(name: string | null | undefined): string | null {
   return first ?? null;
 }
 
-/** Derniers avis publics approuvés (accueil), tri `createdAt` DESC. */
-export async function listRecentPublicAdventureReviews(
-  limit: number
-): Promise<PublicAdventureReviewItem[]> {
-  const reviewWhere: Prisma.AdventureReviewWhereInput = {
-    moderationStatus: "APPROVED",
-  };
+function isDisplayablePublicReview(row: {
+  rating: number | null;
+  content: string | null;
+  reportsMissingBadge: boolean;
+  reportsStolenTreasure: boolean;
+}): boolean {
+  const hasRating = row.rating != null;
+  const hasContent = Boolean(row.content?.trim());
+  const reportOnly =
+    !hasRating &&
+    !hasContent &&
+    (row.reportsMissingBadge || row.reportsStolenTreasure);
+  return !reportOnly;
+}
 
-  const rows = await prisma.adventureReview.findMany({
-    where: reviewWhere,
-    orderBy: { createdAt: "desc" },
-    take: limit,
-    select: {
-      id: true,
-      adventureId: true,
-      rating: true,
-      content: true,
-      image: true,
-      createdAt: true,
-      reportsMissingBadge: true,
-      reportsStolenTreasure: true,
-      adventure: { select: { name: true } },
-      user: { select: { name: true } },
-    },
-  });
-
-  return rows
-    .filter((r) => {
-      const hasRating = r.rating != null;
-      const hasContent = Boolean(r.content?.trim());
-      const reportOnly =
-        !hasRating &&
-        !hasContent &&
-        (r.reportsMissingBadge || r.reportsStolenTreasure);
-      return !reportOnly;
-    })
-    .map((r) => ({
+function mapReviewRows(
+  rows: {
+    id: string;
+    adventureId: string;
+    rating: number | null;
+    content: string | null;
+    image: string | null;
+    createdAt: Date;
+    reportsMissingBadge: boolean;
+    reportsStolenTreasure: boolean;
+    adventure: { name: string };
+    user: { name: string | null };
+  }[]
+): PublicAdventureReviewItem[] {
+  return rows.filter(isDisplayablePublicReview).map((r) => ({
     id: r.id,
     adventureId: r.adventureId,
     adventureName: r.adventure.name,
@@ -70,4 +66,71 @@ export async function listRecentPublicAdventureReviews(
     reportsStolenTreasure: r.reportsStolenTreasure,
     authorDisplayName: publicAuthorName(r.user.name),
   }));
+}
+
+const reviewListSelect = {
+  id: true,
+  adventureId: true,
+  rating: true,
+  content: true,
+  image: true,
+  createdAt: true,
+  reportsMissingBadge: true,
+  reportsStolenTreasure: true,
+  adventure: { select: { name: true } },
+  user: { select: { name: true } },
+} as const;
+
+/**
+ * Derniers avis approuvés catalogue uniquement (site vitrine web).
+ * Pour l’app : préférer `listApprovedAdventureReviewsForViewer`.
+ */
+export async function listRecentPublicAdventureReviews(
+  limit: number
+): Promise<PublicAdventureReviewItem[]> {
+  const { reviews } = await listApprovedAdventureReviewsForViewer({
+    viewerId: null,
+    viewerRole: null,
+    limit,
+    offset: 0,
+    reportsOnly: false,
+  });
+  return reviews;
+}
+
+/**
+ * Liste globale d’avis approuvés, filtrée selon session (catalogue ± droits démo/dev).
+ */
+export async function listApprovedAdventureReviewsForViewer(params: {
+  viewerId: string | null;
+  viewerRole: string | null | undefined;
+  limit: number;
+  offset: number;
+  reportsOnly: boolean;
+}): Promise<{ total: number; reviews: PublicAdventureReviewItem[] }> {
+  const visibility = await buildAdventureReviewVisibilityWhere({
+    viewerId: params.viewerId,
+    viewerRole: params.viewerRole,
+  });
+
+  const reviewWhere: Prisma.AdventureReviewWhereInput = {
+    ...visibility,
+    moderationStatus: "APPROVED",
+    ...(params.reportsOnly
+      ? { OR: [{ reportsMissingBadge: true }, { reportsStolenTreasure: true }] }
+      : {}),
+  };
+
+  const [total, rows] = await Promise.all([
+    prisma.adventureReview.count({ where: reviewWhere }),
+    prisma.adventureReview.findMany({
+      where: reviewWhere,
+      orderBy: { createdAt: "desc" },
+      skip: params.offset,
+      take: params.limit,
+      select: reviewListSelect,
+    }),
+  ]);
+
+  return { total, reviews: mapReviewRows(rows) };
 }

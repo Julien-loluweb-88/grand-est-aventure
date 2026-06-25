@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
 import { getManagedAdventureIds, isSuperadmin } from "@/lib/admin-access";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
+import {
+  adventureAudienceToForm,
+  type AdventureAudienceFormValue,
+} from "@/lib/adventure-audience";
 
 export async function listAdventures() {
   const actor = await getAdminActorForAuthorization();
@@ -47,7 +51,7 @@ export type AdventureListItem = {
   name: string;
   city: string;
   status: boolean;
-  audience: "PUBLIC" | "DEMO";
+  audience: AdventureAudienceFormValue;
   /** Secondes — estimation temps de parcours (sync itinéraire). */
   estimatedPlayDurationSeconds: number | null;
   /** Secondes — moyenne temps réel (≥ 5 succès) ; `null` sinon. */
@@ -130,7 +134,7 @@ export async function listAdventuresForAdmin(params: {
         name: u.name,
         city: u.city.name,
         status: u.status ?? false,
-        audience: u.audience === "DEMO" ? "DEMO" : "PUBLIC",
+        audience: adventureAudienceToForm(u.audience),
         estimatedPlayDurationSeconds: u.estimatedPlayDurationSeconds ?? null,
         averagePlayDurationSeconds: u.averagePlayDurationSeconds ?? null,
         playDurationSampleCount: u.playDurationSampleCount ?? 0,

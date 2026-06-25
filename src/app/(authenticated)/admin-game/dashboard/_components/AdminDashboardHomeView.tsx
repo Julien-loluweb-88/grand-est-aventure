@@ -125,7 +125,7 @@ export function AdminDashboardHomeView({
             href="/admin-game/dashboard/aventures"
             label="Aventures"
             value={stats.adventuresTotal}
-            hint={`${stats.adventuresPublic} publiques · ${stats.adventuresDemo} démo`}
+            hint={`${stats.adventuresPublic} publiques · ${stats.adventuresDevelopment} dev · ${stats.adventuresDemo} démo`}
           />
           <StatLink
             href="/admin-game/dashboard/aventures"

@@ -9,7 +9,9 @@ import {
 import { isAdminRole } from "@/lib/admin-access";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
+import { listApprovedAdventureReviewsForViewer } from "@/lib/game/public-adventure-reviews";
 import type { Prisma } from "../../../../../generated/prisma/client";
+import { buildAdventureReviewVisibilityWhere } from "@/lib/adventure-public-access";
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 60;
@@ -135,11 +137,32 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Mode 2 : global (toutes aventures).
-  // Public : seulement APPROVED. Admin/superadmin : tous les statuts.
+  // Mode 2 : global — avis APPROVED sur aventures visibles pour le lecteur (anonyme = catalogue PUBLIC).
   const canSeeAllModerationStatuses = isAdminRole(viewerRole);
+
+  if (!canSeeAllModerationStatuses) {
+    const { total, reviews } = await listApprovedAdventureReviewsForViewer({
+      viewerId,
+      viewerRole,
+      limit,
+      offset,
+      reportsOnly,
+    });
+    return NextResponse.json({
+      total,
+      limit,
+      offset,
+      reportsOnly,
+      reviews,
+    });
+  }
+
+  const visibility = await buildAdventureReviewVisibilityWhere({
+    viewerId,
+    viewerRole,
+  });
   const reviewWhere: Prisma.AdventureReviewWhereInput = {
-    ...(!canSeeAllModerationStatuses ? { moderationStatus: "APPROVED" } : {}),
+    ...visibility,
     ...(reportsOnly
       ? { OR: [{ reportsMissingBadge: true }, { reportsStolenTreasure: true }] }
       : {}),

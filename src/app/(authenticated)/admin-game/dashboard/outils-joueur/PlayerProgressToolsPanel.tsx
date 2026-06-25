@@ -14,6 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  adventureAudienceLabel,
+  type AdventureAudienceFormValue,
+} from "@/lib/adventure-audience";
 import type {
   PlayerAdventureProgressSnapshot,
   PlayerAdventureReviewSnapshot,
@@ -43,7 +47,7 @@ type PickAdventure = {
   id: string;
   name: string;
   status: boolean | null;
-  audience: string;
+  audience: AdventureAudienceFormValue;
 };
 
 function ProgressStepsEditor({
@@ -739,7 +743,9 @@ export function PlayerProgressToolsPanel() {
                       >
                         {a.name}
                         {!a.status ? " (inactive)" : ""}
-                        {a.audience === "DEMO" ? " — démo" : ""}
+                        {a.audience !== "PUBLIC"
+                          ? ` — ${adventureAudienceLabel(a.audience).toLowerCase()}`
+                          : ""}
                       </button>
                     </li>
                   ))}

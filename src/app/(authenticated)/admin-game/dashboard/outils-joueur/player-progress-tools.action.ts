@@ -14,6 +14,7 @@ import {
   superadminValidateProgressStep,
 } from "@/lib/game/superadmin-player-progress-tools";
 import { prisma } from "@/lib/prisma";
+import { adventureAudienceToForm } from "@/lib/adventure-audience";
 
 async function requireSuperadminActor() {
   const user = await getUser();
@@ -62,7 +63,13 @@ export async function searchAdventuresForProgressTools(query: string) {
     orderBy: { name: "asc" },
     take: q.length >= 2 ? 15 : 30,
   });
-  return { ok: true as const, adventures };
+  return {
+    ok: true as const,
+    adventures: adventures.map((a) => ({
+      ...a,
+      audience: adventureAudienceToForm(a.audience),
+    })),
+  };
 }
 
 export async function loadPlayerAdventureProgress(userId: string, adventureId: string) {

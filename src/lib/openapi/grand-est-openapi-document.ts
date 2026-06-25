@@ -16,10 +16,15 @@ const RATE_LIMIT_NOTE =
   "Limite par fenêtre glissante (IP + utilisateur quand session). " +
   "En cas de dépassement : réponse **429** avec en-tête Retry-After (secondes).";
 
-/** Audience `PUBLIC` / `DEMO` sur `Adventure` — rappel pour les routes jeu. */
+/** Audience `PUBLIC` / `DEMO` / `DEVELOPMENT` sur `Adventure` — rappel pour les routes jeu. */
+const ADVENTURE_AUDIENCE_RESTRICTED =
+  " **Aventures hors catalogue** (`audience = DEMO` ou `DEVELOPMENT`) : absentes du catalogue et du comptage villes « actives » ; " +
+  "accès détail / jeu / avis / POI découverte filtrés selon l’audience. Sinon **404**.";
+
 const ADVENTURE_AUDIENCE_DEMO =
-  " **Aventures démo** (`Adventure.audience = DEMO`) : absentes du catalogue et du comptage villes « actives » ; " +
-  "accès détail / jeu / avis / POI découverte filtrés réservés aux **admin / superadmin** ou aux comptes autorisés (`AdventureDemoAccess`). Sinon **404**.";
+  " **`DEMO`** : session + **admin / superadmin** ou compte **`AdventureDemoAccess`**.";
+const ADVENTURE_AUDIENCE_DEVELOPMENT =
+  " **`DEVELOPMENT`** : session + **superadmin** ou **admin assigné** (`AdminAdventureAccess` sur l’aventure).";
 
 /** État joueur agrégé (session + progression) — présent uniquement si session / Bearer valide. */
 const ADVENTURE_PLAYER_STATE_SCHEMA = {
@@ -132,10 +137,11 @@ export function buildGrandEstOpenApiDocument() {
         "### Rate limiting",
         RATE_LIMIT_NOTE,
         "",
-        "### Aventures publiques vs démo (audience)",
-        "Chaque aventure a un champ **`audience`** en base : `PUBLIC` ou `DEMO` (voir Prisma `AdventureAudience`).",
+        "### Aventures publiques, développement et démo (audience)",
+        "Chaque aventure a un champ **`audience`** en base : `PUBLIC`, `DEVELOPMENT` ou `DEMO` (voir Prisma `AdventureAudience`).",
         "- **`PUBLIC`** et **`status: true`** : visibles dans **`GET /api/game/adventures`**, comptées pour **`activeAdventureCount`** dans **`GET /api/game/cities`** (`activeOnly` par défaut), détail **`GET /api/game/adventures/{id}`** accessible **sans session**.",
-        "- **`DEMO`** : **hors catalogue** ; le détail, la progression, les validations, les avis publics et les points de découverte (filtrage côté serveur) exigent une **session** et un **accès autorisé** : rôles **admin** ou **superadmin**, ou compte présent dans la table **`AdventureDemoAccess`** (gérée depuis la fiche admin). Sinon les réponses sont **404** (comportement « introuvable »).",
+        "- **`DEVELOPMENT`** : **hors catalogue** ; session + **superadmin** ou **admin assigné** à l’aventure (`AdminAdventureAccess`). Sinon **404**.",
+        "- **`DEMO`** : **hors catalogue** ; session + **admin / superadmin** (tous) ou compte **`AdventureDemoAccess`** (liste blanche fiche admin). Sinon **404**.",
         "",
         "### Interface de documentation",
         "La page **`/admin-game/dashboard/docs/api`** utilise Swagger UI avec **exécution des requêtes désactivée** : consultation sans envoi depuis l’UI ; accès réservé aux comptes admin du dashboard.",
@@ -153,7 +159,7 @@ export function buildGrandEstOpenApiDocument() {
         name: "Jeu",
         description:
           "Découverte (catalogue, villes), progression, validation, fin de parcours, avis. " +
-          "Les aventures **démo** (`audience = DEMO`) sont exclues du catalogue ; accès restreint (voir section **Aventures publiques vs démo** dans la description OpenAPI).",
+          "Les aventures **hors catalogue** (`DEMO`, `DEVELOPMENT`) sont exclues du catalogue ; accès restreint (voir section **Aventures publiques, développement et démo** dans la description OpenAPI).",
       },
       { name: "Publicités", description: "Liste des encarts et événements analytics (impressions / clics)." },
       {
@@ -903,14 +909,18 @@ export function buildGrandEstOpenApiDocument() {
           summary: "Catalogue mobile des aventures actives",
           description:
             "Liste publique \"safe\" pour app mobile (sans réponses d’énigmes ni codes trésor). " +
-            "Filtres disponibles : ville, recherche textuelle, géolocalisation + rayon, pagination. " +
-            "Avec **latitude + longitude** : tri **`distanceFromUserKm` croissant** (plus proche en premier) avant pagination. " +
+            "Filtres disponibles : ville (`cityId`), recherche nom (`q`), géolocalisation + rayon (`latitude`+`longitude`+`radiusKm`), " +
+            "trésor physique (`hasTreasure`), tri (`sort`), pagination (`limit`/`offset`). " +
+            "**`sort`** : `distance` (défaut si GPS), `updated` (défaut sans GPS), `popular`, `rating`, `name`. `distance` exige GPS. " +
+            "La réponse inclut **`filters`** (filtres effectivement appliqués). " +
             "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**. " +
             "Avec session ou **`Authorization: Bearer`** valide : chaque aventure inclut **`playerState`** (agrégat serveur, pas d’appel `progress` par carte). Sans auth : champ absent. " +
             "Chaque entrée peut inclure **`estimatedDurationSeconds`** (heuristique admin : marche + énigmes + trésor), " +
             "**`averagePlayDurationSeconds`** et **`playDurationSampleCount`** (moyenne temps réel après assez de parties — alimentées par le cron). " +
             "**`averageRating`** / **`reviewCount`** : moyenne et effectif des avis publics (`APPROVED`) avec note 1–5. " +
-            ADVENTURE_AUDIENCE_DEMO,
+            ADVENTURE_AUDIENCE_RESTRICTED +
+            ADVENTURE_AUDIENCE_DEMO +
+            ADVENTURE_AUDIENCE_DEVELOPMENT,
           parameters: [
             { name: "cityId", in: "query", required: false, schema: { type: "string" } },
             { name: "q", in: "query", required: false, schema: { type: "string" } },
@@ -922,6 +932,24 @@ export function buildGrandEstOpenApiDocument() {
               required: false,
               schema: { type: "number", minimum: 0.001 },
               description: "Nécessite latitude + longitude.",
+            },
+            {
+              name: "hasTreasure",
+              in: "query",
+              required: false,
+              schema: { type: "boolean" },
+              description: "`true` = avec trésor ; `false` = sans trésor.",
+            },
+            {
+              name: "sort",
+              in: "query",
+              required: false,
+              schema: {
+                type: "string",
+                enum: ["distance", "updated", "popular", "rating", "name"],
+              },
+              description:
+                "Tri serveur avant pagination. Défaut : `distance` si GPS, sinon `updated`.",
             },
             {
               name: "limit",
@@ -943,11 +971,27 @@ export function buildGrandEstOpenApiDocument() {
                 "application/json": {
                   schema: {
                     type: "object",
-                    required: ["total", "limit", "offset", "adventures"],
+                    required: ["total", "limit", "offset", "filters", "adventures"],
                     properties: {
                       total: { type: "integer" },
                       limit: { type: "integer" },
                       offset: { type: "integer" },
+                      filters: {
+                        type: "object",
+                        description: "Filtres appliqués côté serveur (écho des query params).",
+                        properties: {
+                          cityId: { type: ["string", "null"] },
+                          q: { type: ["string", "null"] },
+                          latitude: { type: ["number", "null"] },
+                          longitude: { type: ["number", "null"] },
+                          radiusKm: { type: ["number", "null"] },
+                          hasTreasure: { type: ["boolean", "null"] },
+                          sort: {
+                            type: "string",
+                            enum: ["distance", "updated", "popular", "rating", "name"],
+                          },
+                        },
+                      },
                       adventures: {
                         type: "array",
                         items: {
@@ -1017,8 +1061,10 @@ export function buildGrandEstOpenApiDocument() {
           tags: ["Jeu"],
           summary: "Accueil mobile agrégé (public)",
           description:
-            "Route sans authentification obligatoire : **toutes** les aventures catalogue pour la carte (triées du **plus proche au plus loin** si GPS fourni), " +
-            "top `featuredAdventures` (proximité + popularité via `playDurationSampleCount`), derniers avis approuvés (hors signalements seuls). " +
+            "Route sans authentification obligatoire : aventures **catalogue** (`PUBLIC` actives) uniquement pour `adventures` / `featuredAdventures` (tri GPS, carrousel popularité). " +
+            "**`restrictedAdventures`** : tableau (souvent vide) — parcours **DEMO** / **DEVELOPMENT** accessibles au compte **connecté** (`userCanAccessAdventureForPlay`) ; absent du catalogue public. " +
+            "Chaque entrée inclut **`audience`** (`DEMO` | `DEVELOPMENT`) — **uniquement** sur ce tableau, pas sur `adventures`. Tri : développement puis démo, puis `updatedAt` desc. " +
+            "`recentReviews` : avis **APPROVED** — anonyme = parcours catalogue ; connecté = catalogue + démo/dev si droits. " +
             "Chaque aventure inclut **`playAvailability`** (badges physiques dispo, alerte trésor admin) et **`myReview`** si session. " +
             "Chaque aventure inclut **`averageRating`** et **`reviewCount`** (avis publics notés). " +
             "**`communityStats`** : totaux plateforme si anonyme (`scope: global`, cache TTL ~5 min) ; " +
@@ -1056,6 +1102,7 @@ export function buildGrandEstOpenApiDocument() {
                       "locationContext",
                       "adventures",
                       "featuredAdventures",
+                      "restrictedAdventures",
                       "recentReviews",
                     ],
                     properties: {
@@ -1110,9 +1157,27 @@ export function buildGrandEstOpenApiDocument() {
                           "Carrousel : score = playDurationSampleCount / (1 + distanceFromUserKm) si GPS, sinon popularité seule.",
                         items: { type: "object", additionalProperties: true },
                       },
+                      restrictedAdventures: {
+                        type: "array",
+                        description:
+                          "Parcours hors catalogue (démo / développement) accessibles au compte connecté. Vide si anonyme ou sans droit. " +
+                          "Même forme que le catalogue + champ **`audience`** (`DEMO` | `DEVELOPMENT`).",
+                        items: {
+                          type: "object",
+                          required: ["id", "name", "audience", "enigmaCount", "hasTreasure", "updatedAt"],
+                          properties: {
+                            audience: {
+                              type: "string",
+                              enum: ["DEMO", "DEVELOPMENT"],
+                            },
+                          },
+                          additionalProperties: true,
+                        },
+                      },
                       recentReviews: {
                         type: "array",
-                        description: "Avis `APPROVED`, tri `createdAt` DESC.",
+                        description:
+                          "Avis `APPROVED` visibles pour le lecteur : catalogue seul si anonyme ; + démo/dev si session et droits.",
                         items: { type: "object", additionalProperties: true },
                       },
                     },
@@ -1142,8 +1207,10 @@ export function buildGrandEstOpenApiDocument() {
             "**`userAdventure`** (session) : fin de partie serveur (`success`, `giftNumber`) — **`null` après reset admin** ; source de vérité pour `isReplay` côté app (ne pas se fier au cache local). " +
             "**`completionBadge`** : définition du badge virtuel de complétion (titre, image) — toujours présent si configuré. " +
             "**`playerCompletionBadge`** (session) : badge déjà gagné par le joueur pour cette aventure ; utile en **rejeu** quand POST finish ne renvoie pas `awardedBadges`. " +
-            "Pour une aventure **`DEMO`**, session requise + droit d’accès ; sinon **404**." +
-            ADVENTURE_AUDIENCE_DEMO,
+            "Pour une aventure **`DEMO`** ou **`DEVELOPMENT`**, session requise + droit d’accès ; sinon **404**." +
+            ADVENTURE_AUDIENCE_RESTRICTED +
+            ADVENTURE_AUDIENCE_DEMO +
+            ADVENTURE_AUDIENCE_DEVELOPMENT,
           parameters: [
             { name: "id", in: "path", required: true, schema: { type: "string" } },
           ],
@@ -1553,7 +1620,7 @@ export function buildGrandEstOpenApiDocument() {
             "Si l’énigme a **`multiSelect: true`** (QCM à cases à cocher) : corps avec **`submissions`** (tableau de libellés de choix sélectionnés) ; l’ensemble doit coïncider avec les bonnes réponses (ordre indifférent, normalisation casse / espaces).\n\n" +
             "Sinon : **`submission`** (chaîne, ≤ 500 car.) — une bonne réponse ou saisie libre.\n\n" +
             "**Corps JSON** : `adventureId`, `userId` (session), `enigmaNumber` (entier ≥ 1), puis `submission` **ou** `submissions` selon `GET …/adventures/{id}` → `enigmas[].multiSelect`.\n\n" +
-            "Aventure **démo** : même contrôle d’accès que le détail (`audience = DEMO`).\n\n" +
+            "Aventure **hors catalogue** (`DEMO` / `DEVELOPMENT`) : même contrôle d’accès que le détail.\n\n" +
             `**Rate limit** : ~80 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           requestBody: {
@@ -2026,8 +2093,9 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Deux modes : " +
             "avec `adventureId`, retourne les entrées **APPROVED** d’une aventure active (et respecte les règles d’accès à l’aventure, notamment DEMO) ; " +
-            "sans `adventureId`, retourne globalement les avis/signalements de toutes les aventures. " +
-            "Dans ce mode global, le public voit seulement `APPROVED`, tandis que `admin` / `superadmin` voient aussi `PENDING` et `REJECTED`. " +
+            "sans `adventureId`, liste globale filtrée par **visibilité aventure** : anonyme = avis **APPROVED** sur aventures **catalogue** (`PUBLIC` actives) ; " +
+            "connecté = catalogue + avis des aventures **démo** / **développement** auxquelles le compte a accès (mêmes règles que le jeu). " +
+            "Les `admin` / `superadmin` en mode global voient en plus tous les statuts de modération (`PENDING`, `REJECTED`, etc.) sur les aventures visibles. " +
             "Chaque élément inclut `reportsMissingBadge` et `reportsStolenTreasure` (signalements fin de parcours validés par l’admin). " +
             "Avec **`reportsOnly=true`** : uniquement les lignes où l’un des deux booléens est vrai. " +
             "`authorDisplayName` = prénom / premier mot du nom si présent.",

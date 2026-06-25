@@ -1,9 +1,10 @@
 // Parcours joueur : aventure, énigmes, trésor, points de découverte, accès démo.
 
-/// Public = catalogue et app joueur ; démo = réservé aux admins et aux comptes explicitement autorisés.
+/// Public = catalogue ; démo = hors catalogue, admins + liste blanche ; développement = hors catalogue, superadmin + admins assignés.
 enum AdventureAudience {
   PUBLIC
   DEMO
+  DEVELOPMENT
 }
 
 model Adventure {
@@ -39,7 +40,7 @@ model Adventure {
   physicalBadgesUnavailable           Boolean   @default(false)
   physicalBadgesUnavailableMessage    String?
   physicalBadgesUnavailableUpdatedAt  DateTime?
-  /// Aventure visible par tous les joueurs (`PUBLIC`) ou réservée démo (`DEMO`).
+  /// `PUBLIC` = catalogue ; `DEMO` = démo restreinte ; `DEVELOPMENT` = test interne (admins assignés).
   audience         AdventureAudience      @default(PUBLIC)
   /// Règlement / mentions légales roue partenaires (texte brut ou markdown) ; affiché aux joueurs si renseigné.
   partnerWheelTerms String?

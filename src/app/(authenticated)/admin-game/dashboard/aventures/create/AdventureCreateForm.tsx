@@ -30,6 +30,7 @@ import {
 } from "@/lib/dashboard-text-limits";
 import type { CitySelectOption } from "@/lib/city-types";
 import { createAdventure } from "@/lib/actions/create-adventure";
+import { ADVENTURE_AUDIENCE_FORM_VALUES } from "@/lib/adventure-audience";
 import {
   Select,
   SelectContent,
@@ -60,7 +61,7 @@ const formSchema = z.object({
   badgeImageUrl: z.string().max(2048).optional().default(""),
   /** Exemplaires physiques numérotés dans le trésor (0 = pas de stock suivi). */
   physicalBadgeStockCount: z.coerce.number().int().min(0).max(100_000).default(0),
-  audience: z.enum(["PUBLIC", "DEMO"]),
+  audience: z.enum(ADVENTURE_AUDIENCE_FORM_VALUES),
 })
 
 export type CreateAdventureAssignableAdmin = {
@@ -264,8 +265,9 @@ export function CreateAdventureForm({
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor={field.name}>Visibilité</FieldLabel>
               <p className="mb-1 text-xs text-muted-foreground">
-                « Démo » : l’aventure n’apparaît pas dans le catalogue public ; vous pourrez inviter
-                des comptes depuis la fiche aventure.
+                « Développement » : hors catalogue, testable par le superadmin et les admins
+                assignés. « Démo » : hors catalogue, tous les admins et comptes invités depuis la
+                fiche aventure.
               </p>
               <Select value={field.value} onValueChange={field.onChange}>
                 <SelectTrigger
@@ -277,6 +279,7 @@ export function CreateAdventureForm({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="PUBLIC">Publique</SelectItem>
+                  <SelectItem value="DEVELOPMENT">Développement (interne)</SelectItem>
                   <SelectItem value="DEMO">Démo (restreinte)</SelectItem>
                 </SelectContent>
               </Select>

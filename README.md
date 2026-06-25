@@ -160,13 +160,15 @@ Connexion sur `/admin-game` ; le dashboard est sous **`/admin-game/dashboard/*`*
 | Chemin | Fonctionnalité |
 |--------|----------------|
 | Liste | Parcours, statut, **visibilité** (publique / **démo**), accès |
-| Création | Nouvelle aventure (ville, géoloc, créateur, assignation admins) — **`superadmin`** (matrice) ; choix **Publique** ou **Démo** |
+| Création | Nouvelle aventure (ville, géoloc, créateur, assignation admins) — **`superadmin`** (matrice) ; choix **Publique**, **Développement** ou **Démo** |
 | Fiche `[id]` | Métadonnées, **énigmes**, **trésor**, **points de découverte** (POI / badges hors quête, carte interactive), couverture, **stock badge physique**, badges virtuels liés, **modération avis**, **UserAdventures** ; si **démo** : carte **comptes invités** (e-mails autorisés à jouer hors catalogue) |
 
 **Visibilité (`Adventure.audience` en base)** :
 
 - **Publique** (`PUBLIC`) : aventure listée dans le **catalogue API** mobile / comptage « ville active », jouable par tout le monde (si `status` actif).
-- **Démo** (`DEMO`) : **pas** dans le catalogue ni dans le comptage de villes actives ; **admins / superadmins** y accèdent toujours ; les **joueurs** uniquement s’ils sont ajoutés sur la fiche (**liste blanche** `AdventureDemoAccess`). Les routes jeu renvoient **404** si l’accès est refusé (voir [OpenAPI](#documentation-openapi) et `src/lib/adventure-public-access.ts`).
+- **Développement** (`DEVELOPMENT`) : **pas** dans le catalogue ; **superadmin** ou **admin assigné** à l’aventure (`AdminAdventureAccess`) uniquement. Routes jeu → **404** si accès refusé.
+- **Démo** (`DEMO`) : **pas** dans le catalogue ; **tous** les **admins / superadmins** + **joueurs** sur la **liste blanche** (`AdventureDemoAccess`). Routes jeu → **404** si accès refusé. Listées dans **`restrictedAdventures`** sur `GET /api/game/home` si session et droit.
+- **Catalogue étendu mobile** : `GET /api/game/home` renvoie toujours `adventures` / `featuredAdventures` en **PUBLIC** seul ; **`restrictedAdventures`** (avec `audience`) pour les parcours démo/dev accessibles au compte connecté — impl. `src/lib/game/restricted-adventure-catalog.ts`.
 
 ### Villes (référentiel)
 
@@ -272,7 +274,7 @@ Référence détaillée : **`src/lib/openapi/grand-est-openapi-document.ts`** et
 
 ### Jeu & catalogue (souvent sans session complète pour le catalogue)
 
-**Aventures démo** (`audience = DEMO`) : exclues du **catalogue** (`GET …/adventures`) et du **comptage** des villes actives (`GET …/cities` avec `activeOnly` par défaut). Pour ouvrir une démo dans l’app : **session** + compte **admin / superadmin** ou **liste blanche** (fiche admin). Détail : spec **OpenAPI** (section *Aventures publiques vs démo*) et implémentation `src/lib/adventure-public-access.ts`.
+**Aventures hors catalogue** (`DEMO`, `DEVELOPMENT`) : exclues du **catalogue** (`GET …/adventures`) et du **comptage** des villes actives. **Développement** : session + **superadmin** ou **admin assigné**. **Démo** : session + **admin / superadmin** ou **liste blanche**. Détail : spec **OpenAPI** et `src/lib/adventure-public-access.ts`.
 
 | Méthode | Chemin | Description |
 |---------|--------|-------------|

@@ -10,6 +10,7 @@ import {
 import { isSuperadmin } from "@/lib/admin-access";
 import type { Prisma } from "../../../generated/prisma/browser";
 import { AdventureAudience } from "../../../generated/prisma/client";
+import { adventureAudienceFromForm } from "@/lib/adventure-audience";
 import { syncAdventureRouteDistance } from "@/lib/adventure-route-distance";
 import { migrateAdventureDraftEditorUploads } from "@/lib/uploads/migrate-adventure-draft-editor-uploads";
 import type { AdventureWriteInput } from "@/lib/adventure-write-input";
@@ -52,10 +53,7 @@ export async function createAdventure(
           creatorId: actor.id,
           coverImageUrl: form.coverImageUrl?.trim() || null,
           physicalBadgeStockCount: stock,
-          audience:
-            form.audience === "DEMO"
-              ? AdventureAudience.DEMO
-              : AdventureAudience.PUBLIC,
+          audience: adventureAudienceFromForm(form.audience),
         },
       });
 

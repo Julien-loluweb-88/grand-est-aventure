@@ -24,6 +24,7 @@ export type DashboardOverview =
         adventuresTotal: number;
         adventuresPublic: number;
         adventuresDemo: number;
+        adventuresDevelopment: number;
         cities: number;
         advertisementsTotal: number;
         advertisementsActiveWindow: number;
@@ -88,6 +89,7 @@ export async function getDashboardOverview(params: {
         adventuresTotal: 0,
         adventuresPublic: 0,
         adventuresDemo: 0,
+        adventuresDevelopment: 0,
         cities: 0,
         advertisementsTotal: 0,
         advertisementsActiveWindow: 0,
@@ -114,6 +116,9 @@ export async function getDashboardOverview(params: {
     prisma.adventure.count(),
     prisma.adventure.count({ where: { audience: AdventureAudience.PUBLIC } }),
     prisma.adventure.count({ where: { audience: AdventureAudience.DEMO } }),
+    prisma.adventure.count({
+      where: { audience: AdventureAudience.DEVELOPMENT },
+    }),
     prisma.city.count(),
     prisma.advertisement.count(),
     prisma.advertisement.count({
@@ -207,6 +212,7 @@ export async function getDashboardOverview(params: {
       adventuresTotal,
       adventuresPublic,
       adventuresDemo,
+      adventuresDevelopment,
       cities,
       advertisementsTotal,
       advertisementsActiveWindow,
@@ -223,6 +229,7 @@ export async function getDashboardOverview(params: {
     adventuresTotal,
     adventuresPublic,
     adventuresDemo,
+    adventuresDevelopment,
     cities,
     advertisementsTotal,
     advertisementsActiveWindow,

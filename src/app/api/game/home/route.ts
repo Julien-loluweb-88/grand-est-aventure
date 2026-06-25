@@ -16,8 +16,12 @@ import {
   sortCatalogRowsByDistanceFromUser,
   toMobileAdventureListItem,
 } from "@/lib/game/mobile-adventure-catalog";
+import {
+  getUserRoleForAccess,
+} from "@/lib/adventure-public-access";
 import { batchLoadMyReviewByUserAndAdventureIds } from "@/lib/game/adventure-play-availability";
-import { listRecentPublicAdventureReviews } from "@/lib/game/public-adventure-reviews";
+import { listApprovedAdventureReviewsForViewer } from "@/lib/game/public-adventure-reviews";
+import { listRestrictedMobileAdventuresForViewer } from "@/lib/game/restricted-adventure-catalog";
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 60;
@@ -45,7 +49,9 @@ function parseIntParam(value: string | null, fallback: number): number {
  * - reviewsLimit (défaut 25, max 50)
  * - featuredLimit (défaut 3)
  *
- * Auth optionnelle : stats perso (`communityStats.scope: user`), exclusion pubs masquées.
+ * Auth optionnelle : stats perso (`communityStats.scope: user`), exclusion pubs masquées,
+ * `playerState` / `myReview` sur le catalogue, `restrictedAdventures` (démo/dev) si droits,
+ * avis étendus si droits démo/dev.
  * Pas de 401 — l’accueil reste public.
  */
 export async function GET(request: NextRequest) {
@@ -82,13 +88,21 @@ export async function GET(request: NextRequest) {
   );
 
   const userId = await getOptionalUserIdFromApiRequest(request);
+  const viewerRole = userId ? await getUserRoleForAccess(userId) : null;
 
   const catalogRows = await fetchPublicCatalogAdventures();
   const adventureIds = catalogRows.map((r) => r.id);
 
-  const [communityStats, recentReviews, reviewAggregates, adResult] = await Promise.all([
+  const [communityStats, recentReviewsResult, reviewAggregates, adResult, restrictedAdventures] =
+    await Promise.all([
     getHomeCommunityStats(userId),
-    listRecentPublicAdventureReviews(reviewsLimit),
+    listApprovedAdventureReviewsForViewer({
+      viewerId: userId,
+      viewerRole,
+      limit: reviewsLimit,
+      offset: 0,
+      reportsOnly: false,
+    }),
     loadApprovedReviewAggregatesByAdventureIds(adventureIds),
     listEligibleAdvertisements({
       placement: HOME_ADVERTISEMENT_PLACEMENT,
@@ -97,6 +111,14 @@ export async function GET(request: NextRequest) {
       userId,
       inferCityFromCoordinates: true,
     }),
+    userId
+      ? listRestrictedMobileAdventuresForViewer({
+          userId,
+          role: viewerRole,
+          latitude,
+          longitude,
+        })
+      : Promise.resolve([]),
   ]);
 
   const withDistance = sortCatalogRowsByDistanceFromUser(
@@ -128,6 +150,7 @@ export async function GET(request: NextRequest) {
     )
   );
   const featuredAdventures = selectFeaturedAdventures(adventures, featuredLimit);
+  const recentReviews = recentReviewsResult.reviews;
 
   return NextResponse.json({
     communityStats: {
@@ -140,6 +163,7 @@ export async function GET(request: NextRequest) {
     locationContext: adResult.locationContext,
     adventures,
     featuredAdventures,
+    restrictedAdventures,
     recentReviews,
   });
 }

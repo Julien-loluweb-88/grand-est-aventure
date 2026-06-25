@@ -83,7 +83,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### Écran d’accueil (agrégat)
 
-- [ ] `GET /api/game/home` — **auth optionnelle** (pas de 401) : `communityStats`, **`advertisements[]`** (placement `home`), **`locationContext`**, catalogue `adventures`, `featuredAdventures`, `recentReviews`.  
+- [ ] `GET /api/game/home` — **auth optionnelle** : … `adventures`, `featuredAdventures` (**PUBLIC**), **`restrictedAdventures`** (démo/dev si session + droits, avec `audience`), `recentReviews`.  
 - [ ] Query **`latitude` + `longitude`** ensemble si GPS (distance, carrousel, **ciblage pub** par ville inférée — pas de `cityId` obligatoire).  
 - [ ] Query optionnelles : `reviewsLimit` (défaut 25, max 50), `featuredLimit` (défaut 3).  
 - [ ] Avec session : stats perso (`communityStats.scope: user`) et exclusion des pubs masquées.
@@ -91,7 +91,8 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 ### Villes & liste des parcours
 
 - [ ] `GET /api/game/cities` — affichage liste / filtres ; conserver **`cityId`** pour la suite (carte ville, `discovery-points`, override pub).  
-- [ ] `GET /api/game/adventures` — liste **PUBLIC** uniquement (pas les démos) ; alternative ou complément de `home.adventures`.  
+- [ ] `GET /api/game/adventures` — liste **PUBLIC** ; filtres query : `cityId`, `q`, GPS + `radiusKm`, `hasTreasure`, `sort` (`distance`|`updated`|`popular`|`rating`|`name`), `limit`/`offset` ; réponse `total`, **`filters`**, `adventures`.
+- [ ] `GET /api/game/cities` — sélecteur ville pour `cityId` (`activeOnly` par défaut).  
 - [ ] Si joueur connecté (cookies ou `Authorization: Bearer`) : lire **`playerState`** sur chaque entrée (session chrono, progression, `playStatus`, compteurs d’étapes) — pas besoin d’appeler `progress` par carte.  
 - [ ] Gérer pagination / recherche si vous l’ajoutez côté API plus tard (actuellement selon réponse serveur).
 

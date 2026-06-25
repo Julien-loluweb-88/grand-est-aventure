@@ -38,6 +38,10 @@ import {
   RICH_TEXT_PLAIN_MAX_CHARS,
 } from "@/lib/dashboard-text-limits";
 import type { AdventureEditFormPayload } from "../_lib/adventure-edit-payload";
+import {
+  ADVENTURE_AUDIENCE_FORM_VALUES,
+  adventureAudienceLabel,
+} from "@/lib/adventure-audience";
 import { buildAdventureRouteWaypointsLonLat } from "@/lib/adventure-route-waypoints";
 import { useLiveAdventureRoutePreview } from "@/hooks/use-live-adventure-route-preview";
 import { AdventureMediaFields } from "@/components/adventure/AdventureMediaFields";
@@ -101,7 +105,7 @@ const formSchema = z.object({
   coverImageUrl: z.string().max(2048).optional().default(""),
   badgeImageUrl: z.string().max(2048).optional().default(""),
   physicalBadgeStockCount: z.coerce.number().int().min(0).max(100_000).default(0),
-  audience: z.enum(["PUBLIC", "DEMO"]),
+  audience: z.enum(ADVENTURE_AUDIENCE_FORM_VALUES),
 });
 
 const FORM_ID = "adventure-edit-form";
@@ -257,7 +261,7 @@ export function AdventureEditForm({
                 Visibilité
               </p>
               <p className="font-medium text-foreground">
-                {adventure.audience === "DEMO" ? "Démo (restreinte)" : "Publique"}
+                {adventureAudienceLabel(adventure.audience)}
               </p>
             </div>
             <div>
@@ -459,9 +463,10 @@ export function AdventureEditForm({
                           <Field data-invalid={fieldState.invalid}>
                             <FieldLabel htmlFor={field.name}>Visibilité</FieldLabel>
                             <p className="mb-1 text-xs text-muted-foreground">
-                              Public : catalogue et application joueur. Démo : visible uniquement
-                              pour les administrateurs et les comptes ajoutés ci‑dessous (section
-                              dédiée sur la fiche).
+                              Public : catalogue et application joueur. Développement : hors
+                              catalogue, réservé au superadmin et aux administrateurs assignés à
+                              l’aventure. Démo : hors catalogue, tous les administrateurs et les
+                              comptes invités (section dédiée sur la fiche).
                             </p>
                             <Select
                               value={field.value}
@@ -477,6 +482,9 @@ export function AdventureEditForm({
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="PUBLIC">Publique</SelectItem>
+                                <SelectItem value="DEVELOPMENT">
+                                  Développement (interne)
+                                </SelectItem>
                                 <SelectItem value="DEMO">Démo (restreinte)</SelectItem>
                               </SelectContent>
                             </Select>

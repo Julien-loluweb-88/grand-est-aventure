@@ -1,4 +1,5 @@
 import type { LocationPickerContextMarker } from "@/components/location/location-picker-types"
+import type { AdventureAudienceFormValue } from "@/lib/adventure-audience"
 
 /** Même forme que les repères `LocationPicker` (énigmes / trésor). */
 export type AdventureMapContextMarker = LocationPickerContextMarker
@@ -30,6 +31,6 @@ export type AdventureEditFormPayload = {
   coverImageUrl: string | null
   badgeImageUrl: string | null
   physicalBadgeStockCount: number
-  /** PUBLIC = catalogue ; DEMO = réservé admins + liste blanche. */
-  audience: "PUBLIC" | "DEMO"
+  /** PUBLIC = catalogue ; DEMO = admins + liste blanche ; DEVELOPMENT = superadmin + admins assignés. */
+  audience: AdventureAudienceFormValue
 }

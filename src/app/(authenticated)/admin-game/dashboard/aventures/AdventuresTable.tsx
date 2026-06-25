@@ -24,6 +24,10 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { RequestNewAdventureDialog } from "./RequestNewAdventureDialog"
+import {
+  adventureAudienceLabel,
+  type AdventureAudienceFormValue,
+} from "@/lib/adventure-audience"
 
 const PAGE_SIZE = 10
 
@@ -32,7 +36,7 @@ type Adventure = {
   name: string
   city: string
   status: boolean
-  audience: "PUBLIC" | "DEMO"
+  audience: AdventureAudienceFormValue
   estimatedPlayDurationSeconds: number | null
   averagePlayDurationSeconds: number | null
   playDurationSampleCount: number
@@ -204,11 +208,9 @@ export default function AdventuresTable({
                   <TableCell className="text-left">{adventure.name}</TableCell>
                   <TableCell className="text-left">{adventure.city}</TableCell>
                   <TableCell className="text-left">
-                    {adventure.audience === "DEMO" ? (
-                      <span className="text-muted-foreground">Démo</span>
-                    ) : (
-                      <span className="text-muted-foreground">Publique</span>
-                    )}
+                    <span className="text-muted-foreground">
+                      {adventureAudienceLabel(adventure.audience)}
+                    </span>
                   </TableCell>
                   <TableCell className="text-left">
                     {adventure.status ? (
