@@ -199,28 +199,14 @@ export default async function Home() {
     { icon: Smartphone, label: "App mobile" },
     { icon: Users, label: "Famille & amis" },
     ...(hasAdventures
-      ? [
-          {
-            icon: MapPin,
-            label: `${adventureCount} ${pluralize(adventureCount, "parcours", "parcours")}`,
-          },
-        ]
-      : []),
-    ...(cityCount > 0
-      ? [
-          {
-            icon: Compass,
-            label: `${cityCount} ${pluralize(cityCount, "ville", "villes")}`,
-          },
-        ]
+      ? [{ icon: MapPin, label: "Grand Est" }]
       : []),
   ];
 
-  const territorySummary = hasAdventures
-    ? cityCount === 1
-      ? `1 parcours à ${territoryCities[0]?.name ?? "votre ville"}`
-      : `${adventureCount} parcours dans ${cityCount} ${pluralize(cityCount, "ville", "villes")} — ${formatTerritoryCityList(territoryCities)}`
-    : null;
+  const territorySummaryDetailed =
+    hasAdventures && cityCount > 1
+      ? `${adventureCount} parcours dans ${cityCount} ${pluralize(cityCount, "ville", "villes")} — ${formatTerritoryCityList(territoryCities)}`
+      : null;
 
   return (
     <div className="flex w-full flex-1 flex-col">
@@ -273,19 +259,19 @@ export default async function Home() {
 
           <p className="mx-auto max-w-2xl text-pretty text-base font-medium leading-relaxed text-white/92 drop-shadow sm:text-lg md:text-xl">
             Avec <strong className="font-semibold text-white">Balad&apos;indice</strong>,
+            explorez le <strong className="font-semibold text-[#d4f0a8]">Grand Est</strong> en
+            marchant, résolvez les énigmes et dénichez le trésor au bout du chemin.
             {hasAdventures ? (
               <>
                 {" "}
-                explorez {territorySummary?.toLowerCase() ?? "le territoire"} en marchant,
-                résolvez les énigmes et dénichez le trésor au bout du chemin.
+                Des parcours sont déjà disponibles — la carte s&apos;enrichit au fil des semaines.
               </>
             ) : (
               <>
                 {" "}
-                marche, suis les indices et résous les énigmes jusqu&apos;au trésor. Les parcours
-                arrivent{" "}
+                Les parcours arrivent{" "}
                 <strong className="font-semibold text-[#d4f0a8]">progressivement</strong> près de
-                chez toi — la carte s&apos;enrichit au fil des semaines.
+                chez toi.
               </>
             )}
           </p>
@@ -313,7 +299,9 @@ export default async function Home() {
                 className="h-11 rounded-xl border-0 bg-[#68a618] px-7 text-sm font-semibold text-white shadow-lg shadow-black/20 hover:bg-[#5a9015] sm:h-12"
                 asChild
               >
-                <Link href="#telecharger">Télécharger sur Android</Link>
+                <a href={PLAY_STORE_URL} target="_blank" rel="noopener noreferrer">
+                  Télécharger sur Android
+                </a>
               </Button>
             ) : (
               <Button
@@ -341,7 +329,7 @@ export default async function Home() {
             {APP_IS_LIVE ? (
               <>
                 Disponible sur <strong className="text-white/85">Google Play</strong> ·{" "}
-                <strong className="text-white/85">iPhone</strong> prochainement
+                <strong className="text-white/85">iOS</strong> à venir
               </>
             ) : (
               <>
@@ -368,8 +356,13 @@ export default async function Home() {
             <p className="text-pretty text-sm leading-relaxed text-[#281401]/80">
               {hasAdventures ? (
                 <>
-                  {territorySummary}. D&apos;autres communes rejoignent le réseau au fil des
-                  semaines — la carte continue de grandir.{" "}
+                  {territorySummaryDetailed ? (
+                    <>{territorySummaryDetailed}. </>
+                  ) : (
+                    <>Des parcours sont déjà jouables dans le Grand Est. </>
+                  )}
+                  D&apos;autres communes rejoignent le réseau au fil des semaines — la carte
+                  continue de grandir.{" "}
                 </>
               ) : (
                 <>
