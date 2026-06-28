@@ -28,6 +28,18 @@ import {
   adventureAudienceLabel,
   type AdventureAudienceFormValue,
 } from "@/lib/adventure-audience"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import {
+  patchAdventureAudience,
+  patchAdventureStatus,
+} from "./adventure.action"
 
 const PAGE_SIZE = 10
 
@@ -66,8 +78,49 @@ export default function AdventuresTable({
 }: Props) {
   const router = useRouter()
   const caps = useAdminCapabilities()
+  const canUpdate = caps.adventure.update
   const [searchInput, setSearchInput] = useState(search)
   const [debouncedSearch, setDebouncedSearch] = useState("")
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  const handleAudienceChange = async (
+    adventureId: string,
+    audience: AdventureAudienceFormValue,
+  ) => {
+    if (!canUpdate) return
+    setUpdatingId(adventureId)
+    try {
+      const result = await patchAdventureAudience(adventureId, audience)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      toast.success("Visibilité mise à jour.")
+      router.refresh()
+    } catch {
+      toast.error("Erreur lors de la mise à jour de la visibilité.")
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const handleStatusChange = async (adventureId: string, active: boolean) => {
+    if (!canUpdate) return
+    setUpdatingId(adventureId)
+    try {
+      const result = await patchAdventureStatus(adventureId, active)
+      if (!result.ok) {
+        toast.error(result.error)
+        return
+      }
+      toast.success(active ? "Aventure activée." : "Aventure mise en pause.")
+      router.refresh()
+    } catch {
+      toast.error("Erreur lors de la mise à jour du statut.")
+    } finally {
+      setUpdatingId(null)
+    }
+  }
 
   useEffect(() => {
     setSearchInput(search)
@@ -208,12 +261,72 @@ export default function AdventuresTable({
                   <TableCell className="text-left">{adventure.name}</TableCell>
                   <TableCell className="text-left">{adventure.city}</TableCell>
                   <TableCell className="text-left">
-                    <span className="text-muted-foreground">
-                      {adventureAudienceLabel(adventure.audience)}
-                    </span>
+                    {canUpdate ? (
+                      <Select
+                        value={adventure.audience}
+                        disabled={updatingId === adventure.id}
+                        onValueChange={(value) =>
+                          void handleAudienceChange(
+                            adventure.id,
+                            value as AdventureAudienceFormValue,
+                          )
+                        }
+                      >
+                        <SelectTrigger
+                          size="sm"
+                          className={cn(
+                            "h-8 w-[10.5rem] text-xs",
+                            adventure.audience === "DEVELOPMENT" &&
+                              "border-amber-500/50 text-amber-800 dark:text-amber-200",
+                            adventure.audience === "DEMO" &&
+                              "border-violet-500/50 text-violet-800 dark:text-violet-200",
+                          )}
+                          aria-label={`Visibilité de ${adventure.name}`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="PUBLIC">Publique</SelectItem>
+                          <SelectItem value="DEVELOPMENT">
+                            Développement
+                          </SelectItem>
+                          <SelectItem value="DEMO">Démo</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        {adventureAudienceLabel(adventure.audience)}
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-left">
-                    {adventure.status ? (
+                    {canUpdate ? (
+                      <Select
+                        value={adventure.status ? "active" : "paused"}
+                        disabled={updatingId === adventure.id}
+                        onValueChange={(value) =>
+                          void handleStatusChange(
+                            adventure.id,
+                            value === "active",
+                          )
+                        }
+                      >
+                        <SelectTrigger
+                          size="sm"
+                          className={cn(
+                            "h-8 w-[7.5rem] text-xs",
+                            !adventure.status && "text-destructive",
+                          )}
+                          aria-label={`Statut de ${adventure.name}`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="active">Active</SelectItem>
+                          <SelectItem value="paused">Pause</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : adventure.status ? (
                       <span className="text-muted-foreground">Active</span>
                     ) : (
                       <span className="text-destructive">Pause</span>

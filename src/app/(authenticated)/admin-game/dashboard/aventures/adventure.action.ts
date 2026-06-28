@@ -1,13 +1,70 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getAdminActorForAuthorization } from "@/lib/adventure-authorization";
+import {
+  gateAdventureUpdateContent,
+  getAdminActorForAuthorization,
+} from "@/lib/adventure-authorization";
 import { getManagedAdventureIds, isSuperadmin } from "@/lib/admin-access";
 import { userHasPermissionServer } from "@/lib/better-auth-admin-permission";
 import {
+  adventureAudienceFromForm,
   adventureAudienceToForm,
 } from "@/lib/adventure-audience-server";
-import type { AdventureAudienceFormValue } from "@/lib/adventure-audience";
+import {
+  ADVENTURE_AUDIENCE_FORM_VALUES,
+  type AdventureAudienceFormValue,
+} from "@/lib/adventure-audience";
+
+type PatchResult = { ok: true } | { ok: false; error: string };
+
+export async function patchAdventureAudience(
+  id: string,
+  audience: AdventureAudienceFormValue,
+): Promise<PatchResult> {
+  if (!ADVENTURE_AUDIENCE_FORM_VALUES.includes(audience)) {
+    return { ok: false, error: "Visibilité invalide." };
+  }
+  const gate = await gateAdventureUpdateContent(id);
+  if (!gate.ok) {
+    return { ok: false, error: "Non autorisé." };
+  }
+  try {
+    await prisma.adventure.update({
+      where: { id },
+      data: { audience: adventureAudienceFromForm(audience) },
+    });
+    revalidatePath("/admin-game/dashboard/aventures");
+    revalidatePath(`/admin-game/dashboard/aventures/${id}`);
+    revalidatePath("/");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Erreur lors de la mise à jour de la visibilité." };
+  }
+}
+
+export async function patchAdventureStatus(
+  id: string,
+  status: boolean,
+): Promise<PatchResult> {
+  const gate = await gateAdventureUpdateContent(id);
+  if (!gate.ok) {
+    return { ok: false, error: "Non autorisé." };
+  }
+  try {
+    await prisma.adventure.update({
+      where: { id },
+      data: { status },
+    });
+    revalidatePath("/admin-game/dashboard/aventures");
+    revalidatePath(`/admin-game/dashboard/aventures/${id}`);
+    revalidatePath("/");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "Erreur lors de la mise à jour du statut." };
+  }
+}
 
 export async function listAdventures() {
   const actor = await getAdminActorForAuthorization();
