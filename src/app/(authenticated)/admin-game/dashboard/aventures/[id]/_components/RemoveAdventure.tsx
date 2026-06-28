@@ -11,7 +11,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   type DialogCloseRef,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -19,17 +18,33 @@ import { Input } from "@/components/ui/input";
 import { RemoveAdventure } from "../_lib/adventure.action"
 import { useRouter } from "next/navigation";
 
-export function RemoveAdventureForm({
+type AdventureRef = { id: string; name: string };
+
+type DeleteAdventureDialogProps = {
+  adventure: AdventureRef;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDeleted?: () => void;
+};
+
+export function DeleteAdventureDialog({
   adventure,
-}: {
-  adventure: { id: string; name: string }
-}) {
+  open,
+  onOpenChange,
+  onDeleted,
+}: DeleteAdventureDialogProps) {
   const router = useRouter();
-  const caps = useAdminCapabilities();
   const dialogRef = useRef<DialogCloseRef>(null);
   const [isPending, startTransition] = useTransition();
   const [confirmText, setConfirmText] = useState("");
   const expectedConfirm = adventure.name ?? "";
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setConfirmText("");
+    }
+    onOpenChange(nextOpen);
+  };
 
   const handleRemove = async (e: React.SyntheticEvent) => {
     e.preventDefault();
@@ -45,7 +60,11 @@ export function RemoveAdventureForm({
           toast.success(result.message);
           setConfirmText("");
           dialogRef.current?.close();
-          router.push("/admin-game/dashboard/aventures");
+          if (onDeleted) {
+            onDeleted();
+          } else {
+            router.push("/admin-game/dashboard/aventures");
+          }
         } else {
           toast.error(result.message);
         }
@@ -56,28 +75,8 @@ export function RemoveAdventureForm({
     });
   };
 
-  if (!caps.adventure.delete) {
-    return (
-      <GuardedButton
-        type="button"
-        variant="destructive"
-        size="sm"
-        allowed={false}
-        denyReason="Vous ne pouvez pas supprimer une aventure."
-      >
-        Supprimer l&apos;aventure
-      </GuardedButton>
-    );
-  }
-
   return (
-    <Dialog ref={dialogRef}>
-      <DialogTrigger asChild>
-        <Button type="button" variant="destructive" size="sm">
-          Supprimer l&apos;aventure
-        </Button>
-      </DialogTrigger>
-
+    <Dialog ref={dialogRef} open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <form onSubmit={handleRemove}>
           <DialogHeader>
@@ -116,5 +115,46 @@ export function RemoveAdventureForm({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
+}
+
+export function RemoveAdventureForm({
+  adventure,
+}: {
+  adventure: AdventureRef
+}) {
+  const caps = useAdminCapabilities();
+  const [open, setOpen] = useState(false);
+
+  if (!caps.adventure.delete) {
+    return (
+      <GuardedButton
+        type="button"
+        variant="destructive"
+        size="sm"
+        allowed={false}
+        denyReason="Vous ne pouvez pas supprimer une aventure."
+      >
+        Supprimer l&apos;aventure
+      </GuardedButton>
+    );
+  }
+
+  return (
+    <>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        onClick={() => setOpen(true)}
+      >
+        Supprimer l&apos;aventure
+      </Button>
+      <DeleteAdventureDialog
+        adventure={adventure}
+        open={open}
+        onOpenChange={setOpen}
+      />
+    </>
+  );
 }

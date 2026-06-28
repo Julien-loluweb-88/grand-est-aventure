@@ -40,6 +40,7 @@ import {
   patchAdventureAudience,
   patchAdventureStatus,
 } from "./adventure.action"
+import { DeleteAdventureDialog } from "./[id]/_components/RemoveAdventure"
 
 const PAGE_SIZE = 10
 
@@ -82,6 +83,7 @@ export default function AdventuresTable({
   const [searchInput, setSearchInput] = useState(search)
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null)
 
   const handleAudienceChange = async (
     adventureId: string,
@@ -364,6 +366,25 @@ export default function AdventuresTable({
                         >
                           Voir le détail
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          disabled={!caps.adventure.delete}
+                          title={
+                            !caps.adventure.delete
+                              ? "Vous ne pouvez pas supprimer cette aventure."
+                              : undefined
+                          }
+                          className="text-destructive focus:text-destructive"
+                          onSelect={(e) => {
+                            e.preventDefault()
+                            if (!caps.adventure.delete) return
+                            setDeleteTarget({
+                              id: adventure.id,
+                              name: adventure.name,
+                            })
+                          }}
+                        >
+                          Supprimer
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -374,6 +395,19 @@ export default function AdventuresTable({
           </Table>
         )}
       </div>
+      {deleteTarget ? (
+        <DeleteAdventureDialog
+          adventure={deleteTarget}
+          open
+          onOpenChange={(open) => {
+            if (!open) setDeleteTarget(null)
+          }}
+          onDeleted={() => {
+            setDeleteTarget(null)
+            router.refresh()
+          }}
+        />
+      ) : null}
     </div>
   )
 }
