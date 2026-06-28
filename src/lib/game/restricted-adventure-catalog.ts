@@ -38,16 +38,11 @@ export type RestrictedMobileAdventureListItem = MobileAdventureListItem & {
   audience: RestrictedAdventureAudienceLabel;
 };
 
-/**
- * Parcours démo / développement accessibles au compte connecté (hors catalogue public).
- * Anonyme → toujours `[]` (ne pas appeler).
- */
-export async function listRestrictedMobileAdventuresForViewer(params: {
+/** Lignes Prisma démo/dev accessibles au compte (sans filtre catalogue ni distance). */
+export async function fetchRestrictedCatalogRowsForViewer(params: {
   userId: string;
   role: string | null | undefined;
-  latitude: number | null;
-  longitude: number | null;
-}): Promise<RestrictedMobileAdventureListItem[]> {
+}): Promise<RestrictedCatalogAdventureRow[]> {
   const needDemoWhitelist = !isAdminRole(params.role);
   const needDevAssignments = isAdminRole(params.role) && !isSuperadmin(params.role);
 
@@ -80,13 +75,29 @@ export async function listRestrictedMobileAdventuresForViewer(params: {
     select: restrictedCatalogSelect,
   })) as RestrictedCatalogAdventureRow[];
 
-  const sorted = sortRestrictedAdventureRows(
+  return sortRestrictedAdventureRows(
     rows.filter(
       (r): r is RestrictedCatalogAdventureRow =>
         r.audience === AdventureAudience.DEMO ||
         r.audience === AdventureAudience.DEVELOPMENT
     )
   );
+}
+
+/**
+ * Parcours démo / développement accessibles au compte connecté (hors catalogue public).
+ * Anonyme → toujours `[]` (ne pas appeler).
+ */
+export async function listRestrictedMobileAdventuresForViewer(params: {
+  userId: string;
+  role: string | null | undefined;
+  latitude: number | null;
+  longitude: number | null;
+}): Promise<RestrictedMobileAdventureListItem[]> {
+  const sorted = await fetchRestrictedCatalogRowsForViewer({
+    userId: params.userId,
+    role: params.role,
+  });
 
   if (sorted.length === 0) {
     return [];

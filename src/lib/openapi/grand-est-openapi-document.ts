@@ -913,8 +913,9 @@ export function buildGrandEstOpenApiDocument() {
             "trésor physique (`hasTreasure`), tri (`sort`), pagination (`limit`/`offset`). " +
             "**`sort`** : `distance` (défaut si GPS), `updated` (défaut sans GPS), `popular`, `rating`, `name`. `distance` exige GPS. " +
             "La réponse inclut **`filters`** (filtres effectivement appliqués). " +
-            "Inclut uniquement les aventures **`status: true`** et **`audience: PUBLIC`**. " +
-            "Avec session ou **`Authorization: Bearer`** valide : chaque aventure inclut **`playerState`** (agrégat serveur, pas d’appel `progress` par carte). Sans auth : champ absent. " +
+            "Inclut les aventures **`status: true`** et **`audience: PUBLIC`**. " +
+            "Avec session ou **`Authorization: Bearer`** valide : ajoute les parcours **démo/dev** accessibles au compte (champ **`audience`** = `DEMO` ou `DEVELOPMENT` sur ces entrées uniquement), avec les mêmes filtres/tri/pagination. " +
+            "Avec session : chaque aventure inclut **`playerState`** (agrégat serveur, pas d’appel `progress` par carte). Sans auth : champ absent. " +
             "Chaque entrée peut inclure **`estimatedDurationSeconds`** (heuristique admin : marche + énigmes + trésor), " +
             "**`averagePlayDurationSeconds`** et **`playDurationSampleCount`** (moyenne temps réel après assez de parties — alimentées par le cron). " +
             "**`averageRating`** / **`reviewCount`** : moyenne et effectif des avis publics (`APPROVED`) avec note 1–5. " +
@@ -1044,6 +1045,12 @@ export function buildGrandEstOpenApiDocument() {
                             },
                             updatedAt: { type: "string", format: "date-time" },
                             playerState: ADVENTURE_PLAYER_STATE_SCHEMA,
+                            audience: {
+                              type: "string",
+                              enum: ["DEMO", "DEVELOPMENT"],
+                              description:
+                                "Présent uniquement pour les parcours hors catalogue PUBLIC inclus avec session.",
+                            },
                           },
                         },
                       },

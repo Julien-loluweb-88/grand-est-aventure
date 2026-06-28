@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getUserRoleForAccess } from "@/lib/adventure-public-access";
 import { getOptionalUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 import { batchLoadAdventurePlayerStateByUser } from "@/lib/game/adventure-player-state";
 import {
@@ -9,13 +10,16 @@ import { parseCatalogListQuery } from "@/lib/game/catalog-list-query";
 import {
   buildPlayAvailabilityMapForCatalogRows,
   catalogRowToPlayerStateBatchInput,
-  queryPublicCatalogAdventureList,
   toMobileAdventureListItem,
 } from "@/lib/game/mobile-adventure-catalog";
 import { batchLoadMyReviewByUserAndAdventureIds } from "@/lib/game/adventure-play-availability";
+import { queryMobileAdventureCatalogList } from "@/lib/game/query-mobile-adventure-catalog";
 
 /**
- * Liste catalogue mobile (`PUBLIC` actives uniquement).
+ * Liste catalogue mobile.
+ *
+ * Anonyme : `PUBLIC` actives uniquement.
+ * Connecté avec droits : inclut aussi les parcours démo/dev accessibles (`audience` sur ces entrées).
  *
  * Query : `cityId`, `q`, `latitude`+`longitude`, `radiusKm`, `hasTreasure`,
  * `sort` (`distance`|`updated`|`popular`|`rating`|`name`), `limit`, `offset`.
@@ -27,11 +31,15 @@ export async function GET(request: NextRequest) {
   }
 
   const { query, applied } = parsed;
-  const { total, rows } = await queryPublicCatalogAdventureList(query);
+  const userId = await getOptionalUserIdFromApiRequest(request);
+  const viewerRole = userId ? await getUserRoleForAccess(userId) : null;
+
+  const { total, rows } = await queryMobileAdventureCatalogList(
+    query,
+    userId ? { userId, role: viewerRole } : undefined
+  );
   const paginated = rows.slice(query.offset, query.offset + query.limit);
   const paginatedIds = paginated.map(({ row }) => row.id);
-
-  const userId = await getOptionalUserIdFromApiRequest(request);
 
   const [reviewAggregates, playerStateByAdventureId, playAvailabilityById, myReviewById] =
     await Promise.all([
@@ -53,15 +61,16 @@ export async function GET(request: NextRequest) {
     limit: query.limit,
     offset: query.offset,
     filters: applied,
-    adventures: paginated.map(({ row, distanceFromUserKm }) =>
-      toMobileAdventureListItem(
+    adventures: paginated.map(({ row, distanceFromUserKm, restrictedAudience }) => ({
+      ...toMobileAdventureListItem(
         row,
         distanceFromUserKm,
         reviewAggregateForAdventure(reviewAggregates, row.id),
         playAvailabilityById.get(row.id)!,
         userId ? playerStateByAdventureId.get(row.id) : undefined,
         userId ? myReviewById.get(row.id) : undefined
-      )
-    ),
+      ),
+      ...(restrictedAudience ? { audience: restrictedAudience } : {}),
+    })),
   });
 }
