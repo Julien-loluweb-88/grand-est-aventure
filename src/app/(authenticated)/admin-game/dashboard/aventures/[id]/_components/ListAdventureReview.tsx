@@ -35,7 +35,7 @@ const PAGE_SIZE = 5
 
 type AdventureReview = {
   id: string;
-  adventureId: string;
+  adventureId: string | null;
   rating: number | null;
   content: string | null;
   image: string | null;

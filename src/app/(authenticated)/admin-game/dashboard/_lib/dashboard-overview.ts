@@ -52,7 +52,7 @@ export type DashboardOverview =
       reviewsPendingPreview?: {
         id: string;
         updatedAtIso: string;
-        adventureId: string;
+        adventureId: string | null;
         adventureName: string;
         authorLabel: string;
       }[];
@@ -163,6 +163,8 @@ export async function getDashboardOverview(params: {
       select: {
         id: true,
         updatedAt: true,
+        adventureId: true,
+        archivedAdventureName: true,
         adventure: { select: { id: true, name: true } },
         user: { select: { name: true, email: true } },
       },
@@ -266,8 +268,11 @@ export async function getDashboardOverview(params: {
       ? reviewsPreviewRows.map((r) => ({
           id: r.id,
           updatedAtIso: r.updatedAt.toISOString(),
-          adventureId: r.adventure.id,
-          adventureName: r.adventure.name,
+          adventureId: r.adventureId,
+          adventureName:
+            r.adventure?.name ??
+            r.archivedAdventureName?.trim() ??
+            "Aventure supprimée",
           authorLabel: r.user.name?.trim() || r.user.email,
         }))
       : undefined;

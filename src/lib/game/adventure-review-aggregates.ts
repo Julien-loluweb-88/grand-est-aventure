@@ -38,6 +38,7 @@ export async function loadApprovedReviewAggregatesByAdventureIds(
   });
 
   for (const row of grouped) {
+    if (!row.adventureId) continue;
     const reviewCount = row._count.rating;
     const avg = row._avg.rating;
     map.set(row.adventureId, {

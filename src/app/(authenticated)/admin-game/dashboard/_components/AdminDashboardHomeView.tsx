@@ -210,12 +210,16 @@ export function AdminDashboardHomeView({
                   key={r.id}
                   className="flex flex-col gap-1 py-3 first:pt-0 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <Link
-                    href={`/admin-game/dashboard/aventures/${r.adventureId}#moderation-avis`}
-                    className="font-medium text-foreground underline-offset-4 hover:underline"
-                  >
-                    {r.adventureName}
-                  </Link>
+                  {r.adventureId ? (
+                    <Link
+                      href={`/admin-game/dashboard/aventures/${r.adventureId}#moderation-avis`}
+                      className="font-medium text-foreground underline-offset-4 hover:underline"
+                    >
+                      {r.adventureName}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-foreground">{r.adventureName}</span>
+                  )}
                   <div className="flex flex-col gap-0.5 text-xs text-muted-foreground sm:items-end">
                     <span>{r.authorLabel}</span>
                     <time dateTime={r.updatedAtIso}>{formatShortDate(r.updatedAtIso)}</time>

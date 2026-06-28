@@ -147,7 +147,13 @@ export async function changeReviewStatus(
     throw new Error("Avis introuvable.");
   }
 
-  const gate = await gateAdventureUpdateContent(existing.adventureId);
+  if (!existing.adventureId) {
+    throw new Error("Cet avis n’est plus rattaché à une aventure active.");
+  }
+
+  const adventureId = existing.adventureId;
+
+  const gate = await gateAdventureUpdateContent(adventureId);
   if (!gate.ok) {
     throw new Error("Non autorisé.");
   }
@@ -165,7 +171,7 @@ export async function changeReviewStatus(
       existing.moderationStatus !== "APPROVED"
     ) {
       await applyApprovedReviewAlerts(tx, {
-        adventureId: existing.adventureId,
+        adventureId,
         reportsStolenTreasure: existing.reportsStolenTreasure,
         reportsMissingBadge: existing.reportsMissingBadge,
         reviewContent: existing.content,
@@ -176,7 +182,7 @@ export async function changeReviewStatus(
     return row;
   });
 
-  revalidatePath(`/admin-game/dashboard/aventures/${existing.adventureId}`);
+  revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
   revalidatePath("/admin-game/dashboard");
   return updated;
 }

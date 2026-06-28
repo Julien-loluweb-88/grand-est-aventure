@@ -63,6 +63,7 @@ export async function batchLoadMyReviewByUserAndAdventureIds(
   });
 
   for (const row of rows) {
+    if (!row.adventureId) continue;
     map.set(row.adventureId, {
       reportsStolenTreasure: row.reportsStolenTreasure,
       reportsMissingBadge: row.reportsMissingBadge,

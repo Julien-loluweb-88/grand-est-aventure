@@ -178,6 +178,7 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         adventureId: true,
+        archivedAdventureName: true,
         rating: true,
         content: true,
         image: true,
@@ -200,7 +201,10 @@ export async function GET(request: NextRequest) {
       const base = {
         id: r.id,
         adventureId: r.adventureId,
-        adventureName: r.adventure.name,
+        adventureName:
+          r.adventure?.name ??
+          r.archivedAdventureName?.trim() ??
+          "Aventure supprimée",
         rating: r.rating,
         content: r.content,
         imageUrl: r.image,
