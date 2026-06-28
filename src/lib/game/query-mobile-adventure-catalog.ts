@@ -30,10 +30,11 @@ function restrictedRowsToCatalogItems(
   latitude: number | null,
   longitude: number | null
 ): MobileCatalogRowWithUserDistance[] {
+  const audienceById = new Map(rows.map((r) => [r.id, r.audience]));
   return attachDistanceFromUser(rows, latitude, longitude).map(({ row, distanceFromUserKm }) => ({
     row,
     distanceFromUserKm,
-    restrictedAudience: restrictedAudienceLabel(row.audience),
+    restrictedAudience: restrictedAudienceLabel(audienceById.get(row.id)!),
   }));
 }
 
