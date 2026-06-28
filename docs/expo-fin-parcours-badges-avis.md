@@ -88,7 +88,7 @@ navigation.navigate("VictoryReview", {
 
 ### 5. Envoyer l’avis
 
-POST /api/game/adventure-review (JSON ou multipart si photo)
+POST /api/game/adventure-review (JSON — avec ou sans photo)
 
 ```json
 {
@@ -96,11 +96,16 @@ POST /api/game/adventure-review (JSON ou multipart si photo)
   "userId": "...",
   "rating": 4,
   "content": "Super parcours !",
+  "photoBase64": "<base64 ou data:image/jpeg;base64,...>",
   "reportsMissingBadge": false,
   "reportsStolenTreasure": false,
   "consentCommunicationNetworks": false
 }
 ```
+
+**Auth** : même session que les autres routes jeu — header `Cookie` via `authClient.getCookie()` (ou `Authorization: Bearer`).
+
+Alternative : **multipart** avec champ `photo`, en transmettant **les mêmes en-têtes d’auth** (souvent oubliés côté Expo → 401 « Non autorisé »).
 
 Au moins un champ requis parmi : note, texte, signalements, consentement, photo.
 

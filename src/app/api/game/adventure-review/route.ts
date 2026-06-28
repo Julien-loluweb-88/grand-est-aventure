@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { getRequiredUserIdFromApiRequest } from "@/lib/auth/get-optional-api-session-user-id";
 import { getClientIp } from "@/lib/api/get-client-ip";
 import { checkRateLimit } from "@/lib/api/simple-rate-limit";
 import {
@@ -9,7 +8,10 @@ import {
 } from "@/lib/game/process-adventure-review";
 import { prisma } from "@/lib/prisma";
 import { getUserRoleForAccess } from "@/lib/adventure-public-access";
-import { saveReviewPhotoFile } from "@/lib/uploads/save-review-photo";
+import {
+  saveReviewPhotoFile,
+  saveReviewPhotoFromBase64,
+} from "@/lib/uploads/save-review-photo";
 
 const WINDOW_MS = 60_000;
 const MAX_PER_WINDOW = 20;
@@ -117,13 +119,48 @@ async function parseReviewRequest(request: NextRequest): Promise<
   const b = body as Record<string, unknown>;
   const adventureId = typeof b.adventureId === "string" ? b.adventureId.trim() : "";
   const userId = typeof b.userId === "string" ? b.userId.trim() : "";
-  const image =
-    typeof b.image === "string" ? b.image : b.image === null ? null : undefined;
+
+  if (!adventureId || !userId) {
+    return { ok: false, status: 400, error: "adventureId et userId sont requis." };
+  }
 
   if (typeof b.content !== "string" && b.content != null) {
     return { ok: false, status: 400, error: "content doit être une chaîne." };
   }
   const content = typeof b.content === "string" ? b.content : "";
+
+  let image: string | null | undefined;
+  const photoBase64 =
+    typeof b.photoBase64 === "string"
+      ? b.photoBase64
+      : typeof b.photo === "string"
+        ? b.photo
+        : null;
+  const imageField = typeof b.image === "string" ? b.image : b.image === null ? null : undefined;
+
+  if (photoBase64?.trim()) {
+    const saved = await saveReviewPhotoFromBase64({
+      adventureId,
+      base64: photoBase64,
+      mimeType: typeof b.photoMimeType === "string" ? b.photoMimeType : null,
+    });
+    if (!saved.ok) {
+      return { ok: false, status: 400, error: saved.error };
+    }
+    image = saved.publicUrl;
+  } else if (imageField?.trim().startsWith("data:image/")) {
+    const saved = await saveReviewPhotoFromBase64({
+      adventureId,
+      base64: imageField.trim(),
+    });
+    if (!saved.ok) {
+      return { ok: false, status: 400, error: saved.error };
+    }
+    image = saved.publicUrl;
+  } else {
+    image =
+      typeof b.image === "string" ? b.image : b.image === null ? null : undefined;
+  }
 
   return {
     ok: true,
@@ -146,10 +183,8 @@ async function parseReviewRequest(request: NextRequest): Promise<
  * **`photo`** (ou **`image`**) pour envoyer photo + texte en une seule requête.
  */
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-  if (!session?.user?.id) {
+  const sessionUserId = await getRequiredUserIdFromApiRequest(request);
+  if (!sessionUserId) {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
 
@@ -159,7 +194,6 @@ export async function POST(request: NextRequest) {
   }
 
   const { adventureId, userId, content, rating, image, ...flags } = parsed.data;
-  const sessionUserId = session.user.id;
 
   if (!adventureId) {
     return NextResponse.json(

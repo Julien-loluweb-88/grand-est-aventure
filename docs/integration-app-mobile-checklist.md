@@ -192,7 +192,11 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 
 ### Avis fin de partie
 
-- [ ] `POST /api/game/adventure-review` (note, texte, signalements, photo multipart si prévu — voir OpenAPI).  
+- [ ] `POST /api/game/adventure-review` (note, texte, signalements, photo — voir OpenAPI).
+  - **Sans photo** : JSON `application/json` (comme aujourd’hui).
+  - **Avec photo** (au choix) :
+    - **Recommandé Expo** : rester en JSON et envoyer `photoBase64` (ou `image` en data-URL `data:image/jpeg;base64,...`) + `photoMimeType` si besoin — **même en-têtes d’auth** que le JSON sans photo.
+    - **Multipart** : `multipart/form-data` avec champ `photo` — **obligatoire** d’envoyer aussi `Cookie: ${authClient.getCookie()}` (ou `Authorization: Bearer <sessionToken>`) ; ne pas fixer `Content-Type` à la main (laisser le client ajouter le boundary).  
 - [ ] Gérer erreurs démo / validation.
 
 ### Badges joueur
