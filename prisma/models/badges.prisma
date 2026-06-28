@@ -63,7 +63,7 @@ model BadgeDefinition {
   kind        BadgeDefinitionKind
   /// Aventure liée (un seul badge virtuel par aventure).
   adventureId String?             @unique
-  adventure   Adventure?          @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventure   Adventure?          @relation(fields: [adventureId], references: [id], onDelete: SetNull)
   /// Paramètres d’attribution selon `kind` (seuils, plage horaire, parcours record, etc.).
   criteria    Json?
   sortOrder   Int                 @default(0)

@@ -11,6 +11,7 @@ import {
   gateAdventureUpdateContent,
 } from "@/lib/adventure-authorization";
 import { applyApprovedReviewAlerts } from "@/lib/game/apply-approved-review-alerts";
+import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 
 export async function statusAdventure(id: string, status: boolean) {
   const gate = await gateAdventureUpdateContent(id);
@@ -30,6 +31,22 @@ export async function statusAdventure(id: string, status: boolean) {
 const MSG_NO_DELETE_RIGHT =
   "Vous n’avez pas l’autorisation de supprimer cette aventure.";
 
+async function deleteAdventureUploadFiles(
+  adventureId: string,
+  imageUrls: Array<string | null | undefined>,
+) {
+  for (const url of imageUrls) {
+    await deleteUploadsFileByUrl(url);
+  }
+
+  const uploadsDir = path.join(process.cwd(), "uploads", "adventures", adventureId);
+  try {
+    await rm(uploadsDir, { recursive: true, force: true });
+  } catch {
+    /* dossier absent ou déjà supprimé */
+  }
+}
+
 export async function RemoveAdventure(adventureId: string) {
   const gate = await gateAdventureAction(adventureId, "delete");
   if (!gate.ok) {
@@ -40,26 +57,70 @@ export async function RemoveAdventure(adventureId: string) {
   }
 
   try {
-    await prisma.adventure.delete({
-      where: {
-        id: adventureId,
+    const snapshot = await prisma.adventure.findUnique({
+      where: { id: adventureId },
+      select: {
+        name: true,
+        coverImageUrl: true,
+        enigmas: { select: { imageUrl: true } },
+        treasure: { select: { imageUrl: true } },
       },
     });
 
-    const uploadsDir = path.join(process.cwd(), "uploads", "adventures", adventureId);
-    try {
-      await rm(uploadsDir, { recursive: true, force: true });
-    } catch {
-      /* dossier absent ou déjà supprimé */
+    if (!snapshot) {
+      return {
+        success: false,
+        message: "Aventure introuvable.",
+      };
     }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.userAdventurePartnerLotWin.deleteMany({ where: { adventureId } });
+      await tx.adventurePartnerLot.deleteMany({ where: { adventureId } });
+
+      // Avis : détacher l’aventure, conserver le nom et les photos joueurs.
+      await tx.adventureReview.updateMany({
+        where: { adventureId },
+        data: {
+          archivedAdventureName: snapshot.name,
+          adventureId: null,
+        },
+      });
+
+      // Badges joueurs : détacher la définition d’aventure (UserBadge inchangés).
+      await tx.badgeDefinition.updateMany({
+        where: { adventureId },
+        data: { adventureId: null },
+      });
+
+      // Points de découverte : conserver en POI ville (cityId inchangé).
+      await tx.discoveryPoint.updateMany({
+        where: { adventureId },
+        data: { adventureId: null },
+      });
+
+      await tx.userAdventures.deleteMany({ where: { adventureId } });
+      await tx.enigma.deleteMany({ where: { adventureId } });
+      await tx.treasure.deleteMany({ where: { adventureId } });
+      await tx.adventure.delete({ where: { id: adventureId } });
+    });
+
+    const imageUrls = [
+      snapshot.coverImageUrl,
+      snapshot.treasure?.imageUrl,
+      ...snapshot.enigmas.map((enigma) => enigma.imageUrl),
+    ];
+    await deleteAdventureUploadFiles(adventureId, imageUrls);
 
     revalidatePath("/");
     revalidatePath("/admin-game/dashboard/aventures");
+    revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
     return {
       success: true,
       message: "Aventure supprimée.",
     };
-  } catch {
+  } catch (error) {
+    console.error("RemoveAdventure:", error);
     return {
       success: false,
       message: "Erreur lors de la suppression de l’aventure.",

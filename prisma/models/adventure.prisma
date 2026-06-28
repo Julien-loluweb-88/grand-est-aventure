@@ -87,7 +87,7 @@ model DiscoveryPoint {
   cityId       String
   city         City       @relation(fields: [cityId], references: [id], onDelete: Cascade)
   adventureId  String?
-  adventure    Adventure? @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  adventure    Adventure? @relation(fields: [adventureId], references: [id], onDelete: SetNull)
   title        String
   teaser       String?
   latitude     Float
@@ -123,7 +123,7 @@ model Enigma {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @default(now())
   adventureId    String
-  adventure      Adventure @relation(fields: [adventureId], references: [id])
+  adventure      Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
 
   @@unique([adventureId, number])
 }
@@ -141,5 +141,5 @@ model Treasure {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @default(now())
   adventureId String    @unique
-  adventure   Adventure @relation(fields: [adventureId], references: [id])
+  adventure   Adventure @relation(fields: [adventureId], references: [id], onDelete: Cascade)
 }

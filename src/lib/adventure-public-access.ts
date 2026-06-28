@@ -87,13 +87,21 @@ const activeAdventureStatusWhere: Prisma.AdventureWhereInput = {
  * Filtre les avis listés selon les aventures visibles pour le lecteur.
  * - Anonyme : uniquement aventures catalogue (`PUBLIC` actives).
  * - Connecté : catalogue + démos autorisées + dev si droit (même règles que le jeu).
+ * - Les avis d’aventures supprimées restent visibles (nom archivé).
  */
 export async function buildAdventureReviewVisibilityWhere(params: {
   viewerId: string | null;
   viewerRole: string | null | undefined;
 }): Promise<Prisma.AdventureReviewWhereInput> {
+  const archivedReviewsWhere: Prisma.AdventureReviewWhereInput = {
+    adventureId: null,
+    archivedAdventureName: { not: null },
+  };
+
   if (!params.viewerId) {
-    return { adventure: publicCatalogAdventureWhere };
+    return {
+      OR: [{ adventure: publicCatalogAdventureWhere }, archivedReviewsWhere],
+    };
   }
 
   const viewerId = params.viewerId;
@@ -149,7 +157,11 @@ export async function buildAdventureReviewVisibilityWhere(params: {
   }
 
   if (adventureOr.length === 1) {
-    return { adventure: adventureOr[0]! };
+    return {
+      OR: [{ adventure: adventureOr[0]! }, archivedReviewsWhere],
+    };
   }
-  return { adventure: { OR: adventureOr } };
+  return {
+    OR: [{ adventure: { OR: adventureOr } }, archivedReviewsWhere],
+  };
 }

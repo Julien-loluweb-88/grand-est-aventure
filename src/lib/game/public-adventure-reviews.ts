@@ -8,7 +8,7 @@ import type { Prisma } from "../../../generated/prisma/client";
 
 export type PublicAdventureReviewItem = {
   id: string;
-  adventureId: string;
+  adventureId: string | null;
   adventureName: string;
   rating: number | null;
   content: string | null;
@@ -43,21 +43,25 @@ function isDisplayablePublicReview(row: {
 function mapReviewRows(
   rows: {
     id: string;
-    adventureId: string;
+    adventureId: string | null;
+    archivedAdventureName: string | null;
     rating: number | null;
     content: string | null;
     image: string | null;
     createdAt: Date;
     reportsMissingBadge: boolean;
     reportsStolenTreasure: boolean;
-    adventure: { name: string };
+    adventure: { name: string } | null;
     user: { name: string | null };
   }[]
 ): PublicAdventureReviewItem[] {
   return rows.filter(isDisplayablePublicReview).map((r) => ({
     id: r.id,
     adventureId: r.adventureId,
-    adventureName: r.adventure.name,
+    adventureName:
+      r.adventure?.name ??
+      r.archivedAdventureName?.trim() ??
+      "Aventure supprimée",
     rating: r.rating,
     content: r.content,
     imageUrl: r.image,
@@ -71,6 +75,7 @@ function mapReviewRows(
 const reviewListSelect = {
   id: true,
   adventureId: true,
+  archivedAdventureName: true,
   rating: true,
   content: true,
   image: true,

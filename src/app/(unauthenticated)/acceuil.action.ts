@@ -270,7 +270,10 @@ export async function getSampleAdventures(): Promise<AdventureWithMarkers[]> {
           rating,
           consentCommunicationNetworks: true,
           moderationStatus: AdventureReviewModerationStatus.APPROVED,
-          adventure: publicCatalogAdventureWhere,
+          OR: [
+            { adventure: publicCatalogAdventureWhere },
+            { adventureId: null, archivedAdventureName: { not: null } },
+          ],
         },
             include: {
             user: true,

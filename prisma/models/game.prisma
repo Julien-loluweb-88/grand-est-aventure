@@ -51,7 +51,7 @@ model UserAdventures {
   userId      String
   user        User             @relation(fields: [userId], references: [id])
   adventureId String
-  adventure   Adventure        @relation("AdventureUserAdventures", fields: [adventureId], references: [id])
+  adventure   Adventure        @relation("AdventureUserAdventures", fields: [adventureId], references: [id], onDelete: Cascade)
   /// Avis / signalement associé à cette partie (écran de fin), si rempli.
   review      AdventureReview?
 
@@ -89,8 +89,11 @@ model AdventureReview {
   reportsStolenTreasure        Boolean                         @default(false)
   userId                       String
   user                         User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  adventureId                  String
-  adventure                    Adventure                       @relation(fields: [adventureId], references: [id], onDelete: Cascade)
+  /// Null après suppression de l’aventure ; le libellé est conservé dans `archivedAdventureName`.
+  adventureId                  String?
+  adventure                    Adventure?                      @relation(fields: [adventureId], references: [id], onDelete: SetNull)
+  /// Nom de l’aventure au moment de la suppression (avis conservés).
+  archivedAdventureName        String?
   /// Partie terminée concernée (pour relier au bon passage) — optionnel.
   userAdventureId              String?                         @unique
   userAdventure                UserAdventures?                 @relation(fields: [userAdventureId], references: [id], onDelete: SetNull)

@@ -39,7 +39,7 @@ model UserAdventurePartnerLotWin {
   adventureId           String
   adventure             Adventure          @relation(fields: [adventureId], references: [id], onDelete: Cascade)
   adventurePartnerLotId String
-  adventurePartnerLot   AdventurePartnerLot @relation(fields: [adventurePartnerLotId], references: [id], onDelete: Restrict)
+  adventurePartnerLot   AdventurePartnerLot @relation(fields: [adventurePartnerLotId], references: [id], onDelete: Cascade)
   createdAt             DateTime           @default(now())
   /// Le joueur confirme en boutique (app) après passage en caisse — une seule fois.
   redeemedAt            DateTime?
