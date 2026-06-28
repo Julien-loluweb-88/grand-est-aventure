@@ -25,7 +25,12 @@ async function writeReviewPhotoBuffer(params: {
     return { ok: false, error: "Photo trop volumineuse (max 5 Mo)." };
   }
 
-  const ext = extensionForImageMime(params.mime);
+  const mime = params.mime?.trim();
+  if (!mime) {
+    return { ok: false, error: "Format photo non supporté (fichier image requis)." };
+  }
+
+  const ext = extensionForImageMime(mime);
   if (!ext) {
     return { ok: false, error: "Format photo non supporté (fichier image requis)." };
   }
