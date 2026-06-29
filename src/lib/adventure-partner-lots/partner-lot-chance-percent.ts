@@ -18,8 +18,51 @@ export function sumPartnerLotChancePercents(
   return lots.reduce((sum, lot) => sum + lot.weight, 0);
 }
 
+export function formatPartnerLotChancePercentOverBudgetMessage(total: number): string {
+  return `La somme des probabilités ne peut pas dépasser ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} % (actuellement ${total} %). Réduisez un ou plusieurs lots.`;
+}
+
+export function formatPartnerLotChancePercentDraftMessage(total: number): string {
+  return `Configuration incomplète : ${total} % / ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} %. La roue ne sera visible côté joueur qu’à ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} %.`;
+}
+
+/** @deprecated Préférer formatPartnerLotChancePercentOverBudgetMessage ou formatPartnerLotChancePercentDraftMessage */
 export function formatPartnerLotChancePercentTotalMessage(total: number): string {
-  return `La somme des probabilités doit être ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} % (actuellement ${total} %). Ajustez chaque lot.`;
+  if (total > PARTNER_LOT_CHANCE_PERCENT_TOTAL) {
+    return formatPartnerLotChancePercentOverBudgetMessage(total);
+  }
+  if (total < PARTNER_LOT_CHANCE_PERCENT_TOTAL) {
+    return formatPartnerLotChancePercentDraftMessage(total);
+  }
+  return `Total : ${total} % / ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} %.`;
+}
+
+export function isPartnerLotWheelReadyForPlay(
+  lots: ReadonlyArray<{ weight: number }>
+): boolean {
+  return lots.length > 0 && sumPartnerLotChancePercents(lots) === PARTNER_LOT_CHANCE_PERCENT_TOTAL;
+}
+
+/** Admin : autorise un total ≤ 100 % (brouillon) ; bloque seulement si > 100 %. */
+export function validatePartnerLotChancePercentBudget(
+  lots: ReadonlyArray<{ weight: number }>
+): { ok: true; total: number; ready: boolean } | { ok: false; error: string; total: number } {
+  if (lots.length === 0) {
+    return { ok: true, total: 0, ready: false };
+  }
+  const total = sumPartnerLotChancePercents(lots);
+  if (total > PARTNER_LOT_CHANCE_PERCENT_TOTAL) {
+    return {
+      ok: false,
+      total,
+      error: formatPartnerLotChancePercentOverBudgetMessage(total),
+    };
+  }
+  return {
+    ok: true,
+    total,
+    ready: total === PARTNER_LOT_CHANCE_PERCENT_TOTAL,
+  };
 }
 
 export function validatePartnerLotChancePercentTotal(
@@ -39,18 +82,29 @@ export function validatePartnerLotChancePercentTotal(
   return { ok: true };
 }
 
-/** Probabilité suggérée pour un nouveau lot (reste à 100 %). */
+/** Probabilité suggérée pour un nouveau lot (répartition équitable quand possible). */
 export function suggestPartnerLotChancePercentForNew(
   existingLots: ReadonlyArray<{ id: string; weight: number }>,
   excludeLotId?: string | null
 ): number {
   const others = existingLots.filter((lot) => lot.id !== excludeLotId);
+  const slotCount = others.length + 1;
+  const equalShare = Math.max(
+    1,
+    Math.floor(PARTNER_LOT_CHANCE_PERCENT_TOTAL / slotCount)
+  );
   if (others.length === 0) {
-    return PARTNER_LOT_CHANCE_PERCENT_TOTAL;
+    return equalShare;
   }
   const used = sumPartnerLotChancePercents(others);
   const remaining = PARTNER_LOT_CHANCE_PERCENT_TOTAL - used;
-  return Math.max(1, Math.min(PARTNER_LOT_CHANCE_PERCENT_TOTAL, remaining));
+  if (remaining >= equalShare) {
+    return equalShare;
+  }
+  if (remaining >= 1) {
+    return remaining;
+  }
+  return equalShare;
 }
 
 /**
@@ -63,4 +117,16 @@ export function projectedPartnerLotChancePercentTotal(
 ): number {
   const others = lots.filter((lot) => lot.id !== edited.id);
   return sumPartnerLotChancePercents(others) + edited.weight;
+}
+
+/** Lots du périmètre après création ou mise à jour d’un lot. */
+export function projectedPartnerLotChancePercents(
+  lots: ReadonlyArray<{ id: string; weight: number }>,
+  edited: { id: string | null; weight: number }
+): Array<{ id: string; weight: number }> {
+  const others = lots.filter((lot) => lot.id !== edited.id);
+  if (edited.id == null) {
+    return [...others, { id: "__new__", weight: edited.weight }];
+  }
+  return [...others, { id: edited.id, weight: edited.weight }];
 }

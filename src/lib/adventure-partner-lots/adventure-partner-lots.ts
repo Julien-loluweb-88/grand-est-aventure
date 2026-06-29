@@ -12,6 +12,7 @@ import {
   toPublicWin,
   weightedRandomLot,
 } from "./adventure-partner-lots-logic";
+import { isPartnerLotWheelReadyForPlay } from "./partner-lot-chance-percent";
 
 export type {
   AdventurePartnerLotRow,
@@ -37,6 +38,19 @@ const adventurePartnerLotPublicSelect = {
   adventureId: true,
   cityId: true,
 } as const;
+
+export async function fetchPartnerLotWeightsInScope(
+  tx: Tx | typeof prisma,
+  adventureId: string,
+  cityId: string
+): Promise<Array<{ weight: number }>> {
+  return tx.adventurePartnerLot.findMany({
+    where: {
+      OR: [{ adventureId }, { adventureId: null, cityId }],
+    },
+    select: { weight: true },
+  });
+}
 
 export async function fetchEligiblePartnerLots(
   tx: Tx | typeof prisma,
@@ -106,6 +120,11 @@ export async function spinOrGetExistingPartnerLotWin(
   }
 
   for (let attempt = 0; attempt < 24; attempt++) {
+    const scopeWeights = await fetchPartnerLotWeightsInScope(tx, adventureId, cityId);
+    if (!isPartnerLotWheelReadyForPlay(scopeWeights)) {
+      return { kind: "no_lots" };
+    }
+
     const lots = await fetchEligiblePartnerLots(tx, adventureId, cityId, now);
     const pool = lots.filter((l) => lotIsEligibleNow(l, now));
     if (pool.length === 0) {
@@ -266,6 +285,11 @@ export async function getAdventurePartnerWheelState(input: {
     };
   }
 
+  const scopeWeights = await fetchPartnerLotWeightsInScope(
+    prisma,
+    input.adventureId,
+    adventure.cityId
+  );
   const lots = await fetchEligiblePartnerLots(
     prisma,
     input.adventureId,
@@ -273,7 +297,7 @@ export async function getAdventurePartnerWheelState(input: {
     now
   );
   const pool = lots.filter((l) => lotIsEligibleNow(l, now));
-  if (pool.length === 0) {
+  if (pool.length === 0 || !isPartnerLotWheelReadyForPlay(scopeWeights)) {
     return {
       adventureFinished: true,
       legalNotice,
