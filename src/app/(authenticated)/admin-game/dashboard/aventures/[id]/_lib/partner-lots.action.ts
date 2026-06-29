@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { gateAdventureUpdateContent } from "@/lib/adventure-authorization";
 import { PARTNER_WHEEL_TERMS_MAX_CHARS } from "@/lib/dashboard-text-limits";
 import {
-  assertPartnerLotChancePercentTotalForAdventure,
-  canDeletePartnerLotKeepingPercentTotal,
+  assertPartnerLotChancePercentBudgetForAdventure,
   parsePartnerLotChancePercentInput,
 } from "@/lib/adventure-partner-lots/partner-lot-chance-percent.server";
 import { getPartnerWheelStatsForAdventureAdmin } from "./partner-lots-queries";
@@ -16,7 +15,7 @@ export type PartnerLotWriteInput = {
   title: string;
   description: string | null;
   redemptionHint: string | null;
-  /** Probabilité sur la roue (1–100) ; la somme des lots du périmètre doit être 100. */
+  /** Probabilité sur la roue (1–100) ; la somme des lots du périmètre doit être ≤ 100 (100 pour activer la roue). */
   weight: number;
   quantityRemaining: number | null;
   active: boolean;
@@ -86,6 +85,14 @@ export async function createPartnerLotForAdventure(
 
   const scopeAdventure = input.scope === "adventure";
 
+  const budgetCheck = await assertPartnerLotChancePercentBudgetForAdventure(adventureId, {
+    id: null,
+    weight,
+  });
+  if (!budgetCheck.ok) {
+    return { success: false, error: budgetCheck.error };
+  }
+
   const row = await prisma.adventurePartnerLot.create({
     data: {
       partnerName,
@@ -102,12 +109,6 @@ export async function createPartnerLotForAdventure(
     },
     select: { id: true },
   });
-
-  const totalCheck = await assertPartnerLotChancePercentTotalForAdventure(adventureId);
-  if (!totalCheck.ok) {
-    await prisma.adventurePartnerLot.delete({ where: { id: row.id } });
-    return { success: false, error: totalCheck.error };
-  }
 
   revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
   return { success: true, id: row.id };
@@ -182,7 +183,14 @@ export async function updatePartnerLot(
   }
 
   const scopeAdventure = input.scope === "adventure";
-  const previousWeight = existing.weight;
+
+  const budgetCheck = await assertPartnerLotChancePercentBudgetForAdventure(adventureId, {
+    id: lotId,
+    weight,
+  });
+  if (!budgetCheck.ok) {
+    return { success: false, error: budgetCheck.error };
+  }
 
   await prisma.adventurePartnerLot.update({
     where: { id: lotId },
@@ -201,15 +209,6 @@ export async function updatePartnerLot(
     },
   });
 
-  const totalCheck = await assertPartnerLotChancePercentTotalForAdventure(adventureId);
-  if (!totalCheck.ok) {
-    await prisma.adventurePartnerLot.update({
-      where: { id: lotId },
-      data: { weight: previousWeight },
-    });
-    return { success: false, error: totalCheck.error };
-  }
-
   revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
   return { success: true };
 }
@@ -217,7 +216,10 @@ export async function updatePartnerLot(
 export async function deletePartnerLot(
   adventureId: string,
   lotId: string
-): Promise<{ success: true } | { success: false; error: string }> {
+): Promise<
+  | { success: true; mode: "deleted" | "excluded_with_history" }
+  | { success: false; error: string }
+> {
   const gate = await gateAdventureUpdateContent(adventureId);
   if (!gate.ok) {
     return { success: false, error: "Non autorisé." };
@@ -253,21 +255,24 @@ export async function deletePartnerLot(
   const wins = await prisma.userAdventurePartnerLotWin.count({
     where: { adventurePartnerLotId: lotId },
   });
-  if (wins > 0) {
-    return {
-      success: false,
-      error: "Impossible de supprimer : des joueurs ont déjà gagné ce lot.",
-    };
-  }
 
-  const deleteCheck = await canDeletePartnerLotKeepingPercentTotal(adventureId, lotId);
-  if (!deleteCheck.ok) {
-    return { success: false, error: deleteCheck.error };
+  if (wins > 0) {
+    // Ne pas supprimer les gains historiques : on écarte le lot de la roue.
+    await prisma.adventurePartnerLot.update({
+      where: { id: lotId },
+      data: {
+        active: false,
+        weight: 0,
+        quantityRemaining: 0,
+      },
+    });
+    revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
+    return { success: true, mode: "excluded_with_history" };
   }
 
   await prisma.adventurePartnerLot.delete({ where: { id: lotId } });
   revalidatePath(`/admin-game/dashboard/aventures/${adventureId}`);
-  return { success: true };
+  return { success: true, mode: "deleted" };
 }
 
 function csvCell(value: string | number | null): string {

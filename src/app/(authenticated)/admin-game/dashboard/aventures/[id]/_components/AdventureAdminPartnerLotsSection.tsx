@@ -28,7 +28,9 @@ import type { PartnerWheelStatsPayload } from "../_lib/partner-lots-queries";
 import { PARTNER_WHEEL_TERMS_MAX_CHARS } from "@/lib/dashboard-text-limits";
 import {
   PARTNER_LOT_CHANCE_PERCENT_TOTAL,
-  formatPartnerLotChancePercentTotalMessage,
+  formatPartnerLotChancePercentDraftMessage,
+  formatPartnerLotChancePercentOverBudgetMessage,
+  isPartnerLotWheelReadyForPlay,
   projectedPartnerLotChancePercentTotal,
   suggestPartnerLotChancePercentForNew,
   sumPartnerLotChancePercents,
@@ -146,9 +148,13 @@ export function AdventureAdminPartnerLotsSection({
     [initialLots, editing.id, editing.weight]
   );
 
-  const percentTotalIsValid = savedPercentTotal === PARTNER_LOT_CHANCE_PERCENT_TOTAL;
-  const projectedPercentTotalIsValid =
-    projectedPercentTotal === PARTNER_LOT_CHANCE_PERCENT_TOTAL;
+  const percentWheelReady = isPartnerLotWheelReadyForPlay(initialLots);
+  const projectedPercentOverBudget =
+    projectedPercentTotal > PARTNER_LOT_CHANCE_PERCENT_TOTAL;
+  const projectedPercentDraft =
+    !projectedPercentOverBudget &&
+    projectedPercentTotal < PARTNER_LOT_CHANCE_PERCENT_TOTAL;
+  const projectedPercentCanSave = !projectedPercentOverBudget;
 
   const loadFromRow = (row: PartnerLotClientRow) => {
     const f = rowToForm(row);
@@ -182,8 +188,8 @@ export function AdventureAdminPartnerLotsSection({
   const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!canUpdate) return;
-    if (!projectedPercentTotalIsValid) {
-      toast.error(formatPartnerLotChancePercentTotalMessage(projectedPercentTotal));
+    if (!projectedPercentCanSave) {
+      toast.error(formatPartnerLotChancePercentOverBudgetMessage(projectedPercentTotal));
       return;
     }
     startTransition(async () => {
@@ -212,11 +218,21 @@ export function AdventureAdminPartnerLotsSection({
 
   const onDelete = (lotId: string) => {
     if (!canUpdate) return;
-    if (!window.confirm("Supprimer ce lot ?")) return;
+    const spinCount =
+      initialStats.rows.find((r) => r.lotId === lotId)?.spinCount ?? 0;
+    const message =
+      spinCount > 0
+        ? `Écarter ce lot de la roue ? ${spinCount} tirage(s) déjà enregistré(s) seront conservés.`
+        : "Supprimer ce lot ?";
+    if (!window.confirm(message)) return;
     startTransition(async () => {
       const r = await deletePartnerLot(adventureId, lotId);
       if (r.success) {
-        toast.success("Lot supprimé.");
+        toast.success(
+          r.mode === "excluded_with_history"
+            ? "Lot écarté de la roue (historique conservé)."
+            : "Lot supprimé."
+        );
         if (editing.id === lotId) resetForm();
         router.refresh();
       } else {
@@ -267,7 +283,9 @@ export function AdventureAdminPartnerLotsSection({
         <CardDescription>
           Lots optionnels affichés sur la roue après une réussite : liés à{" "}
           <strong>cette aventure</strong> ou à <strong>toute la ville</strong> ({cityName}
-          ). Les probabilités de tous les lots listés ci-dessous doivent totaliser{" "}
+          ). Les probabilités de tous les lots listés ci-dessous ne doivent pas dépasser{" "}
+          <strong>{PARTNER_LOT_CHANCE_PERCENT_TOTAL} %</strong> ; la roue n&apos;apparaît
+          côté joueur que lorsque le total atteint exactement{" "}
           <strong>{PARTNER_LOT_CHANCE_PERCENT_TOTAL} %</strong>. Sans lot actif, la roue
           n&apos;apparaît pas côté joueur.
         </CardDescription>
@@ -373,16 +391,22 @@ export function AdventureAdminPartnerLotsSection({
         {initialLots.length > 0 ? (
           <div
             className={
-              percentTotalIsValid
+              percentWheelReady
                 ? "rounded-md border border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground"
-                : "rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                : savedPercentTotal > PARTNER_LOT_CHANCE_PERCENT_TOTAL
+                  ? "rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+                  : "rounded-md border border-amber-500/40 bg-amber-500/5 px-3 py-2 text-sm text-amber-800 dark:text-amber-200"
             }
           >
             Total des probabilités enregistrées :{" "}
             <strong className="tabular-nums">{savedPercentTotal} %</strong>
-            {!percentTotalIsValid ? (
-              <span> — {formatPartnerLotChancePercentTotalMessage(savedPercentTotal)}</span>
-            ) : null}
+            {percentWheelReady ? (
+              <span> — roue prête côté joueur.</span>
+            ) : savedPercentTotal > PARTNER_LOT_CHANCE_PERCENT_TOTAL ? (
+              <span> — {formatPartnerLotChancePercentOverBudgetMessage(savedPercentTotal)}</span>
+            ) : (
+              <span> — {formatPartnerLotChancePercentDraftMessage(savedPercentTotal)}</span>
+            )}
           </div>
         ) : null}
 
@@ -393,6 +417,8 @@ export function AdventureAdminPartnerLotsSection({
                 row.adventureId === adventureId
                   ? "Cette aventure"
                   : `Ville (${cityName})`;
+              const hasRecordedSpins =
+                (initialStats.rows.find((r) => r.lotId === row.id)?.spinCount ?? 0) > 0;
               return (
                 <li
                   key={row.id}
@@ -429,7 +455,7 @@ export function AdventureAdminPartnerLotsSection({
                         disabled={pending}
                         onClick={() => onDelete(row.id)}
                       >
-                        Supprimer
+                        {hasRecordedSpins ? "Écarter" : "Supprimer"}
                       </Button>
                     </div>
                   ) : null}
@@ -520,16 +546,22 @@ export function AdventureAdminPartnerLotsSection({
                 />
                 <p
                   className={
-                    projectedPercentTotalIsValid
-                      ? "mt-1 text-xs text-muted-foreground"
-                      : "mt-1 text-xs text-destructive"
+                    projectedPercentOverBudget
+                      ? "mt-1 text-xs text-destructive"
+                      : projectedPercentDraft
+                        ? "mt-1 text-xs text-amber-700 dark:text-amber-300"
+                        : "mt-1 text-xs text-muted-foreground"
                   }
                 >
                   Total après enregistrement :{" "}
                   <span className="font-medium tabular-nums">{projectedPercentTotal} %</span>
-                  {projectedPercentTotalIsValid
-                    ? ` / ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} %`
-                    : ` — ${formatPartnerLotChancePercentTotalMessage(projectedPercentTotal)}`}
+                  {projectedPercentOverBudget ? (
+                    <> — {formatPartnerLotChancePercentOverBudgetMessage(projectedPercentTotal)}</>
+                  ) : projectedPercentDraft ? (
+                    <> — {formatPartnerLotChancePercentDraftMessage(projectedPercentTotal)}</>
+                  ) : (
+                    ` / ${PARTNER_LOT_CHANCE_PERCENT_TOTAL} %`
+                  )}
                 </p>
               </Field>
               <Field>
@@ -622,7 +654,7 @@ export function AdventureAdminPartnerLotsSection({
               </div>
             </Field>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={pending || !projectedPercentTotalIsValid}>
+              <Button type="submit" disabled={pending || !projectedPercentCanSave}>
                 {editing.id ? "Enregistrer" : "Créer le lot"}
               </Button>
               {editing.id ? (

@@ -2,10 +2,10 @@ import "server-only";
 
 import { prisma } from "@/lib/prisma";
 import {
-  formatPartnerLotChancePercentTotalMessage,
   PARTNER_LOT_CHANCE_PERCENT_TOTAL,
   parsePartnerLotChancePercent,
-  sumPartnerLotChancePercents,
+  projectedPartnerLotChancePercents,
+  validatePartnerLotChancePercentBudget,
   validatePartnerLotChancePercentTotal,
 } from "./partner-lot-chance-percent";
 
@@ -14,11 +14,16 @@ export {
   parsePartnerLotChancePercent,
   suggestPartnerLotChancePercentForNew,
   projectedPartnerLotChancePercentTotal,
+  projectedPartnerLotChancePercents,
+  validatePartnerLotChancePercentBudget,
   validatePartnerLotChancePercentTotal,
+  isPartnerLotWheelReadyForPlay,
+  formatPartnerLotChancePercentOverBudgetMessage,
+  formatPartnerLotChancePercentDraftMessage,
   formatPartnerLotChancePercentTotalMessage,
 } from "./partner-lot-chance-percent";
 
-async function loadWheelLotsForAdventureScope(adventureId: string) {
+export async function loadWheelLotsForAdventureScope(adventureId: string) {
   const adv = await prisma.adventure.findUnique({
     where: { id: adventureId },
     select: { cityId: true },
@@ -35,6 +40,24 @@ async function loadWheelLotsForAdventureScope(adventureId: string) {
   return { cityId: adv.cityId, lots };
 }
 
+/** Vérifie que le total projeté ne dépasse pas 100 % (brouillon autorisé). */
+export async function assertPartnerLotChancePercentBudgetForAdventure(
+  adventureId: string,
+  edited: { id: string | null; weight: number }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const scope = await loadWheelLotsForAdventureScope(adventureId);
+  if (!scope) {
+    return { ok: false, error: "Aventure introuvable." };
+  }
+  const projected = projectedPartnerLotChancePercents(scope.lots, edited);
+  const check = validatePartnerLotChancePercentBudget(projected);
+  if (!check.ok) {
+    return { ok: false, error: check.error };
+  }
+  return { ok: true };
+}
+
+/** @deprecated Utiliser assertPartnerLotChancePercentBudgetForAdventure */
 export async function assertPartnerLotChancePercentTotalForAdventure(
   adventureId: string
 ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -60,27 +83,4 @@ export function parsePartnerLotChancePercentInput(
     };
   }
   return { ok: true, percent };
-}
-
-/** Après suppression, les lots restants doivent encore totaliser 100 %. */
-export async function canDeletePartnerLotKeepingPercentTotal(
-  adventureId: string,
-  lotId: string
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  const scope = await loadWheelLotsForAdventureScope(adventureId);
-  if (!scope) {
-    return { ok: false, error: "Aventure introuvable." };
-  }
-  const remaining = scope.lots.filter((lot) => lot.id !== lotId);
-  if (remaining.length === 0) {
-    return { ok: true };
-  }
-  const total = sumPartnerLotChancePercents(remaining);
-  if (total !== PARTNER_LOT_CHANCE_PERCENT_TOTAL) {
-    return {
-      ok: false,
-      error: `${formatPartnerLotChancePercentTotalMessage(total)} Ajustez les lots restants avant de supprimer celui-ci, ou supprimez le dernier lot.`,
-    };
-  }
-  return { ok: true };
 }

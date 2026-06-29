@@ -10,7 +10,7 @@ model AdventurePartnerLot {
   description        String?
   /// Conseil d’utilisation (ex. montrez cet écran en caisse).
   redemptionHint     String?
-  /// Probabilité sur la roue (1–100) ; la somme des lots du périmètre doit être 100.
+  /// Probabilité sur la roue (1–100) ; la somme des lots du périmètre doit être <= 100 (100 pour activer la roue).
   weight             Int       @default(100)
   /// Stock restant ; null = illimité.
   quantityRemaining  Int?

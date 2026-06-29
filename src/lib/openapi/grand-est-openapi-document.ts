@@ -1809,7 +1809,7 @@ export function buildGrandEstOpenApiDocument() {
           description:
             "Après **succès** sur l’aventure (`UserAdventures.success`), indique si des **lots** actifs existent pour la roue " +
             "(lots liés à **cette aventure** ou à **sa ville** sans aventure).\n\n" +
-            "**Réponse** : `legalNotice` (règlement texte : aventure puis repli ville) ; `adventureFinished` ; si `true`, `wheel` vaut `none` (pas de lot), `ready` (segments pour animer la roue), ou `done` (gain déjà tiré, `won` avec dates `validUntil` / `redeemed`).\n\n" +
+            "**Réponse** : `legalNotice` (règlement texte : aventure puis repli ville) ; `adventureFinished` ; si `true`, `wheel` vaut `none` (pas de lot éligible **ou** total des probabilités différent de 100 %), `ready` (segments pour animer la roue), ou `done` (gain déjà tiré, `won` avec dates `validUntil` / `redeemed`).\n\n" +
             `**Rate limit** : ~120 req/min. ${RATE_LIMIT_NOTE}`,
           security: [{ sessionCookie: [] }],
           parameters: [
