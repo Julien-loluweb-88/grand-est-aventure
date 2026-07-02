@@ -1,0 +1,30 @@
+model EmailCampaign {
+  id          String   @id @default(cuid())
+  subject     String
+  html        String
+  text        String
+  createdById String
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  totalCount  Int
+  sentCount   Int      @default(0)
+  failedCount Int      @default(0)
+  status      EmailCampaignStatus @default(PENDING)
+  recipients  EmailCampaignRecipient[]
+}
+
+model EmailCampaignRecipient {
+  id         String   @id @default(cuid())
+  campaignId String
+  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email      String
+  status     EmailCampaignStatus @default(PENDING)
+  error      String?
+  sentAt     DateTime?
+}
+
+enum EmailCampaignStatus {
+  PENDING
+  SENT
+  FAILED
+}
