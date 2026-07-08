@@ -8,6 +8,7 @@ import { getBaladIndicesPdfAttachments } from "@/lib/email-campaign-attachments"
 import { logProspectEmailBounce, logProspectEmailSent } from "@/lib/prospect-events";
 import { DEFAULT_PROSPECT_CONTACT_NAME } from "@/lib/prospect-events-constants";
 import { isPermanentEmailBounceError } from "@/lib/email-bounce";
+import { getProspectContactEmail } from "@/lib/prospect-contact-email";
 
 const BATCH_SIZE = 5;
 const DELAY_BETWEEN_BATCHES_MS = 1000;
@@ -66,10 +67,7 @@ export async function runEmailCampaign(campaignId: string): Promise<void> {
             return;
           }
 
-          const replyEmail =
-            recipient.prospect?.owner?.email?.trim() ||
-            process.env.NODEMAILER_USER?.trim() ||
-            "";
+          const replyEmail = getProspectContactEmail(recipient.prospect?.owner?.email);
           const contactName =
             recipient.prospect?.contactName?.trim() || DEFAULT_PROSPECT_CONTACT_NAME;
           const communeForSubject = recipient.prospect?.commune?.trim() || "votre commune";

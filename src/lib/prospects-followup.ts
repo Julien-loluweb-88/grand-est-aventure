@@ -6,6 +6,7 @@ import { buildTrackedCampaignHtml } from "@/lib/email-campaign-tracking";
 import { runEmailCampaign, substituteTemplateVars } from "@/lib/emailing";
 import { getBaladIndicesPdfAttachments } from "@/lib/email-campaign-attachments";
 import { getPublicAppOrigin } from "@/lib/public-app-url";
+import { getProspectContactEmail } from "@/lib/prospect-contact-email";
 import {
   completeProspectSequence,
   getProspectFollowupBlockReason,
@@ -53,6 +54,29 @@ function communesLandingNoticeHtml(): string {
                 </tr>`;
 }
 
+function prospectContactInviteText(): string {
+  return "Pour échanger avec nous : {{reply_email}}";
+}
+
+function prospectContactInviteHtml(): string {
+  return `
+                <tr>
+                  <td style="padding:0 0 24px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border:1px solid #e2e8f0;border-radius:14px;">
+                      <tr>
+                        <td style="padding:20px 18px;text-align:center;">
+                          <p style="margin:0 0 6px;font-size:11px;color:#64748b;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;">Restons en contact</p>
+                          <p style="margin:0 0 16px;font-size:14.5px;color:#334155;line-height:1.55;">Une question sur Balad'indice pour <strong>{{commune}}</strong> ? Répondez à cet e-mail ou écrivez-nous.</p>
+                          <a href="mailto:{{reply_email}}" style="background:#ffffff;color:#1f5fbf;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:600;display:inline-block;border:1px solid #bfdbfe;box-shadow:0 1px 2px rgba(15,23,42,0.06);font-size:15px;">
+                            {{reply_email}}
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>`;
+}
+
 function buildProspectTemplateVars(params: {
   commune: string;
   intercommunalite: string;
@@ -66,7 +90,7 @@ function buildProspectTemplateVars(params: {
     commune: params.commune,
     intercommunalite: params.intercommunalite,
     contact_name: params.contactName,
-    reply_email: params.replyEmail,
+    reply_email: getProspectContactEmail(params.replyEmail),
     communes_url: `${base}/communes`,
     unsubscribe_url: `${base}/api/email/unsubscribe?token=${encodeURIComponent(params.unsubscribeToken)}`,
   };
@@ -99,6 +123,8 @@ Si cette démarche peut répondre aux enjeux de {{commune}} et de {{intercommuna
 
 Je vous remercie pour le temps consacré à cette lecture et reste naturellement à votre disposition.
 
+${prospectContactInviteText()}
+
 Cordialement,
 
 Pour ne plus recevoir nos informations, vous pouvez vous désinscrire à tout moment en cliquant ici : {{unsubscribe_url}}.`;
@@ -120,6 +146,8 @@ ${communesLandingNoticeText()}
 Si le sujet vous intéresse, je serais ravi de vous présenter le concept lors d'un échange d'une vingtaine de minutes et de répondre à vos éventuelles questions.
 
 Dans le cas contraire, n'hésitez pas à me le faire savoir. Cela m'évitera de vous solliciter inutilement.
+
+${prospectContactInviteText()}
 
 Je vous remercie pour votre temps et vous souhaite une excellente journée.
 
@@ -144,6 +172,8 @@ ${communesLandingNoticeText()}
 Si toutefois le sujet vous intéresse, je serais ravi d'échanger avec vous afin de vous présenter plus en détail le concept et de voir comment il pourrait s'adapter à votre territoire.
 
 À défaut de retour de votre part, je ne vous recontacterai plus à ce sujet. Bien entendu, si vos besoins évoluent dans les prochains mois, vous pourrez toujours reprendre contact avec moi, ce sera avec plaisir.
+
+${prospectContactInviteText()}
 
 Je vous remercie sincèrement pour le temps consacré à la lecture de mes messages et vous souhaite une excellente continuation.
 
@@ -251,6 +281,8 @@ function buildIntroHtml(): string {
                   </td>
                 </tr>
 
+                ${prospectContactInviteHtml()}
+
                 <tr>
                   <td style="padding:0 0 6px;">
                     <p style="margin:0;font-size:15px;">Cordialement,</p>
@@ -336,13 +368,7 @@ function buildFollowupHtml(): string {
                   </td>
                 </tr>
 
-                <tr>
-                  <td style="text-align:center;padding:8px 0 16px;">
-                    <a href="mailto:{{reply_email}}" style="background:#1f5fbf;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;display:inline-block;font-weight:bold;">
-                      Échanger sur Balad'indice
-                    </a>
-                  </td>
-                </tr>
+                ${prospectContactInviteHtml()}
 
                 <tr>
                   <td style="padding:0 0 6px;">
@@ -434,13 +460,7 @@ function buildFinalReminderHtml(): string {
                   </td>
                 </tr>
 
-                <tr>
-                  <td style="text-align:center;padding:8px 0 16px;">
-                    <a href="mailto:{{reply_email}}" style="background:#1f5fbf;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:10px;display:inline-block;font-weight:bold;">
-                      Échanger sur Balad'indice
-                    </a>
-                  </td>
-                </tr>
+                ${prospectContactInviteHtml()}
 
                 <tr>
                   <td style="padding:0 0 18px;">
@@ -834,6 +854,7 @@ async function queueProspectFollowupCampaignForOwner(
             trackingToken: `${prospect.id}-${Date.now()}`,
             unsubscribeToken: prospect.unsubscribeToken,
           }),
+          replyTo: getProspectContactEmail(sender.replyEmail) || undefined,
           attachments: campaignAttachments ?? undefined,
         });
         await logProspectEmailSent({
@@ -905,7 +926,6 @@ async function queueProspectFollowupCampaign(
   prospects: ProspectFollowupRow[]
 ): Promise<{ sent: number; skipped: number; sentProspectIds: string[] }> {
   const systemAuthorId = await getSystemCampaignAuthorId();
-  const defaultReplyEmail = process.env.NODEMAILER_USER?.trim() ?? "";
   const byOwner = new Map<string, ProspectFollowupRow[]>();
 
   for (const prospect of prospects) {
@@ -921,7 +941,7 @@ async function queueProspectFollowupCampaign(
     const owner = group[0]?.owner ?? null;
     const result = await queueProspectFollowupCampaignForOwner(group, {
       authorId: owner?.id ?? systemAuthorId,
-      replyEmail: owner?.email ?? defaultReplyEmail,
+      replyEmail: getProspectContactEmail(owner?.email),
     });
     sent += result.sent;
     sentProspectIds.push(...result.sentProspectIds);
