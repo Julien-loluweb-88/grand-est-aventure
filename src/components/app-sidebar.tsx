@@ -206,6 +206,10 @@ function buildNavMain(caps: AdminSessionCapabilities) {
               title: "Envoyer un e-mail",
               url: "/admin-game/dashboard/emailing",
             },
+            {
+              title: "Prospects",
+              url: "/admin-game/dashboard/prospects",
+            },
           ],
         },
       ]

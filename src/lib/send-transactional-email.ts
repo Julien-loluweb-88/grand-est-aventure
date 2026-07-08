@@ -14,6 +14,11 @@ export type TransactionalEmailParams = {
   text: string;
   html: string;
   replyTo?: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
 };
 
 /**
@@ -42,6 +47,11 @@ export async function sendTransactionalEmail(params: {
   text: string;
   html: string;
   replyTo?: string;
+  attachments?: Array<{
+    filename: string;
+    content: Buffer;
+    contentType?: string;
+  }>;
 }): Promise<void> {
   const transporter = getAppMailTransport();
   if (!transporter) {
@@ -60,5 +70,6 @@ export async function sendTransactionalEmail(params: {
     text: params.text,
     html: params.html,
     ...(params.replyTo ? { replyTo: params.replyTo } : {}),
+    ...(params.attachments ? { attachments: params.attachments } : {}),
   });
 }

@@ -14,17 +14,118 @@ model EmailCampaign {
 }
 
 model EmailCampaignRecipient {
-  id         String   @id @default(cuid())
-  campaignId String
-  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  email      String
-  status     EmailCampaignStatus @default(PENDING)
-  error      String?
-  sentAt     DateTime?
+  id            String              @id @default(cuid())
+  campaignId    String
+  campaign      EmailCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  prospectId    String?
+  prospect      Prospect?           @relation(fields: [prospectId], references: [id], onDelete: SetNull)
+  email         String
+  trackingToken String              @unique @default(cuid())
+  openCount     Int                 @default(0)
+  openedAt      DateTime?
+  status        EmailCampaignStatus @default(PENDING)
+  error         String?
+  sentAt        DateTime?
 }
 
 enum EmailCampaignStatus {
   PENDING
   SENT
   FAILED
+}
+
+enum ProspectCommercialStatus {
+  OPEN
+  EMAIL_REPLIED
+  QUALIFIED
+  NOT_INTERESTED
+  CLOSED
+}
+
+model Prospect {
+  id               String                   @id @default(cuid())
+  email            String                   @unique
+  commune          String?
+  intercommunalite String?
+  source           String?
+  status           ProspectStatus           @default(ACTIVE)
+  commercialStatus ProspectCommercialStatus @default(OPEN)
+  unsubscribeToken String                   @unique @default(cuid())
+  firstSeenAt      DateTime                 @default(now())
+  lastImportedAt   DateTime                 @default(now())
+  lastContactedAt  DateTime?
+  lastOpenedAt     DateTime?
+  nextFollowUpAt   DateTime?
+  followUpStep     Int                      @default(0)
+  unsubscribedAt   DateTime?
+  recipients       EmailCampaignRecipient[]
+  meetings         ProspectMeeting[]
+  events           ProspectEvent[]
+}
+
+enum ProspectStatus {
+  ACTIVE
+  UNSUBSCRIBED
+}
+
+enum ProspectMeetingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum ProspectMeetingMode {
+  TELEPHONE
+  VISIO
+  PRESENTIEL
+  AUTRE
+}
+
+enum ProspectMeetingOutcome {
+  INTERESTED
+  NOT_INTERESTED
+  UNKNOWN
+}
+
+model ProspectMeeting {
+  id               String                  @id @default(cuid())
+  prospectId       String
+  prospect         Prospect                @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  status           ProspectMeetingStatus  @default(SCHEDULED)
+  mode             ProspectMeetingMode    @default(TELEPHONE)
+  scheduledAt      DateTime
+  durationMinutes  Int?
+  location         String?
+  notes            String?
+  outcome          ProspectMeetingOutcome?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  events           ProspectEvent[]
+}
+
+enum ProspectEventType {
+  CALL_LOGGED
+  EMAIL_REPLIED
+  EMAIL_BOUNCED
+  MEETING_SCHEDULED
+  MEETING_COMPLETED
+  MEETING_CANCELLED
+  NOTE
+  QUALIFIED
+  NOT_INTERESTED
+  CLOSED
+  REOPENED
+}
+
+model ProspectEvent {
+  id          String            @id @default(cuid())
+  prospectId  String
+  prospect    Prospect          @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+  type        ProspectEventType
+  details     String?
+  meetingId   String?
+  meeting     ProspectMeeting?  @relation(fields: [meetingId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?             @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now())
 }

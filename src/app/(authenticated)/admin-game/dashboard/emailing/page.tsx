@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { listUsersForAdmin, type ListUsersAdminRow } from "../utilisateurs/_lib/list-users.action";
-import { sendEmailCampaign } from "./emailing.action";
+import { seedProspectsFromText, sendEmailCampaign } from "./emailing.action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,6 +25,8 @@ export default function EmailingPage() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [manualEmails, setManualEmails] = useState<string[]>([]);
   const [manualInput, setManualInput] = useState("");
+  const [seedIntercommunalite, setSeedIntercommunalite] = useState("");
+  const [seedFollowUpDays, setSeedFollowUpDays] = useState("7");
 
   useEffect(() => {
     setLoadingUsers(true);
@@ -85,6 +88,25 @@ export default function EmailingPage() {
     setManualEmails((prev) => prev.filter((e) => e !== email));
   }
 
+  function handleSeedProspects() {
+    if (!manualInput.trim()) {
+      toast.error("Ajoutez des e-mails dans le champ de prospection.");
+      return;
+    }
+    startTransition(async () => {
+      const result = await seedProspectsFromText({
+        raw: manualInput,
+        intercommunalite: seedIntercommunalite,
+        nextFollowUpDays: Number.parseInt(seedFollowUpDays, 10),
+      });
+      if (result.success) {
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
   function handleSend() {
     const totalRecipients = selected.size + manualEmails.length;
 
@@ -140,6 +162,9 @@ export default function EmailingPage() {
         <p className="text-sm text-muted-foreground">
           Sélectionnez des destinataires et envoyez-leur un e-mail groupé.
         </p>
+        <Button asChild variant="link" className="px-0">
+          <Link href="/admin-game/dashboard/prospects">Voir les prospects</Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -237,6 +262,32 @@ export default function EmailingPage() {
             <Button type="button" variant="outline" size="sm" onClick={addManualEmails}>
               Ajouter à la liste
             </Button>
+
+            <div className="mt-2 rounded-md border border-dashed p-3">
+              <p className="mb-2 text-sm font-medium">Seeder les prospects</p>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <Input
+                  placeholder="Intercommunalité (optionnel)"
+                  value={seedIntercommunalite}
+                  onChange={(e) => setSeedIntercommunalite(e.target.value)}
+                />
+                <Input
+                  placeholder="Relance dans X jours"
+                  value={seedFollowUpDays}
+                  onChange={(e) => setSeedFollowUpDays(e.target.value)}
+                />
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="mt-3"
+                onClick={handleSeedProspects}
+                disabled={isPending}
+              >
+                Enregistrer comme prospects
+              </Button>
+            </div>
 
             {manualEmails.length > 0 && (
               <div className="flex max-h-40 flex-wrap gap-1.5 overflow-y-auto">
