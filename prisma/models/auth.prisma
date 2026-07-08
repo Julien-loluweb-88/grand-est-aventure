@@ -54,6 +54,9 @@ model User {
   merchantMaxAdvertisementSlots   Int?
   ownedAdvertisements             Advertisement[]            @relation("AdvertisementOwnerMerchant")
   pushTokens PushToken[]
+  emailCampaignsCreated EmailCampaign[]
+  prospectEventsCreated ProspectEvent[]
+  ownedProspects          Prospect[]                 @relation("ProspectOwner")
 
   @@map("user")
 }

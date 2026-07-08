@@ -31,6 +31,7 @@ import {
   StorefrontIcon,
   UserCircleIcon,
   BellIcon,
+  PaperPlaneTiltIcon,
 } from "@phosphor-icons/react"
 import { BrandMark } from "@/components/brand-mark"
 
@@ -176,7 +177,7 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       ]
     : []
 
-    const notificationsNav = caps.canAssignRolesAndScopes
+  const notificationsNav = caps.canAssignRolesAndScopes
     ? [
         {
           title: "Notifications",
@@ -187,6 +188,27 @@ function buildNavMain(caps: AdminSessionCapabilities) {
             {
               title: "Envoyer une notification",
               url: "/admin-game/dashboard/notifications",
+            },
+          ],
+        },
+      ]
+    : []
+
+  const emailingNav = caps.canAssignRolesAndScopes
+    ? [
+        {
+          title: "Emailing",
+          url: "/admin-game/dashboard/emailing",
+          icon: <PaperPlaneTiltIcon />,
+          isActive: false,
+          items: [
+            {
+              title: "Envoyer un e-mail",
+              url: "/admin-game/dashboard/emailing",
+            },
+            {
+              title: "Prospects",
+              url: "/admin-game/dashboard/prospects",
             },
           ],
         },
@@ -270,6 +292,7 @@ function buildNavMain(caps: AdminSessionCapabilities) {
       ],
     },
     ...notificationsNav,
+    ...emailingNav,
     ...publicitesNav,
     {
       title: "Badges globaux",

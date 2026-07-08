@@ -187,6 +187,22 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Emailing — superadmin uniquement
+  if (pathname.startsWith("/admin-game/dashboard/emailing")) {
+    if (role !== "superadmin") {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // Prospects — superadmin uniquement
+  if (pathname.startsWith("/admin-game/dashboard/prospects")) {
+    if (role !== "superadmin") {
+      return NextResponse.redirect(new URL("/admin-game/dashboard/acces-refuse", request.url));
+    }
+    return NextResponse.next();
+  }
+
   // User management routes
   if (pathname.startsWith("/admin-game/dashboard/utilisateurs")) {
     if (!roleHasRoutePermission(role, "user", "get")) {
