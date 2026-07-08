@@ -8,7 +8,9 @@ import type {
 import {
   COMMERCIAL_STATUS_LABELS,
   PROSPECT_EVENT_LABELS,
+  getFollowUpStepLabel,
 } from "./prospect-events-constants";
+import { isProspectSequenceComplete } from "./prospect-sequence";
 
 export { COMMERCIAL_STATUS_LABELS, PROSPECT_EVENT_LABELS };
 
@@ -35,6 +37,25 @@ export function shouldStopFollowupsForEvent(type: ProspectEventType): boolean {
 
 export function isCommercialStatusClosed(status: ProspectCommercialStatus): boolean {
   return status !== "OPEN";
+}
+
+export async function completeProspectSequence(prospectId: string): Promise<void> {
+  const now = new Date();
+  await prisma.prospectEvent.create({
+    data: {
+      prospectId,
+      type: "CLOSED",
+      details: "Séquence emailing terminée (3/3).",
+    },
+  });
+  await prisma.prospect.update({
+    where: { id: prospectId },
+    data: {
+      sequenceCompletedAt: now,
+      nextFollowUpAt: null,
+      commercialStatus: "CLOSED",
+    },
+  });
 }
 
 export async function logProspectEvent(params: {
@@ -66,6 +87,52 @@ export async function logProspectEvent(params: {
   }
 }
 
+export async function logProspectEmailSent(params: {
+  prospectId: string;
+  sequenceStep: number | null;
+}): Promise<void> {
+  if (params.sequenceStep == null) return;
+
+  await prisma.prospectEvent.create({
+    data: {
+      prospectId: params.prospectId,
+      type: "EMAIL_SENT",
+      details: `${getFollowUpStepLabel(params.sequenceStep)} envoyé.`,
+    },
+  });
+}
+
+export async function logProspectEmailBounce(params: {
+  prospectId: string;
+  details?: string | null;
+}): Promise<void> {
+  await prisma.prospectEvent.create({
+    data: {
+      prospectId: params.prospectId,
+      type: "EMAIL_BOUNCED",
+      details: params.details?.trim() || null,
+    },
+  });
+
+  await prisma.prospect.update({
+    where: { id: params.prospectId },
+    data: {
+      nextFollowUpAt: null,
+      emailBouncedAt: new Date(),
+    },
+  });
+}
+
+export async function logProspectUnsubscribed(prospectId: string): Promise<void> {
+  await prisma.prospectEvent.create({
+    data: {
+      prospectId,
+      type: "UNSUBSCRIBED",
+      details: "Désinscription via le lien dans l'email.",
+    },
+  });
+}
+
 export async function reopenProspect(params: {
   prospectId: string;
   createdById?: string | null;
@@ -73,13 +140,20 @@ export async function reopenProspect(params: {
 }): Promise<void> {
   const prospect = await prisma.prospect.findUnique({
     where: { id: params.prospectId },
-    select: { commercialStatus: true },
+    select: {
+      commercialStatus: true,
+      emailBouncedAt: true,
+      sequenceCompletedAt: true,
+    },
   });
   if (!prospect) {
     throw new Error("Prospect introuvable.");
   }
-  if (prospect.commercialStatus === "OPEN") {
+  if (prospect.commercialStatus === "OPEN" && !prospect.emailBouncedAt) {
     throw new Error("Ce prospect est déjà ouvert.");
+  }
+  if (prospect.sequenceCompletedAt) {
+    throw new Error("La séquence emailing est terminée — réouverture impossible.");
   }
 
   await prisma.prospectEvent.create({
@@ -91,36 +165,103 @@ export async function reopenProspect(params: {
     },
   });
 
+  const sequenceComplete = isProspectSequenceComplete(prospect);
+
   await prisma.prospect.update({
     where: { id: params.prospectId },
     data: {
-      commercialStatus: "OPEN",
-      nextFollowUpAt: new Date(),
+      commercialStatus: sequenceComplete ? "CLOSED" : "OPEN",
+      emailBouncedAt: null,
+      ...(sequenceComplete ? {} : { nextFollowUpAt: new Date() }),
     },
   });
+}
+
+export function hasFollowupPauseAfterCancelledMeeting(
+  events: Array<{ type: string; createdAt: Date }>
+): boolean {
+  const lastCancelled = events
+    .filter((event) => event.type === "MEETING_CANCELLED")
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())[0];
+  if (!lastCancelled) return false;
+  return !events.some(
+    (event) =>
+      event.type === "MEETING_SCHEDULED" &&
+      event.createdAt.getTime() > lastCancelled.createdAt.getTime()
+  );
+}
+
+export function resolveProspectFollowupBlockReason(input: {
+  status: "ACTIVE" | "UNSUBSCRIBED";
+  commercialStatus: ProspectCommercialStatus;
+  emailBouncedAt: Date | null;
+  nextFollowUpAt: Date | null;
+  sequenceCompletedAt: Date | null;
+  hasScheduledMeeting: boolean;
+  pauseAfterCancelledMeeting: boolean;
+}): string | null {
+  if (input.status !== "ACTIVE") {
+    return "Le prospect est désinscrit.";
+  }
+  if (input.sequenceCompletedAt) {
+    return "Séquence emailing terminée (3 emails envoyés).";
+  }
+  if (input.hasScheduledMeeting) {
+    return "Un rendez-vous est prévu — relances automatiques en pause.";
+  }
+  if (input.emailBouncedAt) {
+    return "Email invalide (bounce).";
+  }
+  if (input.commercialStatus !== "OPEN") {
+    return `Prospect traité (${COMMERCIAL_STATUS_LABELS[input.commercialStatus].label}).`;
+  }
+  if (!input.nextFollowUpAt) {
+    if (input.pauseAfterCancelledMeeting) {
+      return "Relances en pause suite à l'annulation du RDV.";
+    }
+    return "Relances en pause (aucune date planifiée).";
+  }
+  return null;
 }
 
 export async function getProspectFollowupBlockReason(
   prospectId: string
 ): Promise<string | null> {
-  const [scheduledMeeting, prospect] = await Promise.all([
+  const [scheduledMeeting, prospect, events] = await Promise.all([
     prisma.prospectMeeting.findFirst({
       where: { prospectId, status: "SCHEDULED" },
       select: { scheduledAt: true },
     }),
     prisma.prospect.findUnique({
       where: { id: prospectId },
-      select: { commercialStatus: true },
+      select: {
+        commercialStatus: true,
+        emailBouncedAt: true,
+        nextFollowUpAt: true,
+        sequenceCompletedAt: true,
+        status: true,
+      },
+    }),
+    prisma.prospectEvent.findMany({
+      where: {
+        prospectId,
+        type: { in: ["MEETING_CANCELLED", "MEETING_SCHEDULED"] },
+      },
+      select: { type: true, createdAt: true },
     }),
   ]);
 
-  if (scheduledMeeting) {
-    return "Un rendez-vous est prévu.";
-  }
-  if (prospect && prospect.commercialStatus !== "OPEN") {
-    return `Prospect traité (${COMMERCIAL_STATUS_LABELS[prospect.commercialStatus].label}).`;
-  }
-  return null;
+  if (!prospect) return "Prospect introuvable.";
+
+  return resolveProspectFollowupBlockReason({
+    status: prospect.status,
+    commercialStatus: prospect.commercialStatus,
+    emailBouncedAt: prospect.emailBouncedAt,
+    nextFollowUpAt: prospect.nextFollowUpAt,
+    sequenceCompletedAt: prospect.sequenceCompletedAt,
+    hasScheduledMeeting: scheduledMeeting != null,
+    pauseAfterCancelledMeeting: hasFollowupPauseAfterCancelledMeeting(events),
+  });
 }
 
 export async function isProspectFollowupBlocked(prospectId: string): Promise<boolean> {

@@ -1,9 +1,11 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { sendProspectFollowupNow } from "@/lib/prospects-followup";
 import { logProspectEvent, reopenProspect } from "@/lib/prospect-events";
+import { DEFAULT_PROSPECT_CONTACT_NAME } from "@/lib/prospect-events-constants";
 import { requireSuperadmin } from "../../utilisateurs/[id]/_lib/user-admin-guard";
 import type { ProspectEventType } from "../../../../../../../generated/prisma/client";
 
@@ -13,12 +15,23 @@ function revalidateProspects() {
   revalidatePath(PROSPECTS_PATH);
 }
 
+function redirectProspectError(message: string): never {
+  redirect(
+    `${PROSPECTS_PATH}?action=error&message=${encodeURIComponent(message)}`
+  );
+}
+
+function redirectProspectSuccess(message: string): never {
+  redirect(`${PROSPECTS_PATH}?action=ok&message=${encodeURIComponent(message)}`);
+}
+
 export async function sendFollowupAction(formData: FormData) {
   const prospectId = String(formData.get("prospectId") ?? "");
   await requireSuperadmin();
   const res = await sendProspectFollowupNow(prospectId);
   revalidateProspects();
-  if (!res.ok) throw new Error(res.message);
+  if (!res.ok) redirectProspectError(res.message);
+  redirectProspectSuccess(res.message);
 }
 
 export async function setProspectStatusAction(formData: FormData) {
@@ -36,6 +49,21 @@ export async function setProspectStatusAction(formData: FormData) {
       unsubscribedAt: status === "UNSUBSCRIBED" ? new Date() : null,
       nextFollowUpAt: status === "UNSUBSCRIBED" ? null : new Date(),
       followUpStep: status === "UNSUBSCRIBED" ? undefined : 0,
+    },
+  });
+  revalidateProspects();
+}
+
+export async function updateProspectContactNameAction(formData: FormData) {
+  await requireSuperadmin();
+  const prospectId = String(formData.get("prospectId") ?? "");
+  if (!prospectId) throw new Error("Prospect introuvable.");
+
+  const contactName = String(formData.get("contactName") ?? "").trim();
+  await prisma.prospect.update({
+    where: { id: prospectId },
+    data: {
+      contactName: contactName || DEFAULT_PROSPECT_CONTACT_NAME,
     },
   });
   revalidateProspects();
@@ -238,6 +266,8 @@ export async function cancelMeetingAction(formData: FormData) {
   await logProspectEvent({
     prospectId,
     type: "MEETING_CANCELLED",
+    details:
+      "RDV annulé — les relances automatiques restent en pause jusqu'à action manuelle.",
     createdById: user.id,
     meetingId,
   });

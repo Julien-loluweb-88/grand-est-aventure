@@ -21,6 +21,7 @@ model EmailCampaignRecipient {
   prospect      Prospect?           @relation(fields: [prospectId], references: [id], onDelete: SetNull)
   email         String
   trackingToken String              @unique @default(cuid())
+  sequenceStep  Int?
   openCount     Int                 @default(0)
   openedAt      DateTime?
   status        EmailCampaignStatus @default(PENDING)
@@ -47,6 +48,9 @@ model Prospect {
   email            String                   @unique
   commune          String?
   intercommunalite String?
+  telephone        String?
+  adresse          String?
+  siteInternet     String?
   source           String?
   status           ProspectStatus           @default(ACTIVE)
   commercialStatus ProspectCommercialStatus @default(OPEN)
@@ -57,7 +61,12 @@ model Prospect {
   lastOpenedAt     DateTime?
   nextFollowUpAt   DateTime?
   followUpStep     Int                      @default(0)
+  sequenceCompletedAt DateTime?
+  contactName      String                   @default("Madame / Monsieur le Maire")
+  emailBouncedAt   DateTime?
   unsubscribedAt   DateTime?
+  ownerUserId      String?
+  owner            User?                    @relation("ProspectOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   recipients       EmailCampaignRecipient[]
   meetings         ProspectMeeting[]
   events           ProspectEvent[]
@@ -105,6 +114,7 @@ model ProspectMeeting {
 
 enum ProspectEventType {
   CALL_LOGGED
+  EMAIL_SENT
   EMAIL_REPLIED
   EMAIL_BOUNCED
   MEETING_SCHEDULED
@@ -115,6 +125,7 @@ enum ProspectEventType {
   NOT_INTERESTED
   CLOSED
   REOPENED
+  UNSUBSCRIBED
 }
 
 model ProspectEvent {

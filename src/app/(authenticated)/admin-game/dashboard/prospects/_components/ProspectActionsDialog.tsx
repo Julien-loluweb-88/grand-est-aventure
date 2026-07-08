@@ -26,12 +26,25 @@ import {
   scheduleMeetingAction,
   sendFollowupAction,
   setProspectStatusAction,
+  updateProspectContactNameAction,
 } from "../_lib/prospect-actions";
 import {
   COMMERCIAL_STATUS_LABELS,
   getProspectEventLabel,
 } from "@/lib/prospect-events-constants";
+import { ProspectEmailSequence } from "./ProspectEmailSequence";
 import type { ProspectCommercialStatus } from "../../../../../../../generated/prisma/client";
+
+type ProspectEmailSendLite = {
+  id: string;
+  sequenceStep: number | null;
+  sentAt: Date | null;
+  openedAt: Date | null;
+  openCount: number;
+  status: "PENDING" | "SENT" | "FAILED";
+  error: string | null;
+  subject: string;
+};
 
 type ProspectNoteLite = {
   id: string;
@@ -58,17 +71,33 @@ export function ProspectActionsDialog(props: {
     email: string;
     status: "ACTIVE" | "UNSUBSCRIBED";
     commercialStatus: ProspectCommercialStatus;
+    commune: string | null;
+    intercommunalite: string | null;
+    telephone: string | null;
+    adresse: string | null;
+    siteInternet: string | null;
+    contactName: string;
+    ownerName: string | null;
+    ownerEmail: string | null;
+    followUpStep: number;
+    nextFollowUpAt: Date | null;
+    sequenceCompletedAt: Date | null;
+    emailBouncedAt: Date | null;
     events: ProspectEventLite[];
     meetings: ProspectMeetingLite[];
     notes: ProspectNoteLite[];
+    emailSends: ProspectEmailSendLite[];
   };
   followupBlocked: boolean;
+  followupBlockReason: string | null;
 }) {
   const dialogRef = useRef<DialogCloseRef>(null);
   const lastEvent = props.prospect.events[0] ?? null;
   const scheduledMeeting = props.prospect.meetings[0] ?? null;
   const commercialStatus = COMMERCIAL_STATUS_LABELS[props.prospect.commercialStatus];
-  const canReopen = props.prospect.commercialStatus !== "OPEN";
+  const canReopen =
+    !props.prospect.sequenceCompletedAt &&
+    (props.prospect.commercialStatus !== "OPEN" || props.prospect.emailBouncedAt != null);
 
   return (
     <Dialog ref={dialogRef}>
@@ -83,6 +112,15 @@ export function ProspectActionsDialog(props: {
           <DialogDescription>
             Statut : {props.prospect.status === "ACTIVE" ? "Actif" : "Désinscrit"} — Commercial :{" "}
             {commercialStatus.label}
+            {props.prospect.ownerName || props.prospect.ownerEmail ? (
+              <>
+                {" "}
+                — Responsable :{" "}
+                <strong>
+                  {props.prospect.ownerName?.trim() || props.prospect.ownerEmail}
+                </strong>
+              </>
+            ) : null}
             {lastEvent ? (
               <>
                 {" "}
@@ -97,7 +135,15 @@ export function ProspectActionsDialog(props: {
           {canReopen ? (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3">
               <p className="text-sm">
-                Statut <strong>{commercialStatus.label}</strong> enregistré par erreur ?
+                {props.prospect.emailBouncedAt ? (
+                  <>
+                    Email en <strong>échec</strong> — réouvrir pour relancer les envois ?
+                  </>
+                ) : (
+                  <>
+                    Statut <strong>{commercialStatus.label}</strong> enregistré par erreur ?
+                  </>
+                )}
               </p>
               <form action={reopenProspectAction}>
                 <input type="hidden" name="prospectId" value={props.prospect.id} />
@@ -108,10 +154,104 @@ export function ProspectActionsDialog(props: {
             </div>
           ) : null}
 
+          {(props.prospect.telephone ||
+            props.prospect.adresse ||
+            props.prospect.siteInternet ||
+            props.prospect.intercommunalite) && (
+            <div className="rounded-md border p-4">
+              <p className="text-sm font-medium">Coordonnées</p>
+              <dl className="mt-2 grid grid-cols-1 gap-2 text-sm md:grid-cols-2">
+                {props.prospect.intercommunalite ? (
+                  <div>
+                    <dt className="text-muted-foreground">Intercommunalité</dt>
+                    <dd>{props.prospect.intercommunalite}</dd>
+                  </div>
+                ) : null}
+                {props.prospect.telephone ? (
+                  <div>
+                    <dt className="text-muted-foreground">Téléphone</dt>
+                    <dd>
+                      <a href={`tel:${props.prospect.telephone}`} className="hover:underline">
+                        {props.prospect.telephone}
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
+                {props.prospect.adresse ? (
+                  <div className="md:col-span-2">
+                    <dt className="text-muted-foreground">Adresse</dt>
+                    <dd>{props.prospect.adresse}</dd>
+                  </div>
+                ) : null}
+                {props.prospect.siteInternet ? (
+                  <div className="md:col-span-2">
+                    <dt className="text-muted-foreground">Site internet</dt>
+                    <dd>
+                      <a
+                        href={props.prospect.siteInternet}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {props.prospect.siteInternet}
+                      </a>
+                    </dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
+          )}
+
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">Formule de salutation (emails)</p>
+            <form action={updateProspectContactNameAction} className="mt-2 flex flex-wrap items-end gap-2">
+              <input type="hidden" name="prospectId" value={props.prospect.id} />
+              <div className="min-w-[16rem] flex-1">
+                <Input
+                  name="contactName"
+                  type="text"
+                  defaultValue={props.prospect.contactName}
+                  placeholder="Madame / Monsieur le Maire"
+                  className="h-9 text-sm"
+                />
+              </div>
+              <Button size="sm" type="submit" variant="secondary">
+                Enregistrer
+              </Button>
+            </form>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Utilisé dans « Bonjour … » des mails de prospection.
+            </p>
+          </div>
+
+          {props.prospect.emailBouncedAt ? (
+            <div className="rounded-md border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-900">
+              Email en échec (bounce) — les relances automatiques sont bloquées.
+            </div>
+          ) : null}
+
+          {props.followupBlockReason && props.followupBlocked ? (
+            <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-950">
+              {props.followupBlockReason}
+            </div>
+          ) : null}
+
+          <ProspectEmailSequence
+            followUpStep={props.prospect.followUpStep}
+            nextFollowUpAt={props.prospect.nextFollowUpAt}
+            sequenceCompletedAt={props.prospect.sequenceCompletedAt}
+            emailSends={props.prospect.emailSends}
+          />
+
           <div className="flex flex-wrap gap-2">
             <form action={sendFollowupAction}>
               <input type="hidden" name="prospectId" value={props.prospect.id} />
-              <Button size="sm" type="submit" disabled={props.followupBlocked}>
+              <Button
+                size="sm"
+                type="submit"
+                disabled={props.followupBlocked}
+                title={props.followupBlockReason ?? undefined}
+              >
                 Relancer
               </Button>
             </form>

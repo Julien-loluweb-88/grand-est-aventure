@@ -55,6 +55,7 @@ export async function sendEmailCampaign(data: {
       data: missingEmails.map((email) => ({
         email,
         source: "manual_campaign",
+        ownerUserId: actor.id,
         nextFollowUpAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
       })),
       skipDuplicates: true,
@@ -146,13 +147,14 @@ export async function seedProspectsFromText(data: {
   for (const email of emails) {
     const existing = await prisma.prospect.findUnique({
       where: { email },
-      select: { id: true },
+      select: { id: true, ownerUserId: true },
     });
     await prisma.prospect.upsert({
       where: { email },
       create: {
         email,
         source: "admin_form_seed",
+        ownerUserId: actor.id,
         intercommunalite: data.intercommunalite?.trim() || null,
         nextFollowUpAt,
       },
@@ -161,6 +163,7 @@ export async function seedProspectsFromText(data: {
         intercommunalite: data.intercommunalite?.trim() || undefined,
         lastImportedAt: new Date(),
         nextFollowUpAt,
+        ...(existing?.ownerUserId ? {} : { ownerUserId: actor.id }),
       },
     });
     if (existing) updated += 1;

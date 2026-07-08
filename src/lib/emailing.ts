@@ -5,13 +5,16 @@ import { sendTransactionalEmail } from "@/lib/send-transactional-email";
 import { buildTrackedCampaignHtml } from "@/lib/email-campaign-tracking";
 import { getPublicAppOrigin } from "@/lib/public-app-url";
 import { getBaladIndicesPdfAttachments } from "@/lib/email-campaign-attachments";
+import { logProspectEmailBounce, logProspectEmailSent } from "@/lib/prospect-events";
+import { DEFAULT_PROSPECT_CONTACT_NAME } from "@/lib/prospect-events-constants";
+import { isPermanentEmailBounceError } from "@/lib/email-bounce";
 
 const BATCH_SIZE = 5;
 const DELAY_BETWEEN_BATCHES_MS = 1000;
 
 const campaignAttachments = getBaladIndicesPdfAttachments();
 
-function substituteTemplateVars(template: string, vars: Record<string, string>) {
+export function substituteTemplateVars(template: string, vars: Record<string, string>) {
   return template.replace(/\{\{(\w+)\}\}/g, (_, key: string) => vars[key] ?? "");
 }
 
@@ -30,7 +33,13 @@ export async function runEmailCampaign(campaignId: string): Promise<void> {
     include: {
       recipients: {
         where: { status: "PENDING" },
-        include: { prospect: true },
+        include: {
+          prospect: {
+            include: {
+              owner: { select: { email: true } },
+            },
+          },
+        },
       },
     },
   });
@@ -57,51 +66,48 @@ export async function runEmailCampaign(campaignId: string): Promise<void> {
             return;
           }
 
-          const replyEmail = process.env.NODEMAILER_USER?.trim() ?? "";
-          const contactName = "Madame, Monsieur";
+          const replyEmail =
+            recipient.prospect?.owner?.email?.trim() ||
+            process.env.NODEMAILER_USER?.trim() ||
+            "";
+          const contactName =
+            recipient.prospect?.contactName?.trim() || DEFAULT_PROSPECT_CONTACT_NAME;
           const communeForSubject = recipient.prospect?.commune?.trim() || "votre commune";
           const intercommunaliteForText = recipient.prospect?.intercommunalite?.trim() || "";
           const origin = getPublicAppOrigin();
+          const base = origin ? origin.replace(/\/$/, "") : "";
           const unsubscribeUrl =
             recipient.prospect?.unsubscribeToken
-              ? `${origin ? origin.replace(/\/$/, "") : ""}/api/email/unsubscribe?token=${encodeURIComponent(
+              ? `${base}/api/email/unsubscribe?token=${encodeURIComponent(
                   recipient.prospect.unsubscribeToken
                 )}`
               : "";
 
+          const templateVars = {
+            commune: communeForSubject,
+            intercommunalite: intercommunaliteForText,
+            contact_name: contactName,
+            reply_email: replyEmail,
+            communes_url: `${base}/communes`,
+            unsubscribe_url: unsubscribeUrl,
+          };
+
           const trackedHtml = buildTrackedCampaignHtml({
-            html: substituteTemplateVars(campaign.html, {
-              commune: communeForSubject,
-              intercommunalite: intercommunaliteForText,
-              contact_name: contactName,
-              reply_email: replyEmail,
-              unsubscribe_url: unsubscribeUrl,
-            }),
+            html: substituteTemplateVars(campaign.html, templateVars),
             trackingToken: recipient.trackingToken,
             unsubscribeToken: recipient.prospect?.unsubscribeToken,
           });
 
-          const subject = substituteTemplateVars(campaign.subject, {
-            commune: communeForSubject,
-            intercommunalite: intercommunaliteForText,
-            contact_name: contactName,
-            reply_email: replyEmail,
-            unsubscribe_url: "",
-          });
+          const subject = substituteTemplateVars(campaign.subject, templateVars);
 
-          const text = substituteTemplateVars(campaign.text, {
-            commune: communeForSubject,
-            intercommunalite: intercommunaliteForText,
-            contact_name: contactName,
-            reply_email: replyEmail,
-            unsubscribe_url: unsubscribeUrl,
-          });
+          const text = substituteTemplateVars(campaign.text, templateVars);
 
           await sendTransactionalEmail({
             to: recipient.email,
             subject,
             text,
             html: trackedHtml,
+            replyTo: replyEmail || undefined,
             attachments: campaignAttachments ?? undefined,
           });
           await prisma.emailCampaignRecipient.update({
@@ -115,24 +121,34 @@ export async function runEmailCampaign(campaignId: string): Promise<void> {
           if (recipient.prospectId) {
             await prisma.prospect.update({
               where: { id: recipient.prospectId },
-              data: {
-                lastContactedAt: new Date(),
-                nextFollowUpAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 7),
-              },
+              data: { lastContactedAt: new Date() },
+            });
+            await logProspectEmailSent({
+              prospectId: recipient.prospectId,
+              sequenceStep: recipient.sequenceStep,
             });
           }
         } catch (err) {
+          const errorMessage = err instanceof Error ? err.message : "Erreur inconnue";
           await prisma.emailCampaignRecipient.update({
             where: { id: recipient.id },
             data: {
               status: "FAILED",
-              error: err instanceof Error ? err.message : "Erreur inconnue",
+              error: errorMessage,
             },
           });
           await prisma.emailCampaign.update({
             where: { id: campaignId },
             data: { failedCount: { increment: 1 } },
           });
+          if (recipient.prospectId) {
+            if (isPermanentEmailBounceError(errorMessage)) {
+              await logProspectEmailBounce({
+                prospectId: recipient.prospectId,
+                details: errorMessage,
+              });
+            }
+          }
         }
       })
     );

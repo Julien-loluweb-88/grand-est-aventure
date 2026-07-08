@@ -25,6 +25,10 @@ function getSignaturePng(): Buffer | null {
   }
 }
 
+function toResponseBody(data: Buffer, type: string): Blob {
+  return new Blob([Uint8Array.from(data)], { type });
+}
+
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token")?.trim();
   const img = request.nextUrl.searchParams.get("img")?.trim();
@@ -58,7 +62,7 @@ export async function GET(request: NextRequest) {
   if (img === "signature") {
     const signaturePng = getSignaturePng();
     if (signaturePng) {
-      return new NextResponse(signaturePng, {
+      return new NextResponse(toResponseBody(signaturePng, "image/png"), {
         headers: {
           "Content-Type": "image/png",
           "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
@@ -70,7 +74,7 @@ export async function GET(request: NextRequest) {
     // Fallback : si l'image signature est introuvable, on renvoie le pixel.
   }
 
-  return new NextResponse(PIXEL_GIF, {
+  return new NextResponse(toResponseBody(PIXEL_GIF, "image/gif"), {
     headers: {
       "Content-Type": "image/gif",
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",

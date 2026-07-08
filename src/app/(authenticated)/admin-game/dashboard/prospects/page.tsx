@@ -1,26 +1,43 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { COMMERCIAL_STATUS_LABELS, PROSPECT_EVENT_LABELS } from "@/lib/prospect-events";
+import { Suspense } from "react";
+import {
+  COMMERCIAL_STATUS_LABELS,
+  PROSPECT_EVENT_LABELS,
+  hasFollowupPauseAfterCancelledMeeting,
+  resolveProspectFollowupBlockReason,
+} from "@/lib/prospect-events";
+import { getFollowUpStepShortLabel } from "@/lib/prospect-events-constants";
+import {
+  getSequenceSentCount,
+  isProspectSequenceComplete,
+  SEQUENCE_MAIL_COUNT,
+} from "@/lib/prospect-sequence";
 import { requireSuperadmin } from "../utilisateurs/[id]/_lib/user-admin-guard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { importProspectsFromJsonAction } from "./_lib/import-prospects-from-json.action";
 import { ProspectActionsDialog } from "./_components/ProspectActionsDialog";
+import { ProspectsPageToasts } from "./_components/ProspectsPageToasts";
+import type { ProspectCommercialStatus } from "../../../../../../generated/prisma/client";
 const PAGE_SIZE = 25;
 
 type Props = {
   searchParams: Promise<{
     q?: string;
     status?: "ACTIVE" | "UNSUBSCRIBED" | "ALL";
-    commercial?: "ALL" | "OUVERTS" | "QUALIFIED" | "CLOSED" | "NOT_INTERESTED";
+    commercial?: "ALL" | "OUVERTS" | "EMAIL_REPLIED" | "QUALIFIED" | "CLOSED" | "NOT_INTERESTED";
+    interco?: string;
+    owner?: string;
     overdue?: string;
     page?: string;
     import?: "ok" | "error";
     created?: string;
-    updated?: string;
+    enriched?: string;
     total?: string;
     message?: string;
+    action?: "ok" | "error";
   }>;
 };
 
@@ -36,6 +53,8 @@ function getEventBadgeClass(type: string): string {
   switch (type) {
     case "CALL_LOGGED":
       return "bg-amber-100 text-amber-800";
+    case "EMAIL_SENT":
+      return "bg-teal-100 text-teal-800";
     case "EMAIL_REPLIED":
       return "bg-blue-100 text-blue-800";
     case "EMAIL_BOUNCED":
@@ -56,6 +75,8 @@ function getEventBadgeClass(type: string): string {
       return "bg-zinc-200 text-zinc-800";
     case "REOPENED":
       return "bg-sky-100 text-sky-800";
+    case "UNSUBSCRIBED":
+      return "bg-zinc-200 text-zinc-800";
     default:
       return "bg-zinc-200 text-zinc-800";
   }
@@ -66,12 +87,23 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
   const q = (params.q ?? "").trim();
   const status = params.status ?? "ALL";
   const commercial = params.commercial ?? "ALL";
+  const interco = (params.interco ?? "").trim();
+  const ownerId = (params.owner ?? "").trim();
   const overdueOnly = params.overdue === "1";
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
   const skip = (page - 1) * PAGE_SIZE;
   const now = new Date();
   const importOk = params.import === "ok";
   const importError = params.import === "error";
+
+  const overdueWhere = {
+    status: "ACTIVE" as const,
+    commercialStatus: "OPEN" as const,
+    emailBouncedAt: null,
+    sequenceCompletedAt: null,
+    nextFollowUpAt: { lte: now },
+    meetings: { none: { status: "SCHEDULED" as const } },
+  };
 
   const where = {
     ...(q
@@ -86,25 +118,25 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
     ...(status !== "ALL" ? { status } : {}),
     ...(commercial !== "ALL"
       ? {
-          commercialStatus:
-            commercial === "OUVERTS" ? "OPEN" : commercial,
+          commercialStatus: (commercial === "OUVERTS"
+            ? "OPEN"
+            : commercial) as ProspectCommercialStatus,
         }
       : {}),
-    ...(overdueOnly
-      ? {
-          status: "ACTIVE" as const,
-          nextFollowUpAt: { lte: now },
-        }
-      : {}),
+    ...(interco ? { intercommunalite: interco } : {}),
+    ...(ownerId ? { ownerUserId: ownerId } : {}),
+    ...(overdueOnly ? overdueWhere : {}),
   };
 
-  const [prospects, total, activeCount, unsubscribedCount, overdueCount] = await Promise.all([
+  const [prospects, total, activeCount, unsubscribedCount, overdueCount, intercommunalites, ownerOptions] =
+    await Promise.all([
     prisma.prospect.findMany({
       where,
       orderBy: [{ nextFollowUpAt: "asc" }, { firstSeenAt: "desc" }],
       skip,
       take: PAGE_SIZE,
       include: {
+        owner: { select: { id: true, name: true, email: true } },
         meetings: {
           where: { status: "SCHEDULED" },
           orderBy: { scheduledAt: "asc" },
@@ -125,11 +157,17 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
     prisma.prospect.count({ where }),
     prisma.prospect.count({ where: { status: "ACTIVE" } }),
     prisma.prospect.count({ where: { status: "UNSUBSCRIBED" } }),
-    prisma.prospect.count({
-      where: {
-        status: "ACTIVE",
-        nextFollowUpAt: { lte: now },
-      },
+    prisma.prospect.count({ where: overdueWhere }),
+    prisma.prospect.findMany({
+      where: { intercommunalite: { not: null } },
+      select: { intercommunalite: true },
+      distinct: ["intercommunalite"],
+      orderBy: { intercommunalite: "asc" },
+    }),
+    prisma.user.findMany({
+      where: { ownedProspects: { some: {} } },
+      select: { id: true, name: true, email: true },
+      orderBy: [{ name: "asc" }, { email: "asc" }],
     }),
   ]);
 
@@ -169,12 +207,66 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
     notesByProspectId.set(note.prospectId, list);
   }
 
+  const emailSendRows =
+    prospectIds.length > 0
+      ? await prisma.emailCampaignRecipient.findMany({
+          where: { prospectId: { in: prospectIds } },
+          orderBy: [{ sentAt: "asc" }, { campaign: { createdAt: "asc" } }],
+          select: {
+            id: true,
+            prospectId: true,
+            sequenceStep: true,
+            sentAt: true,
+            openedAt: true,
+            openCount: true,
+            status: true,
+            error: true,
+            campaign: { select: { subject: true } },
+          },
+        })
+      : [];
+
+  const emailSendsByProspectId = new Map<
+    string,
+    {
+      id: string;
+      sequenceStep: number | null;
+      sentAt: Date | null;
+      openedAt: Date | null;
+      openCount: number;
+      status: "PENDING" | "SENT" | "FAILED";
+      error: string | null;
+      subject: string;
+    }[]
+  >();
+  for (const send of emailSendRows) {
+    if (!send.prospectId) continue;
+    const list = emailSendsByProspectId.get(send.prospectId) ?? [];
+    list.push({
+      id: send.id,
+      sequenceStep: send.sequenceStep,
+      sentAt: send.sentAt,
+      openedAt: send.openedAt,
+      openCount: send.openCount,
+      status: send.status,
+      error: send.error,
+      subject: send.campaign.subject,
+    });
+    emailSendsByProspectId.set(send.prospectId, list);
+  }
+
+  const intercoOptions = intercommunalites
+    .map((item) => item.intercommunalite)
+    .filter((value): value is string => Boolean(value));
+
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   if (page > totalPages && total > 0) {
     const qp = new URLSearchParams();
     if (q) qp.set("q", q);
     if (status !== "ALL") qp.set("status", status);
     if (commercial !== "ALL") qp.set("commercial", commercial);
+    if (interco) qp.set("interco", interco);
+    if (ownerId) qp.set("owner", ownerId);
     if (overdueOnly) qp.set("overdue", "1");
     qp.set("page", String(totalPages));
     redirect(`/admin-game/dashboard/prospects?${qp.toString()}`);
@@ -182,6 +274,10 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
 
   return (
     <div className="space-y-6 p-6">
+      <Suspense fallback={null}>
+        <ProspectsPageToasts />
+      </Suspense>
+
       <div>
         <h1 className="text-2xl font-semibold">Prospects emailing</h1>
         <p className="text-sm text-muted-foreground">
@@ -200,7 +296,8 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
             <>
               <p className="font-medium text-emerald-800">Import JSON terminé.</p>
               <p className="mt-1 text-muted-foreground">
-                {params.total} total — {params.created} créés, {params.updated} mis à jour.
+                {params.total} total — {params.created} créé(s)
+                {params.enriched ? `, ${params.enriched} coordonnées mises à jour` : ""}.
               </p>
             </>
           ) : (
@@ -216,6 +313,7 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
         <h2 className="text-lg font-semibold">Importer un JSON de prospects</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Le JSON doit contenir un tableau <code>mairies</code> avec au minimum un champ <code>email</code>.
+          Les nouveaux prospects sont créés ; les existants voient leurs coordonnées mises à jour sans toucher à la séquence.
         </p>
 
         <form
@@ -258,7 +356,7 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
           </div>
 
           <Button type="submit" className="w-fit">
-            Importer et créer / mettre à jour
+            Importer les nouveaux
           </Button>
         </form>
       </div>
@@ -304,9 +402,40 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
           >
             <option value="ALL">Tous</option>
             <option value="OUVERTS">Ouverts</option>
+            <option value="EMAIL_REPLIED">Réponse reçue</option>
             <option value="QUALIFIED">Qualifié</option>
             <option value="CLOSED">Clôturé</option>
             <option value="NOT_INTERESTED">Pas intéressé</option>
+          </select>
+        </div>
+        <div className="w-full md:max-w-md">
+          <label className="mb-1 block text-sm font-medium">Intercommunalité</label>
+          <select
+            name="interco"
+            defaultValue={interco}
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="">Toutes</option>
+            {intercoOptions.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="w-full md:max-w-md">
+          <label className="mb-1 block text-sm font-medium">Responsable</label>
+          <select
+            name="owner"
+            defaultValue={ownerId}
+            className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+          >
+            <option value="">Tous</option>
+            {ownerOptions.map((owner) => (
+              <option key={owner.id} value={owner.id}>
+                {owner.name?.trim() || owner.email}
+              </option>
+            ))}
           </select>
         </div>
         <label className="flex items-center gap-2 text-sm">
@@ -322,6 +451,9 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
             <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left">
               <th>Email</th>
               <th>Commune</th>
+              <th>Interco</th>
+              <th>Responsable</th>
+              <th>Séquence</th>
               <th>Statut</th>
               <th>Dernier contact</th>
               <th>Dernière ouverture</th>
@@ -335,18 +467,69 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
             {prospects.map((prospect) => {
               const lastEvent = prospect.events[0];
               const prospectNotes = notesByProspectId.get(prospect.id) ?? [];
+              const prospectEmailSends = emailSendsByProspectId.get(prospect.id) ?? [];
               const lastNote = prospectNotes[0] ?? null;
+              const lastSentEmail = [...prospectEmailSends].reverse().find((send) => send.status === "SENT");
               const commercialStatus = COMMERCIAL_STATUS_LABELS[prospect.commercialStatus];
               const scheduledMeeting = prospect.meetings[0];
-              const followupBlocked =
-                prospect.status !== "ACTIVE" ||
-                scheduledMeeting != null ||
-                prospect.commercialStatus !== "OPEN";
+              const sequenceComplete = isProspectSequenceComplete({
+                sequenceCompletedAt: prospect.sequenceCompletedAt,
+              });
+              const sentCount = Math.max(
+                getSequenceSentCount(prospect.followUpStep, sequenceComplete),
+                prospectEmailSends.filter((send) => send.status === "SENT").length
+              );
+              const pauseAfterCancelledMeeting = hasFollowupPauseAfterCancelledMeeting(
+                prospect.events
+              );
+              const followupBlockReason = resolveProspectFollowupBlockReason({
+                status: prospect.status,
+                commercialStatus: prospect.commercialStatus,
+                emailBouncedAt: prospect.emailBouncedAt,
+                nextFollowUpAt: prospect.nextFollowUpAt,
+                sequenceCompletedAt: prospect.sequenceCompletedAt,
+                hasScheduledMeeting: scheduledMeeting != null,
+                pauseAfterCancelledMeeting,
+              });
+              const followupBlocked = followupBlockReason != null;
 
               return (
                 <tr key={prospect.id} className="border-t [&>td]:px-3 [&>td]:py-2 align-top">
                   <td className="font-medium">{prospect.email}</td>
                 <td>{prospect.commune ?? "—"}</td>
+                <td className="max-w-40 truncate text-xs" title={prospect.intercommunalite ?? undefined}>
+                  {prospect.intercommunalite ?? "—"}
+                </td>
+                <td className="text-xs">
+                  {prospect.owner ? (
+                    <span title={prospect.owner.email}>
+                      {prospect.owner.name?.trim() || prospect.owner.email}
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
+                <td>
+                  <div className="text-xs">
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-1 font-medium ${
+                        sequenceComplete
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-sky-100 text-sky-800"
+                      }`}
+                    >
+                      {sentCount}/{SEQUENCE_MAIL_COUNT} — {getFollowUpStepShortLabel(prospect.followUpStep)}
+                    </span>
+                    {lastSentEmail ? (
+                      <p className="mt-1 text-muted-foreground">
+                        {lastSentEmail.openedAt || lastSentEmail.openCount > 0 ? "Ouvert" : "Non ouvert"}
+                        {lastSentEmail.sentAt ? ` — ${formatDate(lastSentEmail.sentAt)}` : ""}
+                      </p>
+                    ) : (
+                      <p className="mt-1 text-muted-foreground">Aucun envoi</p>
+                    )}
+                  </div>
+                </td>
                 <td>
                   <span
                     className={
@@ -360,7 +543,17 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                 </td>
                 <td>{formatDate(prospect.lastContactedAt)}</td>
                 <td>{formatDate(prospect.lastOpenedAt)}</td>
-                <td>{formatDate(prospect.nextFollowUpAt)}</td>
+                <td>
+                  {prospect.nextFollowUpAt ? (
+                    formatDate(prospect.nextFollowUpAt)
+                  ) : followupBlockReason ? (
+                    <span className="text-xs text-amber-800" title={followupBlockReason}>
+                      En pause
+                    </span>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td>
                   {lastEvent ? (
                     <div className="text-xs">
@@ -409,17 +602,31 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                       email: prospect.email,
                       status: prospect.status,
                       commercialStatus: prospect.commercialStatus,
+                      commune: prospect.commune,
+                      intercommunalite: prospect.intercommunalite,
+                      telephone: prospect.telephone,
+                      adresse: prospect.adresse,
+                      siteInternet: prospect.siteInternet,
+                      contactName: prospect.contactName,
+                      ownerName: prospect.owner?.name ?? null,
+                      ownerEmail: prospect.owner?.email ?? null,
+                      followUpStep: prospect.followUpStep,
+                      nextFollowUpAt: prospect.nextFollowUpAt,
+                      sequenceCompletedAt: prospect.sequenceCompletedAt,
+                      emailBouncedAt: prospect.emailBouncedAt,
                       events: prospect.events,
                       meetings: prospect.meetings,
                       notes: prospectNotes,
+                      emailSends: prospectEmailSends,
                     }}
                     followupBlocked={followupBlocked}
+                    followupBlockReason={followupBlockReason}
                   />
                 </td></tr>
               );
             })}{prospects.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-8 text-center text-muted-foreground">Aucun prospect trouvé.
+                <td colSpan={12} className="px-3 py-8 text-center text-muted-foreground">Aucun prospect trouvé.
                 </td>
               </tr>
             )}
@@ -443,6 +650,8 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                 ...(q ? { q } : {}),
                 ...(status !== "ALL" ? { status } : {}),
                 ...(commercial !== "ALL" ? { commercial } : {}),
+                ...(interco ? { interco } : {}),
+                ...(ownerId ? { owner: ownerId } : {}),
                 ...(overdueOnly ? { overdue: "1" } : {}),
                 page: String(Math.max(1, page - 1)),
               }).toString()}`}
@@ -461,6 +670,8 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                 ...(q ? { q } : {}),
                 ...(status !== "ALL" ? { status } : {}),
                 ...(commercial !== "ALL" ? { commercial } : {}),
+                ...(interco ? { interco } : {}),
+                ...(ownerId ? { owner: ownerId } : {}),
                 ...(overdueOnly ? { overdue: "1" } : {}),
                 page: String(Math.min(totalPages, page + 1)),
               }).toString()}`}

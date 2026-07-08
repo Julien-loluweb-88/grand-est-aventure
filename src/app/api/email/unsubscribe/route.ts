@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logProspectUnsubscribed } from "@/lib/prospect-events";
 import { getPublicAppOrigin } from "@/lib/public-app-url";
 
 function redirectTo(request: NextRequest, path: string): NextResponse {
@@ -29,6 +30,8 @@ export async function GET(request: NextRequest) {
       nextFollowUpAt: null,
     },
   });
+
+  await logProspectUnsubscribed(prospect.id);
 
   await prisma.emailCampaignRecipient.updateMany({
     where: {

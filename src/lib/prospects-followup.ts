@@ -3,14 +3,74 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { sendTransactionalEmail } from "@/lib/send-transactional-email";
 import { buildTrackedCampaignHtml } from "@/lib/email-campaign-tracking";
-import { runEmailCampaign } from "@/lib/emailing";
+import { runEmailCampaign, substituteTemplateVars } from "@/lib/emailing";
 import { getBaladIndicesPdfAttachments } from "@/lib/email-campaign-attachments";
+import { getPublicAppOrigin } from "@/lib/public-app-url";
 import {
+  completeProspectSequence,
   getProspectFollowupBlockReason,
 } from "@/lib/prospect-events";
+import { DEFAULT_PROSPECT_CONTACT_NAME } from "@/lib/prospect-events-constants";
+import { logProspectEmailSent } from "@/lib/prospect-events";
+import { SEQUENCE_MAIL_COUNT } from "@/lib/prospect-sequence";
 
 const FOLLOWUP_DAYS = 10;
+const DEFAULT_CRON_BATCH_SIZE = 10;
+const DEFAULT_CRON_HOUR_START = 8;
+const DEFAULT_CRON_HOUR_END = 19;
+const DEFAULT_CRON_TIMEZONE = "Europe/Paris";
+const CRON_LOCK_KEY = 8347291;
+
+type ProspectCronQueue = "intro" | "relance" | "final";
 const campaignAttachments = getBaladIndicesPdfAttachments();
+
+const INTENDED_RECIPIENT_NOTICE =
+  "Ce message est adressé au maire, aux adjoints ou aux délégués chargés de l'animation, de la culture et/ou du patrimoine. Si vous n'êtes pas le destinataire concerné, merci de bien vouloir le transmettre à la personne compétente.";
+
+function intendedRecipientNoticeHtml(): string {
+  return `<p style="margin:0;font-size:13px;color:#6b7280;font-style:italic;">${INTENDED_RECIPIENT_NOTICE}</p>`;
+}
+
+function communesLandingNoticeText(): string {
+  return "Pour découvrir les avantages de Balad'indice pour votre collectivité, consultez : {{communes_url}}";
+}
+
+function communesLandingNoticeHtml(): string {
+  return `
+                <tr>
+                  <td style="padding:0 0 24px;">
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;">
+                      <tr>
+                        <td style="padding:16px 14px;text-align:center;">
+                          <p style="margin:0 0 12px;font-size:14.5px;">Découvrez les avantages de Balad'indice pour les communes et intercommunalités.</p>
+                          <a href="{{communes_url}}" style="background:#1f5fbf;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:bold;display:inline-block;">
+                            Voir les avantages pour ma commune
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>`;
+}
+
+function buildProspectTemplateVars(params: {
+  commune: string;
+  intercommunalite: string;
+  contactName: string;
+  replyEmail: string;
+  unsubscribeToken: string;
+}): Record<string, string> {
+  const origin = getPublicAppOrigin() || process.env.NEXT_PUBLIC_APP_URL?.trim() || "";
+  const base = origin.replace(/\/$/, "");
+  return {
+    commune: params.commune,
+    intercommunalite: params.intercommunalite,
+    contact_name: params.contactName,
+    reply_email: params.replyEmail,
+    communes_url: `${base}/communes`,
+    unsubscribe_url: `${base}/api/email/unsubscribe?token=${encodeURIComponent(params.unsubscribeToken)}`,
+  };
+}
 
 function addDays(date: Date, days: number): Date {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
@@ -18,6 +78,8 @@ function addDays(date: Date, days: number): Date {
 
 function buildIntroText(): string {
   return `Bonjour {{contact_name}},
+
+${INTENDED_RECIPIENT_NOTICE}
 
 En échangeant avec de nombreux acteurs locaux et grâce à mon engagement en tant qu'élu local, j'ai pu constater une réalité que partagent beaucoup de collectivités : il n'est pas toujours simple de proposer de nouvelles animations, d'attirer des visiteurs, de faire découvrir le patrimoine ou encore de donner envie aux habitants de redécouvrir leur propre commune.
 
@@ -31,6 +93,8 @@ Chaque parcours est entièrement conçu aux couleurs de la commune. Il peut êtr
 
 L'ambition de Balad'indice n'est pas de remplacer les initiatives déjà existantes, mais d'offrir un nouvel outil simple, moderne et ludique pour mettre en valeur les richesses de {{commune}} tout en créant une expérience mémorable pour les habitants comme pour les visiteurs.
 
+${communesLandingNoticeText()}
+
 Si cette démarche peut répondre aux enjeux de {{commune}} et de {{intercommunalite}}, je serais ravi d'échanger avec vous afin de vous présenter plus en détail le fonctionnement de Balad'indice et d'imaginer ensemble un premier parcours adapté à votre territoire.
 
 Je vous remercie pour le temps consacré à cette lecture et reste naturellement à votre disposition.
@@ -43,11 +107,15 @@ Pour ne plus recevoir nos informations, vous pouvez vous désinscrire à tout mo
 function buildFollowupText(): string {
   return `Bonjour {{contact_name}},
 
+${INTENDED_RECIPIENT_NOTICE}
+
 Je me permets de revenir vers vous une dizaine de jours après mon précédent message au sujet de Balad'indice, au cas où vous n'auriez pas encore eu l'occasion de le consulter.
 
 Je sais que les sollicitations sont nombreuses et que les priorités des collectivités évoluent rapidement. Mon objectif est simplement de savoir si cette démarche pourrait présenter un intérêt pour {{commune}}.
 
 Balad'indice permet de proposer une véritable chasse au trésor afin de faire découvrir le patrimoine local de manière ludique, avec une récompense réelle à la clé, définie par la collectivité.
+
+${communesLandingNoticeText()}
 
 Si le sujet vous intéresse, je serais ravi de vous présenter le concept lors d'un échange d'une vingtaine de minutes et de répondre à vos éventuelles questions.
 
@@ -63,11 +131,15 @@ Pour ne plus recevoir nos informations, vous pouvez vous désinscrire à tout mo
 function buildFinalReminderText(): string {
   return `Bonjour {{contact_name}},
 
+${INTENDED_RECIPIENT_NOTICE}
+
 Je me permets de vous adresser un dernier message concernant **Balad'indice**, avant de clôturer ce dossier.
 
 Mon objectif était simplement de vous faire découvrir une nouvelle manière de valoriser le patrimoine de {{commune}} à travers une véritable chasse au trésor, accessible toute l'année et entièrement personnalisable.
 
 Je comprends parfaitement que ce projet ne fasse peut-être pas partie de vos priorités actuelles, ou que le moment ne soit tout simplement pas le bon.
+
+${communesLandingNoticeText()}
 
 Si toutefois le sujet vous intéresse, je serais ravi d'échanger avec vous afin de vous présenter plus en détail le concept et de voir comment il pourrait s'adapter à votre territoire.
 
@@ -94,6 +166,12 @@ function buildIntroHtml(): string {
                 <tr>
                   <td style="padding:0 0 14px;">
                     <p style="margin:0;font-size:16px;">Bonjour {{contact_name}},</p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:0 0 20px;">
+                    ${intendedRecipientNoticeHtml()}
                   </td>
                 </tr>
 
@@ -151,6 +229,8 @@ function buildIntroHtml(): string {
                   <td style="height:1px;background:#e5e7eb;line-height:1px;font-size:1px;">&nbsp;</td>
                 </tr>
 
+                ${communesLandingNoticeHtml()}
+
                 <tr>
                   <td style="padding:24px 0 18px;">
                     <p style="margin:0;font-size:14.5px;">Si cette démarche peut répondre aux enjeux de {{commune}} et de {{intercommunalite}}, je serais ravi d'échanger avec vous afin de vous présenter plus en détail le fonctionnement de Balad'indice et d'imaginer ensemble un premier parcours adapté à votre territoire.</p>
@@ -165,7 +245,7 @@ function buildIntroHtml(): string {
 
                 <tr>
                   <td style="text-align:center;padding:8px 0 16px;">
-                    <a href="mailto:{{reply_email}}" style="background:#1f5fbf;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:bold;display:inline-block;">
+                    <a href="{{communes_url}}" style="background:#1f5fbf;color:#ffffff;text-decoration:none;padding:14px 28px;border-radius:10px;font-weight:bold;display:inline-block;">
                       Découvrir Balad'indice
                     </a>
                   </td>
@@ -215,6 +295,12 @@ function buildFollowupHtml(): string {
                 </tr>
 
                 <tr>
+                  <td style="padding:0 0 20px;">
+                    ${intendedRecipientNoticeHtml()}
+                  </td>
+                </tr>
+
+                <tr>
                   <td style="padding:0 0 24px;">
                     <p style="margin:0;font-size:14.5px;">Je me permets de revenir vers vous une dizaine de jours après mon précédent message au sujet de <strong>Balad'indice</strong>, au cas où vous n'auriez pas encore eu l'occasion de le consulter.</p>
                   </td>
@@ -231,11 +317,15 @@ function buildFollowupHtml(): string {
                 </tr>
 
                 <tr>
-                  <td style="height:1px;background:#e5e7eb;line-height:1px;font-size:1px;">&nbsp;</td>
+                  <td style="padding:24px 0 24px;">
+                    <p style="margin:0;font-size:14.5px;">Balad'indice permet de proposer une véritable chasse au trésor afin de faire découvrir le patrimoine local de manière ludique, avec une récompense réelle à la clé, définie par la collectivité.</p>
+                  </td>
                 </tr>
 
+                ${communesLandingNoticeHtml()}
+
                 <tr>
-                  <td style="padding:24px 0 24px;">
+                  <td style="padding:0 0 24px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #eef2f7;border-left:4px solid #1f5fbf;border-radius:12px;">
                       <tr>
                         <td style="padding:14px 14px;">
@@ -299,6 +389,12 @@ function buildFinalReminderHtml(): string {
                 </tr>
 
                 <tr>
+                  <td style="padding:0 0 20px;">
+                    ${intendedRecipientNoticeHtml()}
+                  </td>
+                </tr>
+
+                <tr>
                   <td style="padding:0 0 24px;">
                     <p style="margin:0;font-size:14.5px;">Je me permets de vous adresser un dernier message concernant <strong>Balad'indice</strong>, avant de clôturer ce dossier.</p>
                   </td>
@@ -319,6 +415,8 @@ function buildFinalReminderHtml(): string {
                     <p style="margin:0;font-size:14.5px;">Je comprends parfaitement que ce projet ne fasse peut-être pas partie de vos priorités actuelles, ou que le moment ne soit tout simplement pas le bon.</p>
                   </td>
                 </tr>
+
+                ${communesLandingNoticeHtml()}
 
                 <tr>
                   <td style="height:1px;background:#e5e7eb;line-height:1px;font-size:1px;">&nbsp;</td>
@@ -420,6 +518,91 @@ function buildCampaignContent(variant: CampaignVariant): {
   };
 }
 
+function getProspectCronBatchSize(): number {
+  const parsed = Number.parseInt(process.env.PROSPECT_CRON_BATCH_SIZE ?? "", 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_CRON_BATCH_SIZE;
+}
+
+function getProspectCronTimezone(): string {
+  return process.env.PROSPECT_CRON_TIMEZONE?.trim() || DEFAULT_CRON_TIMEZONE;
+}
+
+function getCurrentHourInCronTimezone(now = new Date()): number {
+  return Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: getProspectCronTimezone(),
+      hour: "numeric",
+      hour12: false,
+    }).format(now)
+  );
+}
+
+function getProspectCronHourRange(): { start: number; end: number } {
+  const start = Number.parseInt(process.env.PROSPECT_CRON_HOUR_START ?? "", 10);
+  const end = Number.parseInt(process.env.PROSPECT_CRON_HOUR_END ?? "", 10);
+  return {
+    start: Number.isFinite(start) ? start : DEFAULT_CRON_HOUR_START,
+    end: Number.isFinite(end) ? end : DEFAULT_CRON_HOUR_END,
+  };
+}
+
+/** Rotation horaire sur 3 files : intro → relance J+10 → dernier message (8h–19h). */
+export function getActiveProspectCronQueueForHour(hour: number): ProspectCronQueue | null {
+  const { start, end } = getProspectCronHourRange();
+  if (hour < start || hour > end) return null;
+  const slot = hour % 3;
+  if (slot === 0) return "intro";
+  if (slot === 1) return "relance";
+  return "final";
+}
+
+function getFollowUpStepFilterForQueue(queue: ProspectCronQueue) {
+  if (queue === "intro") return { followUpStep: { lte: 0 } } as const;
+  if (queue === "relance") return { followUpStep: 1 } as const;
+  return { followUpStep: 2 } as const;
+}
+
+function computeHourlyBatchSize(backlog: number): number {
+  if (backlog <= 0) return 0;
+  return Math.min(getProspectCronBatchSize(), backlog);
+}
+
+/** Fenêtre d'envoi : par défaut 8h–19h (heure de Paris), inclus. */
+export function isWithinProspectCronSendingWindow(now = new Date()): boolean {
+  const hour = getCurrentHourInCronTimezone(now);
+  const { start, end } = getProspectCronHourRange();
+  return hour >= start && hour <= end;
+}
+
+async function backfillCompletedProspectSequences(): Promise<void> {
+  const candidates = await prisma.prospect.findMany({
+    where: {
+      sequenceCompletedAt: null,
+      status: "ACTIVE",
+    },
+    select: {
+      id: true,
+      lastContactedAt: true,
+      recipients: {
+        where: { status: "SENT", sequenceStep: { not: null } },
+        select: { id: true },
+      },
+    },
+  });
+
+  for (const prospect of candidates) {
+    if (prospect.recipients.length < SEQUENCE_MAIL_COUNT) continue;
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: {
+        sequenceCompletedAt: prospect.lastContactedAt ?? new Date(),
+        nextFollowUpAt: null,
+        commercialStatus: "CLOSED",
+      },
+    });
+  }
+}
+
 async function getSystemCampaignAuthorId(): Promise<string | null> {
   const superadmin = await prisma.user.findFirst({
     where: { role: "superadmin" },
@@ -430,59 +613,121 @@ async function getSystemCampaignAuthorId(): Promise<string | null> {
   return fallback?.id ?? null;
 }
 
-export async function sendProspectFollowups(limit = 30): Promise<{
+export async function sendProspectFollowups(): Promise<{
   queued: number;
   skipped: number;
+  queue?: ProspectCronQueue | null;
+  backlog?: number;
+  dispatchedBatch?: number;
+  alreadyRunning?: boolean;
+  outsideWindow?: boolean;
 }> {
-  const now = new Date();
-  const prospects = await prisma.prospect.findMany({
-    where: {
-      status: "ACTIVE",
-      commercialStatus: "OPEN",
+  if (!isWithinProspectCronSendingWindow()) {
+    return { queued: 0, skipped: 0, outsideWindow: true };
+  }
+
+  const currentHour = getCurrentHourInCronTimezone();
+  const activeQueue = getActiveProspectCronQueueForHour(currentHour);
+  if (!activeQueue) {
+    return { queued: 0, skipped: 0, outsideWindow: true };
+  }
+
+  const lockRows = await prisma.$queryRaw<{ locked: boolean }[]>`
+    SELECT pg_try_advisory_lock(${CRON_LOCK_KEY}) AS locked
+  `;
+  if (!lockRows[0]?.locked) {
+    return { queued: 0, skipped: 0, alreadyRunning: true };
+  }
+
+  try {
+    await backfillCompletedProspectSequences();
+    await backfillProspectOwners();
+    const now = new Date();
+    const eligibleWhere = {
+      status: "ACTIVE" as const,
+      commercialStatus: "OPEN" as const,
+      emailBouncedAt: null,
+      sequenceCompletedAt: null,
       nextFollowUpAt: { lte: now },
       meetings: {
-        none: { status: "SCHEDULED" },
+        none: { status: "SCHEDULED" as const },
       },
-    },
-    orderBy: { nextFollowUpAt: "asc" },
-    take: limit,
-  });
-  if (prospects.length === 0) {
-    return { queued: 0, skipped: 0 };
-  }
+    };
 
-  const { sent, skipped, sentProspectIds } = await queueProspectFollowupCampaign(prospects);
-  if (sentProspectIds.length > 0) {
-    const sentIdsSet = new Set(sentProspectIds);
-    const sentFinalIds = prospects
-      .filter((p) => sentIdsSet.has(p.id) && getCampaignVariant(p.followUpStep) === "final")
-      .map((p) => p.id);
-    const sentNonFinalIds = prospects
-      .filter((p) => sentIdsSet.has(p.id) && getCampaignVariant(p.followUpStep) !== "final")
-      .map((p) => p.id);
+    const queueWhere = getFollowUpStepFilterForQueue(activeQueue);
 
-    if (sentNonFinalIds.length > 0) {
-      await prisma.prospect.updateMany({
-        where: { id: { in: sentNonFinalIds } },
-        data: {
-          lastContactedAt: now,
-          nextFollowUpAt: addDays(now, FOLLOWUP_DAYS),
-          followUpStep: { increment: 1 },
-        },
-      });
+    const backlog = await prisma.prospect.count({
+      where: { ...eligibleWhere, ...queueWhere },
+    });
+    const dispatchedBatch = computeHourlyBatchSize(backlog);
+
+    if (dispatchedBatch === 0) {
+      return {
+        queued: 0,
+        skipped: 0,
+        queue: activeQueue,
+        backlog,
+        dispatchedBatch: 0,
+      };
     }
 
-    if (sentFinalIds.length > 0) {
-      await prisma.prospect.updateMany({
-        where: { id: { in: sentFinalIds } },
-        data: {
-          lastContactedAt: now,
-          nextFollowUpAt: null,
-        },
-      });
+    const prospects = await prisma.prospect.findMany({
+      where: { ...eligibleWhere, ...queueWhere },
+      orderBy: { nextFollowUpAt: "asc" },
+      take: dispatchedBatch,
+      include: {
+        owner: { select: { id: true, email: true, name: true } },
+      },
+    });
+    if (prospects.length === 0) {
+      return {
+        queued: 0,
+        skipped: 0,
+        queue: activeQueue,
+        backlog,
+        dispatchedBatch,
+      };
     }
+
+    const { sent, skipped, sentProspectIds } = await queueProspectFollowupCampaign(prospects);
+    if (sentProspectIds.length > 0) {
+      const sentIdsSet = new Set(sentProspectIds);
+      const sentFinalIds = prospects
+        .filter((p) => sentIdsSet.has(p.id) && getCampaignVariant(p.followUpStep) === "final")
+        .map((p) => p.id);
+      const sentNonFinalIds = prospects
+        .filter((p) => sentIdsSet.has(p.id) && getCampaignVariant(p.followUpStep) !== "final")
+        .map((p) => p.id);
+
+      if (sentNonFinalIds.length > 0) {
+        await prisma.prospect.updateMany({
+          where: { id: { in: sentNonFinalIds } },
+          data: {
+            lastContactedAt: now,
+            nextFollowUpAt: addDays(now, FOLLOWUP_DAYS),
+            followUpStep: { increment: 1 },
+          },
+        });
+      }
+
+      for (const prospectId of sentFinalIds) {
+        await prisma.prospect.update({
+          where: { id: prospectId },
+          data: { lastContactedAt: now },
+        });
+        await completeProspectSequence(prospectId);
+      }
+    }
+    return {
+      queued: sent,
+      skipped,
+      queue: activeQueue,
+      backlog,
+      dispatchedBatch,
+    };
+  } finally {
+    await prisma.$executeRaw`SELECT pg_advisory_unlock(${CRON_LOCK_KEY})`;
   }
-  return { queued: sent, skipped };
 }
 
 export async function sendProspectFollowupNow(prospectId: string): Promise<{
@@ -491,6 +736,9 @@ export async function sendProspectFollowupNow(prospectId: string): Promise<{
 }> {
   const prospect = await prisma.prospect.findUnique({
     where: { id: prospectId },
+    include: {
+      owner: { select: { id: true, email: true, name: true } },
+    },
   });
   if (!prospect) {
     return { ok: false, message: "Prospect introuvable." };
@@ -512,16 +760,14 @@ export async function sendProspectFollowupNow(prospectId: string): Promise<{
   const now = new Date();
   const isFinal = getCampaignVariant(prospect.followUpStep) === "final";
   if (isFinal) {
-    await prisma.prospect.updateMany({
-      where: { id: { in: sentProspectIds } },
-      data: {
-        lastContactedAt: now,
-        nextFollowUpAt: null,
-      },
+    await prisma.prospect.update({
+      where: { id: prospect.id },
+      data: { lastContactedAt: now },
     });
+    await completeProspectSequence(prospect.id);
   } else {
-    await prisma.prospect.updateMany({
-      where: { id: { in: sentProspectIds } },
+    await prisma.prospect.update({
+      where: { id: prospect.id },
       data: {
         lastContactedAt: now,
         nextFollowUpAt: addDays(now, FOLLOWUP_DAYS),
@@ -532,32 +778,67 @@ export async function sendProspectFollowupNow(prospectId: string): Promise<{
   return { ok: true, message: "Relance envoyée." };
 }
 
-async function queueProspectFollowupCampaign(
-  prospects: Array<{
-    id: string;
-    email: string;
-    commune?: string | null;
-    followUpStep: number;
-    unsubscribeToken: string;
-  }>
+async function backfillProspectOwners(): Promise<void> {
+  const defaultOwnerId = await getSystemCampaignAuthorId();
+  if (!defaultOwnerId) return;
+  await prisma.prospect.updateMany({
+    where: { ownerUserId: null },
+    data: { ownerUserId: defaultOwnerId },
+  });
+}
+
+type ProspectFollowupRow = {
+  id: string;
+  email: string;
+  commune?: string | null;
+  intercommunalite?: string | null;
+  contactName?: string | null;
+  followUpStep: number;
+  unsubscribeToken: string;
+  ownerUserId?: string | null;
+  owner?: { id: string; email: string; name: string | null } | null;
+};
+
+async function queueProspectFollowupCampaignForOwner(
+  prospects: ProspectFollowupRow[],
+  sender: { authorId: string | null; replyEmail: string }
 ): Promise<{ sent: number; skipped: number; sentProspectIds: string[] }> {
-  const authorId = await getSystemCampaignAuthorId();
-  if (!authorId) {
+  if (prospects.length === 0) {
+    return { sent: 0, skipped: 0, sentProspectIds: [] };
+  }
+
+  if (!sender.authorId) {
     let sent = 0;
     const sentProspectIds: string[] = [];
     for (const prospect of prospects) {
       try {
-        const content = buildCampaignContent(getCampaignVariant(prospect.followUpStep));
+        const variant = getCampaignVariant(prospect.followUpStep);
+        const content = buildCampaignContent(variant);
+        const communeForSubject = prospect.commune?.trim() || "votre commune";
+        const intercommunaliteForText = prospect.intercommunalite?.trim() || "";
+        const contactName = prospect.contactName?.trim() || DEFAULT_PROSPECT_CONTACT_NAME;
+        const vars = buildProspectTemplateVars({
+          commune: communeForSubject,
+          intercommunalite: intercommunaliteForText,
+          contactName,
+          replyEmail: sender.replyEmail,
+          unsubscribeToken: prospect.unsubscribeToken,
+        });
+
         await sendTransactionalEmail({
           to: prospect.email,
-          subject: content.subject,
-          text: content.text,
+          subject: substituteTemplateVars(content.subject, vars),
+          text: substituteTemplateVars(content.text, vars),
           html: buildTrackedCampaignHtml({
-            html: content.html,
+            html: substituteTemplateVars(content.html, vars),
             trackingToken: `${prospect.id}-${Date.now()}`,
             unsubscribeToken: prospect.unsubscribeToken,
           }),
           attachments: campaignAttachments ?? undefined,
+        });
+        await logProspectEmailSent({
+          prospectId: prospect.id,
+          sequenceStep: prospect.followUpStep,
         });
         sent += 1;
         sentProspectIds.push(prospect.id);
@@ -571,7 +852,7 @@ async function queueProspectFollowupCampaign(
   const introProspects = prospects.filter((p) => getCampaignVariant(p.followUpStep) === "intro");
   const followupProspects = prospects.filter((p) => getCampaignVariant(p.followUpStep) === "followup");
   const finalStageProspects = prospects.filter((p) => getCampaignVariant(p.followUpStep) === "final");
-  const groups: Array<{ variant: CampaignVariant; prospects: typeof prospects }> = [
+  const groups: Array<{ variant: CampaignVariant; prospects: ProspectFollowupRow[] }> = [
     { variant: "intro", prospects: introProspects },
     { variant: "followup", prospects: followupProspects },
     { variant: "final", prospects: finalStageProspects },
@@ -586,22 +867,69 @@ async function queueProspectFollowupCampaign(
         subject: content.subject,
         text: content.text,
         html: content.html,
-        createdById: authorId,
+        createdById: sender.authorId,
         totalCount: group.prospects.length,
         recipients: {
           create: group.prospects.map((prospect) => ({
             email: prospect.email,
             prospectId: prospect.id,
+            sequenceStep: prospect.followUpStep,
           })),
         },
       },
     });
     await runEmailCampaign(campaign.id);
-    sentProspectIds.push(...group.prospects.map((prospect) => prospect.id));
+
+    const sentRecipients = await prisma.emailCampaignRecipient.findMany({
+      where: {
+        campaignId: campaign.id,
+        status: "SENT",
+        prospectId: { not: null },
+      },
+      select: { prospectId: true },
+    });
+    for (const recipient of sentRecipients) {
+      if (recipient.prospectId && !sentProspectIds.includes(recipient.prospectId)) {
+        sentProspectIds.push(recipient.prospectId);
+      }
+    }
   }
   return {
     sent: sentProspectIds.length,
     skipped: prospects.length - sentProspectIds.length,
+    sentProspectIds,
+  };
+}
+
+async function queueProspectFollowupCampaign(
+  prospects: ProspectFollowupRow[]
+): Promise<{ sent: number; skipped: number; sentProspectIds: string[] }> {
+  const systemAuthorId = await getSystemCampaignAuthorId();
+  const defaultReplyEmail = process.env.NODEMAILER_USER?.trim() ?? "";
+  const byOwner = new Map<string, ProspectFollowupRow[]>();
+
+  for (const prospect of prospects) {
+    const key = prospect.ownerUserId ?? prospect.owner?.id ?? "__system__";
+    const list = byOwner.get(key) ?? [];
+    list.push(prospect);
+    byOwner.set(key, list);
+  }
+
+  let sent = 0;
+  const sentProspectIds: string[] = [];
+  for (const group of byOwner.values()) {
+    const owner = group[0]?.owner ?? null;
+    const result = await queueProspectFollowupCampaignForOwner(group, {
+      authorId: owner?.id ?? systemAuthorId,
+      replyEmail: owner?.email ?? defaultReplyEmail,
+    });
+    sent += result.sent;
+    sentProspectIds.push(...result.sentProspectIds);
+  }
+
+  return {
+    sent,
+    skipped: prospects.length - sent,
     sentProspectIds,
   };
 }
