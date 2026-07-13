@@ -1,0 +1,41 @@
+id: recompute-adventure-durations
+namespace: baladindices
+description: |
+  Maintenance quotidienne des statistiques de durée de jeu :
+  - Clôture les sessions de partie restées IN_PROGRESS trop longtemps (abandon)
+  - Recalcule averagePlayDurationSeconds et playDurationSampleCount par aventure
+  Ces chiffres alimentent le catalogue mobile et l'admin (durée réelle vs estimée).
+
+labels:
+  - key: domain
+    value: game
+  - key: criticality
+    value: medium
+
+variables:
+  app_url: "https://baladindices.fr"
+  cron_secret: "d3fbabc51fc34ff7fb51019805c56995ee0585504c77f276927bca479b516a43"
+
+tasks:
+  - id: call_recompute_durations
+    type: io.kestra.plugin.core.http.Request
+    description: GET /api/cron/recompute-adventure-durations
+    uri: "{{ vars.app_url }}/api/cron/recompute-adventure-durations"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vars.cron_secret }}"
+    options:
+      followRedirects: true
+
+  - id: log_result
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      recompute-adventure-durations → HTTP {{ outputs.call_recompute_durations.code }}
+      Body: {{ outputs.call_recompute_durations.body }}
+
+triggers:
+  - id: daily_3am
+    type: io.kestra.plugin.core.trigger.Schedule
+    description: Tous les jours à 3h (Europe/Paris)
+    cron: "0 3 * * *"
+    timezone: Europe/Paris

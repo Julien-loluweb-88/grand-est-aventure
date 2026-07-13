@@ -1,0 +1,41 @@
+id: award-monthly-km-badges
+namespace: baladindices
+description: |
+  Attribution mensuelle du badge global « marcheur du mois » (PERFORMANCE_MONTHLY_KM).
+  - Calcule les km parcourus le mois civil précédent (fuseau Europe/Paris)
+  - Décerne le badge au(x) joueur(s) avec le plus de km
+  - Idempotent : relancer le cron ne double pas les badges déjà attribués
+
+labels:
+  - key: domain
+    value: badges
+  - key: criticality
+    value: low
+
+variables:
+  app_url: "https://baladindices.fr"
+  cron_secret: "d3fbabc51fc34ff7fb51019805c56995ee0585504c77f276927bca479b516a43"
+
+tasks:
+  - id: call_award_monthly_km
+    type: io.kestra.plugin.core.http.Request
+    description: GET /api/cron/award-monthly-km-badges
+    uri: "{{ vars.app_url }}/api/cron/award-monthly-km-badges"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vars.cron_secret }}"
+    options:
+      followRedirects: true
+
+  - id: log_result
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      award-monthly-km-badges → HTTP {{ outputs.call_award_monthly_km.code }}
+      Body: {{ outputs.call_award_monthly_km.body }}
+
+triggers:
+  - id: first_of_month_6am
+    type: io.kestra.plugin.core.trigger.Schedule
+    description: Le 1er de chaque mois à 6h (Europe/Paris)
+    cron: "0 6 1 * *"
+    timezone: Europe/Paris

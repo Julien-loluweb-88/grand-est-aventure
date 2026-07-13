@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
 import {
   cancelMeetingAction,
   completeMeetingAction,
+  deleteProspectAction,
   logCallAction,
   logClosedAction,
   logEmailReplyAction,
@@ -92,12 +93,15 @@ export function ProspectActionsDialog(props: {
   followupBlockReason: string | null;
 }) {
   const dialogRef = useRef<DialogCloseRef>(null);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const lastEvent = props.prospect.events[0] ?? null;
   const scheduledMeeting = props.prospect.meetings[0] ?? null;
   const commercialStatus = COMMERCIAL_STATUS_LABELS[props.prospect.commercialStatus];
   const canReopen =
     !props.prospect.sequenceCompletedAt &&
     (props.prospect.commercialStatus !== "OPEN" || props.prospect.emailBouncedAt != null);
+  const deleteConfirmed =
+    deleteConfirmEmail.trim().toLowerCase() === props.prospect.email.trim().toLowerCase();
 
   return (
     <Dialog ref={dialogRef}>
@@ -463,6 +467,34 @@ export function ProspectActionsDialog(props: {
             ) : (
               <p className="mt-2 text-sm text-muted-foreground">Aucun évènement.</p>
             )}
+          </div>
+
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4">
+            <p className="text-sm font-medium text-destructive">Suppression définitive</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Supprime le prospect, son historique, ses notes et ses rendez-vous. Cette action est
+              irréversible. L&apos;email pourra être réimporté ensuite.
+            </p>
+            <form action={deleteProspectAction} className="mt-3 space-y-2">
+              <input type="hidden" name="prospectId" value={props.prospect.id} />
+              <Input
+                name="confirmEmail"
+                type="email"
+                value={deleteConfirmEmail}
+                onChange={(event) => setDeleteConfirmEmail(event.target.value)}
+                placeholder={`Saisir « ${props.prospect.email} » pour confirmer`}
+                className="h-9 text-sm"
+                autoComplete="off"
+              />
+              <Button
+                size="sm"
+                type="submit"
+                variant="destructive"
+                disabled={!deleteConfirmed}
+              >
+                Supprimer le prospect
+              </Button>
+            </form>
           </div>
         </div>
       </DialogContent>

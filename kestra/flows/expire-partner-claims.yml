@@ -1,0 +1,40 @@
+id: expire-partner-claims
+namespace: baladindices
+description: |
+  Expire les demandes d'offres partenaires (PartnerOfferClaim) restées en PENDING
+  plus de 24 heures sans réponse du commerçant.
+  Évite qu'un joueur garde indéfiniment une réservation « en attente ».
+
+labels:
+  - key: domain
+    value: partner-offers
+  - key: criticality
+    value: medium
+
+variables:
+  app_url: "https://baladindices.fr"
+  cron_secret: "d3fbabc51fc34ff7fb51019805c56995ee0585504c77f276927bca479b516a43"
+
+tasks:
+  - id: call_expire_partner_claims
+    type: io.kestra.plugin.core.http.Request
+    description: GET /api/cron/expire-partner-claims
+    uri: "{{ vars.app_url }}/api/cron/expire-partner-claims"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vars.cron_secret }}"
+    options:
+      followRedirects: true
+
+  - id: log_result
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      expire-partner-claims → HTTP {{ outputs.call_expire_partner_claims.code }}
+      Body: {{ outputs.call_expire_partner_claims.body }}
+
+triggers:
+  - id: every_hour
+    type: io.kestra.plugin.core.trigger.Schedule
+    description: Toutes les heures (Europe/Paris)
+    cron: "0 * * * *"
+    timezone: Europe/Paris

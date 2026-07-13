@@ -1,0 +1,42 @@
+id: email-prospects-followup
+namespace: baladindices
+description: |
+  Relances emailing automatiques vers les mairies / intercos (prospection Balad'indice).
+  - Fenêtre 8h–19h (Europe/Paris), gérée côté app
+  - 1 file par passage selon l'heure : intro / relance J+10 / dernier message
+  - Max 10 envois par passage (PROSPECT_CRON_BATCH_SIZE)
+  - Verrou PostgreSQL anti-doublon si deux crons se chevauchent
+
+labels:
+  - key: domain
+    value: prospects
+  - key: criticality
+    value: high
+
+variables:
+  app_url: "https://baladindices.fr"
+  cron_secret: "d3fbabc51fc34ff7fb51019805c56995ee0585504c77f276927bca479b516a43"
+
+tasks:
+  - id: call_email_prospects_followup
+    type: io.kestra.plugin.core.http.Request
+    description: GET /api/cron/email-prospects-followup
+    uri: "{{ vars.app_url }}/api/cron/email-prospects-followup"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ vars.cron_secret }}"
+    options:
+      followRedirects: true
+
+  - id: log_result
+    type: io.kestra.plugin.core.log.Log
+    message: |
+      email-prospects-followup → HTTP {{ outputs.call_email_prospects_followup.code }}
+      Body: {{ outputs.call_email_prospects_followup.body }}
+
+triggers:
+  - id: hourly_business_hours
+    type: io.kestra.plugin.core.trigger.Schedule
+    description: Toutes les heures de 8h à 19h (Europe/Paris)
+    cron: "0 8-19 * * *"
+    timezone: Europe/Paris

@@ -274,3 +274,23 @@ export async function cancelMeetingAction(formData: FormData) {
 
   revalidateProspects();
 }
+
+export async function deleteProspectAction(formData: FormData) {
+  await requireSuperadmin();
+  const prospectId = String(formData.get("prospectId") ?? "");
+  const confirmEmail = String(formData.get("confirmEmail") ?? "").trim().toLowerCase();
+  if (!prospectId) redirectProspectError("Prospect introuvable.");
+
+  const prospect = await prisma.prospect.findUnique({
+    where: { id: prospectId },
+    select: { email: true },
+  });
+  if (!prospect) redirectProspectError("Prospect introuvable.");
+  if (confirmEmail !== prospect.email.trim().toLowerCase()) {
+    redirectProspectError("L'email de confirmation ne correspond pas.");
+  }
+
+  await prisma.prospect.delete({ where: { id: prospectId } });
+  revalidateProspects();
+  redirectProspectSuccess("Prospect supprimé définitivement.");
+}
