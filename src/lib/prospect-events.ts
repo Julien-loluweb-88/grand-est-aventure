@@ -133,6 +133,88 @@ export async function logProspectUnsubscribed(prospectId: string): Promise<void>
   });
 }
 
+export async function changeProspectEmailAndRestartSequence(params: {
+  prospectId: string;
+  newEmail: string;
+  followUpDays?: number;
+  createdById?: string | null;
+  reason?: string | null;
+}): Promise<{ oldEmail: string; newEmail: string }> {
+  const prospect = await prisma.prospect.findUnique({
+    where: { id: params.prospectId },
+    select: { id: true, email: true },
+  });
+  if (!prospect) {
+    throw new Error("Prospect introuvable.");
+  }
+
+  const newEmail = params.newEmail.trim().toLowerCase();
+  if (!newEmail) {
+    throw new Error("Email invalide.");
+  }
+  if (newEmail === prospect.email.trim().toLowerCase()) {
+    throw new Error("C'est déjà l'adresse email de ce prospect.");
+  }
+
+  const duplicate = await prisma.prospect.findUnique({
+    where: { email: newEmail },
+    select: { id: true },
+  });
+  if (duplicate && duplicate.id !== params.prospectId) {
+    throw new Error("Cet email est déjà utilisé par un autre prospect.");
+  }
+
+  const followUpDays = Math.max(0, params.followUpDays ?? 0);
+  const now = new Date();
+  const nextFollowUpAt =
+    followUpDays === 0
+      ? now
+      : new Date(now.getTime() + followUpDays * 24 * 60 * 60 * 1000);
+
+  const oldEmail = prospect.email;
+  const reason = params.reason?.trim() || null;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.prospectMeeting.updateMany({
+      where: { prospectId: params.prospectId, status: "SCHEDULED" },
+      data: { status: "CANCELLED" },
+    });
+
+    await tx.prospect.update({
+      where: { id: params.prospectId },
+      data: {
+        email: newEmail,
+        status: "ACTIVE",
+        commercialStatus: "OPEN",
+        followUpStep: 0,
+        nextFollowUpAt,
+        sequenceCompletedAt: null,
+        emailBouncedAt: null,
+        unsubscribedAt: null,
+        lastContactedAt: null,
+        lastOpenedAt: null,
+      },
+    });
+
+    await tx.prospectEvent.create({
+      data: {
+        prospectId: params.prospectId,
+        type: "NOTE",
+        details: [
+          `Email changé : ${oldEmail} → ${newEmail}.`,
+          "Séquence emailing relancée depuis le mail de présentation.",
+          reason ? `Motif : ${reason}` : null,
+        ]
+          .filter(Boolean)
+          .join(" "),
+        createdById: params.createdById ?? null,
+      },
+    });
+  });
+
+  return { oldEmail, newEmail };
+}
+
 export async function reopenProspect(params: {
   prospectId: string;
   createdById?: string | null;

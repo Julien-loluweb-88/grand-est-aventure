@@ -14,7 +14,7 @@ export type ProspectImportRow = {
   siteInternet: string | null;
 };
 
-function normalizeEmail(email: unknown): string | null {
+export function normalizeProspectEmail(email: unknown): string | null {
   if (typeof email !== "string") return null;
   const value = email.trim().toLowerCase();
   if (!value || !EMAIL_REGEX.test(value)) return null;
@@ -44,7 +44,7 @@ export function parseProspectsFromJsonPayload(payload: unknown): {
   const rows = rawRows
     .map((row) => {
       const item = row as Record<string, unknown>;
-      const email = normalizeEmail(item.email);
+      const email = normalizeProspectEmail(item.email);
       if (!email) return null;
 
       const adresse =

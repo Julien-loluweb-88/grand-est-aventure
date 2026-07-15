@@ -41,12 +41,23 @@ type Props = {
   }>;
 };
 
+function formatDateCompact(value?: Date | null): string {
+  if (!value) return "—";
+  const date = new Intl.DateTimeFormat("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  }).format(value);
+  const time = new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(value);
+  return `${date} ${time}`;
+}
+
 function formatDate(value?: Date | null): string {
   if (!value) return "—";
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(value);
+  return formatDateCompact(value);
 }
 
 function getEventBadgeClass(type: string): string {
@@ -401,7 +412,7 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
             className="h-10 rounded-md border bg-background px-3 text-sm"
           >
             <option value="ALL">Tous</option>
-            <option value="OUVERTS">Ouverts</option>
+            <option value="OUVERTS">En cours</option>
             <option value="EMAIL_REPLIED">Réponse reçue</option>
             <option value="QUALIFIED">Qualifié</option>
             <option value="CLOSED">Clôturé</option>
@@ -446,16 +457,16 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
       </form>
 
       <div className="overflow-x-auto rounded-lg border">
-        <table className="min-w-full text-sm">
-          <thead className="bg-muted/30">
-            <tr className="[&>th]:px-3 [&>th]:py-2 [&>th]:text-left">
+        <table className="min-w-full text-xs">
+          <thead className="bg-muted/30 text-muted-foreground">
+            <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:text-left [&>th]:font-medium">
               <th>Email</th>
               <th>Commune</th>
               <th>Interco</th>
               <th>Responsable</th>
               <th>Séquence</th>
               <th>Statut</th>
-              <th>Dernier contact</th>
+              <th>Dernier envoi</th>
               <th>Dernière ouverture</th>
               <th>Prochaine relance</th>
               <th>Dernier event</th>
@@ -470,6 +481,9 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
               const prospectEmailSends = emailSendsByProspectId.get(prospect.id) ?? [];
               const lastNote = prospectNotes[0] ?? null;
               const lastSentEmail = [...prospectEmailSends].reverse().find((send) => send.status === "SENT");
+              const lastSentEmailOpened =
+                lastSentEmail != null &&
+                (lastSentEmail.openedAt != null || lastSentEmail.openCount > 0);
               const commercialStatus = COMMERCIAL_STATUS_LABELS[prospect.commercialStatus];
               const scheduledMeeting = prospect.meetings[0];
               const sequenceComplete = isProspectSequenceComplete({
@@ -494,9 +508,11 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
               const followupBlocked = followupBlockReason != null;
 
               return (
-                <tr key={prospect.id} className="border-t [&>td]:px-3 [&>td]:py-2 align-top">
-                  <td className="font-medium">{prospect.email}</td>
-                <td>{prospect.commune ?? "—"}</td>
+                <tr key={prospect.id} className="border-t [&>td]:px-2 [&>td]:py-1.5 align-top">
+                  <td className="max-w-44 truncate font-medium" title={prospect.email}>
+                    {prospect.email}
+                  </td>
+                <td className="max-w-28 truncate">{prospect.commune ?? "—"}</td>
                 <td className="max-w-40 truncate text-xs" title={prospect.intercommunalite ?? undefined}>
                   {prospect.intercommunalite ?? "—"}
                 </td>
@@ -510,9 +526,9 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                   )}
                 </td>
                 <td>
-                  <div className="text-xs">
+                  <div>
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-1 font-medium ${
+                      className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium ${
                         sequenceComplete
                           ? "bg-emerald-100 text-emerald-800"
                           : "bg-sky-100 text-sky-800"
@@ -521,12 +537,20 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                       {sentCount}/{SEQUENCE_MAIL_COUNT} — {getFollowUpStepShortLabel(prospect.followUpStep)}
                     </span>
                     {lastSentEmail ? (
-                      <p className="mt-1 text-muted-foreground">
-                        {lastSentEmail.openedAt || lastSentEmail.openCount > 0 ? "Ouvert" : "Non ouvert"}
-                        {lastSentEmail.sentAt ? ` — ${formatDate(lastSentEmail.sentAt)}` : ""}
+                      <p className="mt-0.5 whitespace-nowrap text-[11px] text-muted-foreground">
+                        {lastSentEmailOpened ? (
+                          <>
+                            Ouvert
+                            {lastSentEmail.openedAt
+                              ? ` · ${formatDateCompact(lastSentEmail.openedAt)}`
+                              : ""}
+                          </>
+                        ) : (
+                          "Non ouvert"
+                        )}
                       </p>
                     ) : (
-                      <p className="mt-1 text-muted-foreground">Aucun envoi</p>
+                      <p className="mt-0.5 text-[11px] text-muted-foreground">Aucun envoi</p>
                     )}
                   </div>
                 </td>
@@ -534,20 +558,24 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                   <span
                     className={
                       prospect.status === "ACTIVE"
-                        ? "rounded-full bg-emerald-100 px-2 py-1 text-xs text-emerald-700"
-                        : "rounded-full bg-zinc-200 px-2 py-1 text-xs text-zinc-700"
+                        ? "rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] text-emerald-700"
+                        : "rounded-full bg-zinc-200 px-1.5 py-0.5 text-[11px] text-zinc-700"
                     }
                   >
                     {prospect.status === "ACTIVE" ? "Actif" : "Désinscrit"}
                   </span>
                 </td>
-                <td>{formatDate(prospect.lastContactedAt)}</td>
-                <td>{formatDate(prospect.lastOpenedAt)}</td>
-                <td>
+                <td className="whitespace-nowrap tabular-nums text-muted-foreground">
+                  {formatDateCompact(prospect.lastContactedAt)}
+                </td>
+                <td className="whitespace-nowrap tabular-nums text-muted-foreground">
+                  {formatDateCompact(prospect.lastOpenedAt)}
+                </td>
+                <td className="whitespace-nowrap tabular-nums text-muted-foreground">
                   {prospect.nextFollowUpAt ? (
-                    formatDate(prospect.nextFollowUpAt)
+                    formatDateCompact(prospect.nextFollowUpAt)
                   ) : followupBlockReason ? (
-                    <span className="text-xs text-amber-800" title={followupBlockReason}>
+                    <span className="text-amber-800" title={followupBlockReason}>
                       En pause
                     </span>
                   ) : (
@@ -556,24 +584,30 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                 </td>
                 <td>
                   {lastEvent ? (
-                    <div className="text-xs">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${getEventBadgeClass(
-                            lastEvent.type
-                          )}`}
-                        >
-                          {PROSPECT_EVENT_LABELS[lastEvent.type]}
-                        </span>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${commercialStatus.badgeClass}`}
-                        >
-                          {commercialStatus.label}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-muted-foreground">{formatDate(lastEvent.createdAt)}</p>
+                    <div>
+                      <span
+                        className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium ${getEventBadgeClass(
+                          lastEvent.type
+                        )}`}
+                      >
+                        {PROSPECT_EVENT_LABELS[lastEvent.type]}
+                      </span>
+                      <p className="mt-0.5 whitespace-nowrap tabular-nums text-muted-foreground">
+                        {formatDateCompact(lastEvent.createdAt)}
+                      </p>
                       {lastEvent.details ? (
-                        <p className="mt-1 line-clamp-2 text-muted-foreground">{lastEvent.details}</p>
+                        <p className="mt-0.5 line-clamp-1 max-w-40 text-[11px] text-muted-foreground">
+                          {lastEvent.details}
+                        </p>
+                      ) : null}
+                      {prospect.commercialStatus !== "OPEN" ? (
+                        <p className="mt-0.5">
+                          <span
+                            className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium ${commercialStatus.badgeClass}`}
+                          >
+                            {commercialStatus.label}
+                          </span>
+                        </p>
                       ) : null}
                     </div>
                   ) : (
@@ -582,14 +616,16 @@ export default async function ProspectsPage({ searchParams }: Props) {  await re
                 </td>
                 <td>
                   {lastNote ? (
-                    <div className="max-w-xs text-xs">
-                      <span className="inline-flex items-center rounded-full bg-violet-100 px-2 py-1 text-xs font-medium text-violet-800">
+                    <div className="max-w-36">
+                      <span className="inline-flex items-center rounded-full bg-violet-100 px-1.5 py-0.5 text-[11px] font-medium text-violet-800">
                         {prospectNotes.length} note{prospectNotes.length > 1 ? "s" : ""}
                       </span>
-                      <p className="mt-1 line-clamp-3 whitespace-pre-wrap text-muted-foreground">
+                      <p className="mt-0.5 line-clamp-2 whitespace-pre-wrap text-[11px] text-muted-foreground">
                         {lastNote.details ?? "—"}
                       </p>
-                      <p className="mt-1 text-muted-foreground">{formatDate(lastNote.createdAt)}</p>
+                      <p className="mt-0.5 whitespace-nowrap tabular-nums text-muted-foreground">
+                        {formatDateCompact(lastNote.createdAt)}
+                      </p>
                     </div>
                   ) : (
                     "—"

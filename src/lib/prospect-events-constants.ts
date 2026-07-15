@@ -22,7 +22,7 @@ export const COMMERCIAL_STATUS_LABELS: Record<
   ProspectCommercialStatus,
   { label: string; badgeClass: string }
 > = {
-  OPEN: { label: "Ouvert", badgeClass: "bg-sky-100 text-sky-800" },
+  OPEN: { label: "En cours", badgeClass: "bg-sky-100 text-sky-800" },
   EMAIL_REPLIED: { label: "Réponse reçue", badgeClass: "bg-blue-100 text-blue-800" },
   QUALIFIED: { label: "Qualifié", badgeClass: "bg-emerald-100 text-emerald-800" },
   NOT_INTERESTED: { label: "Pas intéressé", badgeClass: "bg-rose-100 text-rose-800" },

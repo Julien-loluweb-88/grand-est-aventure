@@ -4,8 +4,13 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { sendProspectFollowupNow } from "@/lib/prospects-followup";
-import { logProspectEvent, reopenProspect } from "@/lib/prospect-events";
+import {
+  changeProspectEmailAndRestartSequence,
+  logProspectEvent,
+  reopenProspect,
+} from "@/lib/prospect-events";
 import { DEFAULT_PROSPECT_CONTACT_NAME } from "@/lib/prospect-events-constants";
+import { normalizeProspectEmail } from "@/lib/prospect-import";
 import { requireSuperadmin } from "../../utilisateurs/[id]/_lib/user-admin-guard";
 import type { ProspectEventType } from "../../../../../../../generated/prisma/client";
 
@@ -67,6 +72,37 @@ export async function updateProspectContactNameAction(formData: FormData) {
     },
   });
   revalidateProspects();
+}
+
+export async function updateProspectEmailAction(formData: FormData) {
+  const user = await requireSuperadmin();
+  const prospectId = String(formData.get("prospectId") ?? "");
+  if (!prospectId) redirectProspectError("Prospect introuvable.");
+
+  const newEmail = normalizeProspectEmail(formData.get("email"));
+  if (!newEmail) redirectProspectError("Adresse email invalide.");
+
+  const followUpDaysRaw = String(formData.get("followUpDays") ?? "0").trim();
+  const followUpDays = Math.max(0, Number.parseInt(followUpDaysRaw, 10) || 0);
+  const reason = String(formData.get("reason") ?? "").trim() || null;
+
+  try {
+    const result = await changeProspectEmailAndRestartSequence({
+      prospectId,
+      newEmail,
+      followUpDays,
+      createdById: user.id,
+      reason,
+    });
+    revalidateProspects();
+    redirectProspectSuccess(
+      `Email mis à jour (${result.oldEmail} → ${result.newEmail}). Séquence relancée.`
+    );
+  } catch (error) {
+    redirectProspectError(
+      error instanceof Error ? error.message : "Impossible de changer l'email."
+    );
+  }
 }
 
 async function logQuickEventAction(

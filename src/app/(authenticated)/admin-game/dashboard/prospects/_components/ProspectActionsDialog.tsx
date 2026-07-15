@@ -28,6 +28,7 @@ import {
   sendFollowupAction,
   setProspectStatusAction,
   updateProspectContactNameAction,
+  updateProspectEmailAction,
 } from "../_lib/prospect-actions";
 import {
   COMMERCIAL_STATUS_LABELS,
@@ -205,6 +206,53 @@ export function ProspectActionsDialog(props: {
               </dl>
             </div>
           )}
+
+          <div className="rounded-md border p-4">
+            <p className="text-sm font-medium">Adresse email</p>
+            <form action={updateProspectEmailAction} className="mt-2 space-y-2">
+              <input type="hidden" name="prospectId" value={props.prospect.id} />
+              <Input
+                name="email"
+                type="email"
+                required
+                defaultValue={props.prospect.email}
+                placeholder="mairie@commune.fr"
+                className="h-9 text-sm"
+              />
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">
+                    Délai avant le 1er envoi (jours)
+                  </label>
+                  <Input
+                    name="followUpDays"
+                    type="number"
+                    min={0}
+                    defaultValue={0}
+                    className="h-9 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-muted-foreground">
+                    Motif (optionnel)
+                  </label>
+                  <Input
+                    name="reason"
+                    type="text"
+                    placeholder="Ancienne adresse invalide…"
+                    className="h-9 text-sm"
+                  />
+                </div>
+              </div>
+              <Button size="sm" type="submit" variant="secondary">
+                Changer l&apos;email et relancer la séquence
+              </Button>
+            </form>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Repart de la présentation (1/3). Les RDV planifiés sont annulés. L&apos;historique des
+              anciens envois est conservé.
+            </p>
+          </div>
 
           <div className="rounded-md border p-4">
             <p className="text-sm font-medium">Formule de salutation (emails)</p>
