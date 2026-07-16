@@ -3,6 +3,7 @@ export type TreasureEditPayload = {
   id: string;
   name: string;
   description: unknown;
+  finishMessage: unknown;
   chestCode: string;
   chestCodeAlt: string | null;
   latitude: number;

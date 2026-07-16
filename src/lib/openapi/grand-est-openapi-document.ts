@@ -1205,6 +1205,7 @@ export function buildGrandEstOpenApiDocument() {
             "Détail public d’une aventure active, incluant énigmes et trésor " +
             "sans exposer les champs sensibles : pas de `answer` / `correctAnswers` ; les codes trésor " +
             "(`chestCode`, variante) ne sont jamais renvoyés — validés uniquement via POST `/api/game/validate-treasure`. " +
+            "Le champ `finishMessage` (TipTap) est exposé pour l’écran de victoire après le code coffre. " +
             "Chaque énigme inclut notamment **`choice`** (libellés QCM), **`uniqueResponse`**, **`multiSelect`** : si `multiSelect` est true, " +
             "le joueur envoie **`submissions`** (tableau) à POST `/api/game/validate-enigma` ; sinon **`submission`** (chaîne). " +
             "Inclut **`discoveryPoints`** : tous les POI / badges « découverte » de la **ville** de l’aventure " +

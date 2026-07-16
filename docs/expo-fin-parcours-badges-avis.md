@@ -19,6 +19,8 @@ uniquement pour afficher l’écran de victoire / avis.
 POST /api/game/validate-treasure
 { "adventureId", "userId", "code", "giftNumber?" }
 
+Afficher ensuite `treasure.finishMessage` depuis **`GET /api/game/adventures/{id}`** (pas dans la réponse POST).
+
 **Sans trésor** :
 POST /api/game/validate-finish
 { "adventureId", "userId" }

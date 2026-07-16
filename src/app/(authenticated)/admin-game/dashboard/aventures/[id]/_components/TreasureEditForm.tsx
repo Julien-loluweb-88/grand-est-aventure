@@ -66,6 +66,7 @@ export function TreasureEditForm({
     defaultValues: {
       name: treasure.name,
       description: adventureDescriptionToTiptapJSON(treasure.description),
+      finishMessage: adventureDescriptionToTiptapJSON(treasure.finishMessage),
       chestCode: treasure.chestCode,
       chestCodeAlt: treasure.chestCodeAlt ?? "",
       latitude: treasure.latitude,
@@ -127,6 +128,7 @@ export function TreasureEditForm({
       form.reset({
         name: t.name,
         description: adventureDescriptionToTiptapJSON(t.description),
+        finishMessage: adventureDescriptionToTiptapJSON(t.finishMessage),
         chestCode: t.chestCode,
         chestCodeAlt: t.chestCodeAlt ?? "",
         latitude: t.latitude,
@@ -144,6 +146,7 @@ export function TreasureEditForm({
       const result = await updateTreasure(treasure.id, {
         name: plain.name,
         description: plain.description,
+        finishMessage: plain.finishMessage,
         chestCode: plain.chestCode,
         chestCodeAlt: plain.chestCodeAlt?.trim() || null,
         latitude: Number(plain.latitude),

@@ -145,6 +145,7 @@ Document de **pilotage projet** : prérequis, **étapes de mise en place** et **
 - [ ] Si `multiSelect === true` : corps **`submissions`** (string[]).  
 - [ ] Gérer **400** : `WRONG_ANSWER`, `ORDER`, `SUBMISSIONS_ARRAY_REQUIRED`, etc. (libellés utilisateur + pas de fuite de la bonne réponse).  
 - [ ] Après succès `validate-enigma` : afficher **`answerMessage`** de l’énigme depuis **`GET adventures/{id}`** (la réponse POST ne contient que `ok`, `stepKey`, éventuellement `alreadyValidated` — pas de `answerMessage`).
+- [ ] Après succès `validate-treasure` : afficher **`treasure.finishMessage`** depuis la fiche (même logique : pas dans la réponse POST).
 
 ### Fin **sans** trésor
 

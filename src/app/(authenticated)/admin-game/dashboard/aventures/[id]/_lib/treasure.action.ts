@@ -13,6 +13,7 @@ import { deleteUploadsFileByUrl } from "@/lib/uploads/delete-uploads-file";
 export type CreateTrasureInput = {
   name: string;
   description: Prisma.InputJsonValue;
+  finishMessage: Prisma.InputJsonValue;
   latitude: number;
   longitude: number;
   chestCode: string;
@@ -40,6 +41,7 @@ export async function createTrasure(
       data: {
         name: form.name,
         description: form.description,
+        finishMessage: form.finishMessage,
         latitude: form.latitude,
         longitude: form.longitude,
         chestCode: form.chestCode,
@@ -82,6 +84,7 @@ export async function updateTreasure(
       data: {
         name: form.name,
         description: form.description,
+        finishMessage: form.finishMessage,
         latitude: form.latitude,
         longitude: form.longitude,
         chestCode: form.chestCode,

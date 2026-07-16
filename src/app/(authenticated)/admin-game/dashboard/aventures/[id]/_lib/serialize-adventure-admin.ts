@@ -82,6 +82,7 @@ export function treasurePayloadForCard(
       id: treasure.id,
       name: treasure.name,
       description: treasure.description,
+      finishMessage: treasure.finishMessage,
       chestCode: treasure.chestCode,
       chestCodeAlt: treasure.chestCodeAlt,
       latitude: treasure.latitude,

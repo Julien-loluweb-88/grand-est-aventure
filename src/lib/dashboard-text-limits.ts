@@ -13,6 +13,9 @@ export const TREASURE_NAME_MAX_CHARS = 100;
 /** Texte brut (TipTap) pour le message après bonne réponse (énigme). */
 export const ENIGMA_ANSWER_MESSAGE_PLAIN_MAX_CHARS = 500;
 
+/** Texte brut (TipTap) pour le message de fin après validation du trésor. */
+export const TREASURE_FINISH_MESSAGE_PLAIN_MAX_CHARS = 500;
+
 /** Descriptions riches (aventure, énigme, trésor) : longueur texte visible. */
 export const RICH_TEXT_PLAIN_MAX_CHARS = 50_000;
 

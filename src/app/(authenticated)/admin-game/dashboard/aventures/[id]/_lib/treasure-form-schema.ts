@@ -2,6 +2,8 @@ import * as z from "zod";
 import {
   adventureDescriptionCreateZod,
   adventureDescriptionEditZod,
+  treasureFinishMessageCreateZod,
+  treasureFinishMessageEditZod,
 } from "@/lib/adventure-description-schema";
 import { TREASURE_NAME_MAX_CHARS } from "@/lib/dashboard-text-limits";
 
@@ -39,11 +41,13 @@ const treasureSharedFields = {
 export const treasureCreateFormSchema = z.object({
   ...treasureSharedFields,
   description: adventureDescriptionCreateZod,
+  finishMessage: treasureFinishMessageCreateZod,
 });
 
 export const treasureEditFormSchema = z.object({
   ...treasureSharedFields,
   description: adventureDescriptionEditZod,
+  finishMessage: treasureFinishMessageEditZod,
 });
 
 export type TreasureCreateFormValues = z.infer<typeof treasureCreateFormSchema>;

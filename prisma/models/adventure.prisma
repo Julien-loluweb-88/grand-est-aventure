@@ -132,6 +132,8 @@ model Treasure {
   id          String    @id @default(cuid())
   name        String
   description Json
+  /// Message de fin affiché après validation du code coffre (écran victoire).
+  finishMessage Json
   latitude    Float
   /// Code **dans le trésor physique** (coffre, étiquette…), validé à l’étape `treasure`.
   chestCode         String

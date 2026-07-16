@@ -18,7 +18,11 @@ import { AdventureDescriptionEditor } from "@/components/adventure/AdventureDesc
 import { EditorialRewriteControl } from "@/components/admin/EditorialRewriteControl";
 import { DashboardImageUploadField } from "@/components/uploads/DashboardImageUploadField";
 import type { TreasureCreateFormValues } from "../_lib/treasure-form-schema";
-import { RICH_TEXT_PLAIN_MAX_CHARS, TREASURE_NAME_MAX_CHARS } from "@/lib/dashboard-text-limits";
+import {
+  RICH_TEXT_PLAIN_MAX_CHARS,
+  TREASURE_FINISH_MESSAGE_PLAIN_MAX_CHARS,
+  TREASURE_NAME_MAX_CHARS,
+} from "@/lib/dashboard-text-limits";
 
 export type TreasureFormUiModel = TreasureCreateFormValues;
 
@@ -235,6 +239,39 @@ export function TreasureFormFields({
                 {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
               </Field>
             </FieldGroup>
+          )}
+        />
+        <Controller
+          name="finishMessage"
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor={field.name}>Message de fin (trésor trouvé)</FieldLabel>
+              <FieldDescription>
+                Affiché sur l&apos;écran de victoire après validation du code coffre.
+              </FieldDescription>
+              <AdventureDescriptionEditor
+                id={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                disabled={!canEdit}
+                aria-invalid={fieldState.invalid}
+                richTextImageUploadAdventureId={adventureId}
+                editorialRewrite={
+                  canEdit
+                    ? {
+                        scope: { type: "adventure", adventureId },
+                        warnIfPlainLengthExceeds: {
+                          max: TREASURE_FINISH_MESSAGE_PLAIN_MAX_CHARS,
+                          label: "Le message de fin (texte brut)",
+                        },
+                        plainCharacterCountMax: TREASURE_FINISH_MESSAGE_PLAIN_MAX_CHARS,
+                      }
+                    : undefined
+                }
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
           )}
         />
       </FieldSet>

@@ -36,7 +36,7 @@ Références complémentaires :
 | `GET` | `/api/game/home` | **Accueil mobile** : stats (`communityStats`), pubs placement `home`, `locationContext`, catalogue + `featuredAdventures`, `recentReviews`. GPS optionnel (`latitude`/`longitude`) pour distance et ciblage pub (ville inférée). Session optionnelle. |
 | `GET` | `/api/game/cities` | Liste des villes (référentiel). |
 | `GET` | `/api/game/adventures` | Catalogue **PUBLIC** + actives (les aventures **DEMO** n’y figurent pas). |
-| `GET` | `/api/game/adventures/{id}` | Détail : énigmes (`answerMessage`, pas les réponses), trésor **sans codes**, `discoveryPoints` de la ville, durées, etc. **DEMO** : session + droit requis. |
+| `GET` | `/api/game/adventures/{id}` | Détail : énigmes (`answerMessage`, pas les réponses), trésor **sans codes** (`finishMessage` pour l’écran victoire), `discoveryPoints` de la ville, durées, etc. **DEMO** : session + droit requis. |
 | `GET` | `/api/game/discovery-points?cityId=` | POI « découverte » pour une carte **ville** (usage hors fiche aventure si besoin). |
 | `GET` | `/api/game/avatars` | Avatars compagnon actifs (`id`, `slug`, `name`, `thumbnailUrl`, `modelUrl`, …) — **sans session** ; si `modelUrl` est renseigné, charger le **.glb** depuis le serveur, sinon repli bundle local via `slug`. |
 ### 2.2 Jeu — parcours (session joueur)
@@ -197,7 +197,7 @@ Plusieurs routes utilisent `src/lib/api/simple-rate-limit.ts` (mémoire **par in
 
 1. Session stable ([`expo-better-auth.md`](expo-better-auth.md)).
 2. Accueil : **`GET /api/game/home`** (ou `cities` + `adventures`) ; pubs accueil dans `home` ou `placement=home`.
-3. Lire `treasure` dans `adventures/{id}` pour choisir **finish** vs **treasure** ; `answerMessage` sur la fiche (pas dans la réponse `validate-enigma`).
+3. Lire `treasure` dans `adventures/{id}` pour choisir **finish** vs **treasure** ; `answerMessage` / `treasure.finishMessage` sur la fiche (pas dans les réponses `validate-enigma` / `validate-treasure`).
 4. `validate-enigma` : ordre + `multiSelect` / `submissions` ; trésor : carte (`treasure:map`) puis coffre.
 5. Après victoire : `adventure-partner-lots` → `spin` → affichage `validUntil` / `legalNotice` → `redeem` en boutique.
 6. Ne pas confondre **roue aventure** et **`partner-offers/claims`** (flux **Advertisement** — voir [`expo-publicites-offres-partenaires.md`](expo-publicites-offres-partenaires.md)).

@@ -81,6 +81,7 @@ export async function GET(request: NextRequest, context: Ctx) {
           id: true,
           name: true,
           description: true,
+          finishMessage: true,
           latitude: true,
           longitude: true,
           imageUrl: true,
