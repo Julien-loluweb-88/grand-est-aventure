@@ -10,8 +10,10 @@ import { RemoveAdventureForm } from "./RemoveAdventure";
 import { AdventureAdminAssigneesForm } from "./AdventureAdminAssigneesForm";
 import type { AdventureAdminScopeEditorResult } from "../_lib/adventure-admin-scope-queries";
 import type { AdventureAdminDetail } from "../_lib/adventure-queries";
+import type { AdventureExportAvailability } from "../_lib/adventure-export.types";
 import { UserAdventuresComponent } from "./UserAdventuresComponent";
 import { ListAdventureReview } from "./ListAdventureReview";
+import { AdventureExportPdfDialog } from "./AdventureExportPdfDialog";
 
 export function AdventureAdminModerationAside({
   adventureId,
@@ -19,12 +21,14 @@ export function AdventureAdminModerationAside({
   adminScopeSection,
   userAdventures,
   adventureReviews,
+  exportAvailability,
 }: {
   adventureId: string;
   adventureName: string;
   adminScopeSection: AdventureAdminScopeEditorResult | null;
   userAdventures: AdventureAdminDetail["userAdventures"];
   adventureReviews: AdventureAdminDetail["adventureReviews"];
+  exportAvailability: AdventureExportAvailability;
 }) {
 
   return (
@@ -32,10 +36,15 @@ export function AdventureAdminModerationAside({
       <Card>
         <CardHeader>
           <CardTitle>Modération</CardTitle>
-          <CardDescription>Changement statut, suppression</CardDescription>
+          <CardDescription>Changement statut, suppression, export</CardDescription>
         </CardHeader>
         <CardContent className="mx-auto flex w-full max-w-xs flex-col gap-3">
           <StatusAdventure adventure={{ id: adventureId }} />
+          <AdventureExportPdfDialog
+            adventureId={adventureId}
+            adventureName={adventureName}
+            availability={exportAvailability}
+          />
           <RemoveAdventureForm adventure={{ id: adventureId, name: adventureName }} />
         </CardContent>
       </Card>

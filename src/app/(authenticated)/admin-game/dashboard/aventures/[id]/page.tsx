@@ -257,6 +257,15 @@ export default async function AdventurePage({
           adminScopeSection={adminScopeSection}
           userAdventures={adventure?.userAdventures ?? []}
           adventureReviews={adventure?.adventureReviews ?? []}
+          exportAvailability={{
+            enigmas: adventure.enigmas.length > 0,
+            treasure: Boolean(adventure.treasure),
+            reviews: (adventure.adventureReviews ?? []).some(
+              (r) => r.moderationStatus === "APPROVED"
+            ),
+            discoveryPoints: (adventureDiscoveryPoints?.length ?? 0) > 0,
+            partnerLots: partnerLotsClient.length > 0,
+          }}
         />
       </div>
     </div>
