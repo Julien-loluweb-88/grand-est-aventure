@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,16 +49,20 @@ const SECTION_LABELS: Record<
   },
 };
 
-function openExportWindow(html: string) {
-  const win = window.open("", "_blank", "noopener,noreferrer,width=900,height=1000");
-  if (!win) {
-    throw new Error(
-      "Impossible d’ouvrir la fenêtre d’export. Autorisez les pop-ups pour ce site."
-    );
-  }
+function writeExportDocument(win: Window, html: string) {
   win.document.open();
   win.document.write(html);
   win.document.close();
+}
+
+function openExportPlaceholderWindow(): Window | null {
+  // Pas de `noopener` : sinon `window.open` renvoie `null` et on ne peut plus écrire dedans.
+  const win = window.open("about:blank", "_blank", "width=900,height=1000");
+  if (!win) return null;
+  win.document.open();
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8"/><title>Export…</title></head><body style="font:14px/1.4 sans-serif;padding:24px;color:#333"><p>Préparation de la fiche PDF…</p></body></html>`);
+  win.document.close();
+  return win;
 }
 
 export function AdventureExportPdfDialog({
@@ -79,7 +83,7 @@ export function AdventureExportPdfDialog({
   const [selected, setSelected] = useState<Set<AdventureExportOptionalSection>>(
     () => new Set(availableSections)
   );
-  const [pending, startTransition] = useTransition();
+  const [pending, setPending] = useState(false);
 
   const handleOpenChange = (next: boolean) => {
     setOpen(next);
@@ -97,25 +101,40 @@ export function AdventureExportPdfDialog({
     });
   };
 
-  const runExport = () => {
+  const runExport = async () => {
     const sections = Array.from(selected);
+    // Ouverture synchrone au clic (sinon le navigateur bloque la pop-up après l’await).
+    const win = openExportPlaceholderWindow();
+    if (!win) {
+      toast.error(
+        "Impossible d’ouvrir la fenêtre d’export. Autorisez les pop-ups pour ce site."
+      );
+      return;
+    }
 
-    startTransition(async () => {
+    setPending(true);
+    try {
       const result = await getAdventureExportPayload(adventureId, sections);
       if (!result.success) {
+        win.close();
         toast.error(result.error);
         return;
       }
+      writeExportDocument(win, buildAdventureExportHtml(result.payload));
+      setOpen(false);
+      toast.success("Fenêtre d’export ouverte — enregistrez en PDF.");
+    } catch (err) {
       try {
-        openExportWindow(buildAdventureExportHtml(result.payload));
-        setOpen(false);
-        toast.success("Fenêtre d’export ouverte — enregistrez en PDF.");
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Échec de l’ouverture de l’export."
-        );
+        win.close();
+      } catch {
+        /* ignore */
       }
-    });
+      toast.error(
+        err instanceof Error ? err.message : "Échec de l’ouverture de l’export."
+      );
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
