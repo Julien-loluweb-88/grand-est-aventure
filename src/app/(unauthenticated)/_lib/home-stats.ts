@@ -93,12 +93,7 @@ export function buildHomeStatItems(snapshot: HomePageSnapshot): HomeStatItem[] {
   return items.slice(0, 6);
 }
 
-export function shouldShowHomeStatsSection(snapshot: HomePageSnapshot): boolean {
-  return (
-    snapshot.adventureCount > 0 ||
-    snapshot.communityStats.totalEnigmasSolved > 0 ||
-    snapshot.communityStats.totalAdventuresCompleted > 0 ||
-    snapshot.communityStats.totalBadgesEarned > 0 ||
-    snapshot.publishedReviewCount > 0
-  );
+export function shouldShowHomeStatsSection(_snapshot: HomePageSnapshot): boolean {
+  // Temporaire : chiffres encore trop bas pour la preuve sociale publique.
+  return false;
 }

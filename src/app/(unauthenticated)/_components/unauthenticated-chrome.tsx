@@ -94,14 +94,9 @@ function LandingHeader() {
           Comment ça marche ?
         </HomeSectionLink>
         {SHOW_PUBLIC_HOME_MAP ? (
-          <>
-            <HomeSectionLink href="/#parcours" className="hover:underline">
-              Parcours
-            </HomeSectionLink>
-            <HomeSectionLink href="/#carte-aventures" className="hover:underline">
-              Carte
-            </HomeSectionLink>
-          </>
+          <HomeSectionLink href="/#carte-aventures" className="hover:underline">
+            Carte
+          </HomeSectionLink>
         ) : null}
         <HomeSectionLink href="/#reviews" className="hover:underline">
           Avis
@@ -153,22 +148,13 @@ function LandingHeader() {
                 Comment ça marche ?
               </HomeSectionLink>
               {SHOW_PUBLIC_HOME_MAP ? (
-                <>
-                  <HomeSectionLink
-                    href="/#parcours"
-                    className={mobileNavLinkClass}
-                    onAfterNavigate={closeMobile}
-                  >
-                    Parcours
-                  </HomeSectionLink>
-                  <HomeSectionLink
-                    href="/#carte-aventures"
-                    className={mobileNavLinkClass}
-                    onAfterNavigate={closeMobile}
-                  >
-                    Carte
-                  </HomeSectionLink>
-                </>
+                <HomeSectionLink
+                  href="/#carte-aventures"
+                  className={mobileNavLinkClass}
+                  onAfterNavigate={closeMobile}
+                >
+                  Carte
+                </HomeSectionLink>
               ) : null}
               <HomeSectionLink
                 href="/#reviews"
